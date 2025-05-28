@@ -1,17 +1,18 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { IonContent, IonHeader, IonTitle, IonToolbar } from '@ionic/angular/standalone';
+import { IonContent, IonHeader, IonTitle, IonToolbar, IonItem, IonLabel, IonInput, IonButton, IonText } from '@ionic/angular/standalone';
 import { AuthService } from '../auth.service';
 import { Router } from '@angular/router';
-import { IonItem, IonLabel, IonInput, IonButton, IonText } from '@ionic/angular/standalone';
 
 @Component({
   selector: 'app-login',
   templateUrl: './login.page.html',
   styleUrls: ['./login.page.scss'],
   standalone: true,
-  imports: [IonContent, IonHeader, IonTitle, IonToolbar, CommonModule, FormsModule, IonItem, IonLabel, IonInput, IonButton, IonText]
+  imports: [IonContent, IonHeader, IonTitle, IonToolbar, IonItem, IonLabel, IonInput, IonButton, IonText,
+            CommonModule, FormsModule,
+          ]
 })
 export class LoginPage implements OnInit {
   username = '';
@@ -24,9 +25,15 @@ export class LoginPage implements OnInit {
 
   onLogin() {
     this.errorMsg = '';
+
+    if (!this.username || !this.password) {
+      this.errorMsg = 'Inserisci username e password.';
+      return;
+    }
+    
     this.authService.login({ username: this.username, password: this.password }).subscribe({
       next: (res) => {
-        this.authService.setUser(res.user); // Salva utente loggato
+        this.authService.setUser(res.user);
         this.router.navigate(['/dashboard']);
       },
       error: (err) => {
