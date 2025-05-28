@@ -10,4 +10,29 @@
       <ion-title size="large">register</ion-title>
     </ion-toolbar>
   </ion-header>
+  <form (ngSubmit)="onRegister()" style="padding: 16px;">
+    <ion-item>
+      <ion-label position="floating">Username</ion-label>
+      <ion-input [(ngModel)]="username" name="username" required></ion-input>
+    </ion-item>
+    <ion-item>
+      <ion-label position="floating">Email</ion-label>
+      <ion-input [(ngModel)]="email" name="email" type="email" required></ion-input>
+    </ion-item>
+    <ion-item>
+      <ion-label position="floating">Password</ion-label>
+      <ion-input [(ngModel)]="password" name="password" type="password" required></ion-input>
+    </ion-item>
+    <ion-item>
+      <ion-label position="floating">Ruolo</ion-label>
+      <ion-select [(ngModel)]="role" name="role" required>
+        <ion-select-option value="customer">Cliente</ion-select-option>
+        <ion-select-option value="manager">Manager</ion-select-option>
+        <ion-select-option value="admin">Admin</ion-select-option>
+      </ion-select>
+    </ion-item>
+    <ion-button expand="block" type="submit" style="margin-top: 16px;">Registrati</ion-button>
+    <ion-text color="danger" *ngIf="errorMsg">{{ errorMsg }}</ion-text>
+    <ion-text color="success" *ngIf="successMsg">{{ successMsg }}</ion-text>
+  </form>
 </ion-content>
