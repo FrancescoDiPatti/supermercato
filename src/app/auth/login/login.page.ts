@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IonContent, IonHeader, IonTitle, IonToolbar, IonItem, IonLabel, IonInput, IonButton, IonText } from '@ionic/angular/standalone';
@@ -19,9 +19,20 @@ export class LoginPage implements OnInit {
   password = '';
   errorMsg = '';
 
-  constructor(private authService: AuthService, private router: Router) { }
+  constructor(
+    private authService: AuthService, 
+    private router: Router,
+    private elementRef: ElementRef
+  ) { }
 
   ngOnInit() {}
+
+  private clearFocus() {
+    const activeElement = document.activeElement as HTMLElement;
+    if (activeElement) {
+      activeElement.blur();
+    }
+  }
 
   onLogin() {
     this.errorMsg = '';
@@ -34,14 +45,8 @@ export class LoginPage implements OnInit {
     this.authService.login({ username: this.username, password: this.password }).subscribe({
       next: (res) => {
         this.authService.setUser(res.user);
-        const role = res.user?.role;
-        if (role === 'admin') {
-          this.router.navigate(['/admin']);
-        } else if (role === 'manager') {
-          this.router.navigate(['/manager']);
-        } else {
-          this.router.navigate(['/user']);
-        }
+        this.clearFocus();
+        this.router.navigate(['/dashboard']);
       },
       error: (err) => {
         this.errorMsg = err.error?.error || 'Errore di login';
@@ -50,6 +55,7 @@ export class LoginPage implements OnInit {
   }
 
   goToRegister() {
+    this.clearFocus();
     this.router.navigate(['/register'], {
       state: {
         username: this.username,

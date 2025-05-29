@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IonContent, IonHeader, IonTitle, IonToolbar, IonItem, IonLabel, IonInput, IonButton, IonText, IonSelect, IonSelectOption } from '@ionic/angular/standalone';
@@ -22,7 +22,11 @@ export class RegisterPage implements OnInit {
   errorMsg = '';
   successMsg = '';
 
-  constructor(private authService: AuthService, private router: Router) {
+  constructor(
+    private authService: AuthService, 
+    private router: Router,
+    private elementRef: ElementRef
+  ) {
     // Recupera dati dal login se presenti
     const nav = this.router.getCurrentNavigation();
     if (nav?.extras?.state) {
@@ -32,6 +36,13 @@ export class RegisterPage implements OnInit {
   }
 
   ngOnInit() {}
+
+  private clearFocus() {
+    const activeElement = document.activeElement as HTMLElement;
+    if (activeElement) {
+      activeElement.blur();
+    }
+  }
 
   onRegister() {
     this.errorMsg = '';
@@ -45,12 +56,13 @@ export class RegisterPage implements OnInit {
     this.authService.register({ username: this.username, password: this.password, email: this.email, role: this.role }).subscribe({
       next: (res) => {
         this.successMsg = 'Registrazione avvenuta con successo!';
+        this.clearFocus();
         setTimeout(() => this.router.navigate(['/login']), 1000);
       },
       error: (err) => {
         if (err.status === 400 && err.error?.error?.includes('Username già presente')) {
           this.errorMsg = 'Username già registrato. Scegli un altro username.';
-        }else {
+        } else {
           this.errorMsg = err.error?.error || 'Errore di registrazione';
         }
       }
@@ -58,6 +70,7 @@ export class RegisterPage implements OnInit {
   }
 
   goToLogin() {
+    this.clearFocus();
     this.router.navigate(['/login'], {
       state: {
         username: this.username,

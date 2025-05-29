@@ -11,16 +11,20 @@
         <ion-button fill="clear">
           <ion-icon slot="start" name="storefront-outline"></ion-icon>supermercati
         </ion-button>
+        
         <ion-button fill="clear">
           <ion-icon slot="start" name="cube-outline"></ion-icon>prodotti
         </ion-button>
+        
         <ion-button fill="clear">
           <ion-icon slot="start" name="pricetags-outline"></ion-icon>offerte
         </ion-button>
+        
         <ion-button fill="clear">
           <ion-icon slot="start" name="cart-outline"></ion-icon>carrello 
         </ion-button>
-        <ion-button fill="clear">
+        
+        <ion-button fill="clear" *ngIf="isCustomer()">
           <ion-icon slot="start" name="receipt-outline"></ion-icon>ordini
         </ion-button>
       </div>

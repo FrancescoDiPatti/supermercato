@@ -28,50 +28,8 @@ export const routes: Routes = [
     loadComponent: () => import('./auth/register/register.page').then( m => m.RegisterPage)
   },
   {
-    path: 'list',
-    loadComponent: () => import('./supermercati/list/list.page').then( m => m.ListPage)
-  },
-  {
-    path: 'detail',
-    loadComponent: () => import('./supermercati/detail/detail.page').then( m => m.DetailPage)
-  },
-  {
-    path: 'create',
-    loadComponent: () => import('./supermercati/create/create.page').then( m => m.CreatePage)
-  },
-  {
-    path: 'list',
-    loadComponent: () => import('./prodotti/list/list.page').then( m => m.ListPage)
-  },
-  {
-    path: 'create',
-    loadComponent: () => import('./prodotti/create/create.page').then( m => m.CreatePage)
-  },
-  {
-    path: 'offerte',
-    loadComponent: () => import('./prodotti/offerte/offerte.page').then( m => m.OffertePage)
-  },
-  {
-    path: 'list',
-    loadComponent: () => import('./acquisti/list/list.page').then( m => m.ListPage)
-  },
-  {
-    path: 'create',
-    loadComponent: () => import('./acquisti/create/create.page').then( m => m.CreatePage)
-  },
-  {
-    path: 'user',
-    loadComponent: () => import('./dashboard/user/user.page').then( m => m.UserPage),
+    path: 'dashboard',
+    loadComponent: () => import('./dashboard/dashboard.page').then( m => m.DashboardPage),
     canActivate: [authGuard]
-  },
-  {
-    path: 'admin',
-    loadComponent: () => import('./dashboard/admin/admin.page').then( m => m.AdminPage),
-    canActivate: [authGuard]
-  },
-  {
-    path: 'manager',
-    loadComponent: () => import('./dashboard/manager/manager.page').then( m => m.ManagerPage),
-    canActivate: [authGuard]
-  },
+  }
 ];
