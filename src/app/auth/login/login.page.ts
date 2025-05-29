@@ -34,7 +34,14 @@ export class LoginPage implements OnInit {
     this.authService.login({ username: this.username, password: this.password }).subscribe({
       next: (res) => {
         this.authService.setUser(res.user);
-        this.router.navigate(['/dashboard']);
+        const role = res.user?.role;
+        if (role === 'admin') {
+          this.router.navigate(['/admin']);
+        } else if (role === 'manager') {
+          this.router.navigate(['/manager']);
+        } else {
+          this.router.navigate(['/user']);
+        }
       },
       error: (err) => {
         this.errorMsg = err.error?.error || 'Errore di login';

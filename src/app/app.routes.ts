@@ -61,10 +61,17 @@ export const routes: Routes = [
   },
   {
     path: 'user',
-    loadComponent: () => import('./dashboard/user/user.page').then( m => m.UserPage)
+    loadComponent: () => import('./dashboard/user/user.page').then( m => m.UserPage),
+    canActivate: [authGuard]
   },
   {
     path: 'admin',
-    loadComponent: () => import('./dashboard/admin/admin.page').then( m => m.AdminPage)
+    loadComponent: () => import('./dashboard/admin/admin.page').then( m => m.AdminPage),
+    canActivate: [authGuard]
+  },
+  {
+    path: 'manager',
+    loadComponent: () => import('./dashboard/manager/manager.page').then( m => m.ManagerPage),
+    canActivate: [authGuard]
   },
 ];
