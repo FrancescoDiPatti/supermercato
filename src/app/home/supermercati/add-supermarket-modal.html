@@ -1,0 +1,44 @@
+<ion-modal [isOpen]="addSupermarketModalOpen" (didDismiss)="closeAddSupermarketModal()" class="add-supermarket-modal">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar color="primary">
+        <ion-title>Aggiungi Supermercato</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="closeAddSupermarketModal()">
+            <ion-icon name="close-outline"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+      <div class="modal-header-divider"></div>
+    </ion-header>
+    <ion-content class="ion-padding modal-content-animate">
+      <form (ngSubmit)="submitAddSupermarket()" #addSupermarketForm="ngForm" autocomplete="off">
+        <ion-card class="modal-form-card">
+          <ion-list lines="none">
+            <ion-item class="modal-item">
+              <ion-label position="floating">Nome Supermercato</ion-label>
+              <ion-input required [(ngModel)]="newSupermarket.name" name="name" maxlength="40"></ion-input>
+            </ion-item>
+            <ion-item class="modal-item">
+              <ion-label position="floating">Indirizzo</ion-label>
+              <ion-input required [(ngModel)]="newSupermarket.address" name="address" (ionInput)="onAddressInputDebounced()" autocomplete="off" maxlength="80"></ion-input>
+              <ion-icon name="location-outline" slot="end" color="primary"></ion-icon>
+            </ion-item>
+          </ion-list>
+        </ion-card>
+        <ion-list class="autocomplete-list" *ngIf="addressSuggestions.length > 0">
+          <ion-item button *ngFor="let suggestion of addressSuggestions" (click)="selectAddressSuggestion(suggestion)">
+            <ion-icon name="pin-outline" slot="start" color="medium"></ion-icon>
+            <span>{{suggestion.display_name}}</span>
+          </ion-item>
+        </ion-list>
+        <div class="modal-actions">
+          <ion-button expand="block" size="large" shape="round" color="primary" type="submit" [disabled]="!addSupermarketForm.form.valid || isSubmitting">
+            <ion-icon name="save-outline" slot="start"></ion-icon>
+            Salva
+          </ion-button>
+        </div>
+      </form>
+    </ion-content>
+  </ng-template>
+</ion-modal>

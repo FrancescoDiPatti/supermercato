@@ -7,9 +7,6 @@ import {
   IonHeader,
   IonTitle,
   IonToolbar,
-  IonItem,
-  IonLabel,
-  IonList,
   IonButton,
   IonText,
   IonMenu,
@@ -18,7 +15,7 @@ import {
   IonIcon,
   IonSplitPane
 } from '@ionic/angular/standalone';
-import { DashboardService } from './dashboard.service';
+import { HomeService } from './home.service';
 import { AuthService } from '../auth/auth.service';
 import { addIcons } from 'ionicons';
 import {
@@ -29,12 +26,13 @@ import {
   logOutOutline,
   menuOutline,
   pricetagsOutline,
+  gridOutline,
 } from 'ionicons/icons';
 
 @Component({
-  selector: 'app-dashboard',
-  templateUrl: './dashboard.page.html',
-  styleUrls: ['./dashboard.page.scss'],
+  selector: 'app-home',
+  templateUrl: './home.page.html',
+  styleUrls: ['./home.page.scss'],
   standalone: true,
   imports: [
     CommonModule,
@@ -44,25 +42,20 @@ import {
     IonHeader,
     IonTitle,
     IonToolbar,
-    IonItem,
-    IonLabel,
-    IonList,
     IonButton,
     IonText,
     IonMenu,
     IonMenuButton,
     IonButtons,
     IonIcon,
-    IonSplitPane
+    IonSplitPane,
   ]
 })
-export class DashboardPage implements OnInit {
-  dashboardData: any;
+export class HomePage implements OnInit {  homeData: any;
   errorMsg = '';
-  userRole: string = '';
 
   constructor(
-    private dashboardService: DashboardService,
+    private homeService: HomeService,
     private authService: AuthService,
     private router: Router,
     private elementRef: ElementRef
@@ -75,11 +68,12 @@ export class DashboardPage implements OnInit {
       logOutOutline,
       menuOutline,
       pricetagsOutline,
+      gridOutline,
     });
   }
 
   ngOnInit() {
-    this.loadDashboard();
+    this.loadHome();
   }
 
   private clearFocus() {
@@ -88,47 +82,37 @@ export class DashboardPage implements OnInit {
       activeElement.blur();
     }
   }
-
-  private loadDashboard() {
-    // Clear existing dashboard data
-    this.dashboardData = null;
-    this.userRole = '';
+  private loadHome() {
+    this.homeData = null;
     this.errorMsg = '';
-    this.authService.clearDashboardData();
+    this.authService.clearHomeData();
 
-    this.dashboardService.getDashboard().subscribe({
+    this.homeService.getHome().subscribe({
       next: (res) => {
-        this.dashboardData = res.data;
-        this.userRole = this.dashboardData.user?.role || '';
+        this.homeData = res.data;
+        if (res.data.user) {
+          this.authService.setUser(res.data.user);
+        }
       },
       error: (err) => {
-        this.errorMsg = 'Errore nel recupero della dashboard';
+        this.errorMsg = 'Errore nel recupero dei dati';
       }
     });
   }
 
-  isAdmin(): boolean {
-    return this.userRole === 'admin';
+  public get isAdmin(): boolean {
+    const user = this.authService.getUser();
+    return user && user.role === 'admin';
   }
 
-  isManager(): boolean {
-    return this.userRole === 'manager';
+  public get isManager(): boolean {
+    const user = this.authService.getUser();
+    return user && user.role === 'manager';
   }
 
-  isCustomer(): boolean {
-    return this.userRole === 'customer';
-  }
-
-  canManageProducts(): boolean {
-    return this.isAdmin() || this.isManager();
-  }
-
-  canManageOffers(): boolean {
-    return this.isAdmin() || this.isManager();
-  }
-
-  canManageSupemarkets(): boolean {
-    return this.isAdmin();
+  public get isCustomer(): boolean {
+    const user = this.authService.getUser();
+    return user && user.role === 'customer';
   }
 
   logout() {

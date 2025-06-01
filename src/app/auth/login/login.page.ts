@@ -46,7 +46,7 @@ export class LoginPage implements OnInit {
       next: (res) => {
         this.authService.setUser(res.user);
         this.clearFocus();
-        this.router.navigate(['/dashboard']);
+        this.router.navigate(['/home']);
       },
       error: (err) => {
         this.errorMsg = err.error?.error || 'Errore di login';

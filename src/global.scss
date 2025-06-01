@@ -64,7 +64,15 @@ ion-card {
 ion-toolbar {
   --background: #ffffff;
   --color: #000000;
+}
+
+ion-header {
+  box-shadow: none !important;
   border-bottom: 1px solid #eee;
+
+  ion-toolbar:last-child {
+    --border-width: 0;
+  }
 }
 
 h1, h2, h3, h4, h5, h6, p, span, ion-label {

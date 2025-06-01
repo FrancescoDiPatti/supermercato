@@ -26,16 +26,17 @@ export class AuthService {
     const user = localStorage.getItem('user');
     return user ? JSON.parse(user) : null;
   }
+
   logout() {
     localStorage.removeItem('user');
-    localStorage.removeItem('dashboardData');
+    localStorage.removeItem('homeData');
   }
 
   isLoggedIn(): boolean {
     return !!localStorage.getItem('user');
   }
 
-  clearDashboardData() {
-    localStorage.removeItem('dashboardData');
+  clearHomeData() {
+    localStorage.removeItem('homeData');
   }
 }

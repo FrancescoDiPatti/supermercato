@@ -5,12 +5,12 @@ import { Observable } from 'rxjs';
 @Injectable({
   providedIn: 'root'
 })
-export class DashboardService {
+export class HomeService {
   private apiUrl = 'http://localhost:5000/dashboard';
 
   constructor(private http: HttpClient) { }
 
-  getDashboard(): Observable<any> {
+  getHome(): Observable<any> {
     return this.http.get(this.apiUrl, { withCredentials: true });
   }
 }

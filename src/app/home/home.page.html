@@ -1,0 +1,59 @@
+<ion-split-pane when="md" contentId="main">
+  <ion-menu contentId="main" side="start">
+    <ion-header>
+      <ion-toolbar>
+        <ion-title>SM Simulator</ion-title>
+      </ion-toolbar>
+    </ion-header>
+
+    <ion-content class="ion-padding menu-content">
+      <div class="menu-items">
+        <ion-button fill="clear" routerLink="dashboard">
+          <ion-icon slot="start" name="grid-outline"></ion-icon>Dashboard
+        </ion-button>
+        <ion-button fill="clear" routerLink="supermercati">
+          <ion-icon slot="start" name="storefront-outline"></ion-icon>Supermercati
+        </ion-button>
+        
+        <ion-button fill="clear" routerLink="prodotti">
+          <ion-icon slot="start" name="cube-outline"></ion-icon>Prodotti
+        </ion-button>
+        
+        <ion-button fill="clear" routerLink="offerte">
+          <ion-icon slot="start" name="pricetags-outline"></ion-icon>Offerte
+        </ion-button>
+          <ion-button fill="clear" *ngIf="isCustomer" routerLink="carrello">
+          <ion-icon slot="start" name="cart-outline"></ion-icon>Carrello 
+        </ion-button>
+        
+        <ion-button fill="clear" *ngIf="isCustomer" routerLink="ordini">
+          <ion-icon slot="start" name="receipt-outline"></ion-icon>Ordini
+        </ion-button>
+      </div>
+
+      <div class="logout-section">
+        <ion-button fill="clear" (click)="logout()">
+          <ion-icon slot="start" name="log-out-outline"></ion-icon>Logout
+        </ion-button>
+      </div>
+    </ion-content>
+  </ion-menu>
+
+  <div class="ion-page" id="main">
+    <ion-header>
+      <ion-toolbar>
+        <ion-buttons slot="start">
+          <ion-menu-button></ion-menu-button>
+        </ion-buttons>
+        <ion-title>X</ion-title>
+      </ion-toolbar>
+    </ion-header>
+
+    <ion-content>
+      <ion-text color="danger" *ngIf="errorMsg">{{ errorMsg }}</ion-text>
+      <router-outlet></router-outlet>
+    </ion-content>
+  </div>
+</ion-split-pane>
+
+

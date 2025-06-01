@@ -1,6 +1,5 @@
 ion-menu {
   --ion-background-color: var(--ion-color-light);
-
   .menu-content {
     display: flex;
     flex-direction: column;
@@ -91,6 +90,7 @@ ion-menu {
       --padding-bottom: 20px;
       max-width: 300px;
     }
+    max-width: 300px;
   }
 }
 

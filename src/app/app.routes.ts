@@ -28,8 +28,38 @@ export const routes: Routes = [
     loadComponent: () => import('./auth/register/register.page').then( m => m.RegisterPage)
   },
   {
+    path: 'home',
+    loadComponent: () => import('./home/home.page').then( m => m.HomePage),
+    canActivate: [authGuard],
+    children: [
+      {
+        path: 'dashboard',
+        loadComponent: () => import('./home/dashboard/dashboard.page').then( m => m.DashboardPage)
+      },
+      {
+        path: 'supermercati',
+        loadComponent: () => import('./home/supermercati/supermercati.page').then( m => m.SupermercatiPage)
+      },
+      {
+        path: 'prodotti',
+        loadComponent: () => import('./home/prodotti/prodotti.page').then( m => m.ProdottiPage)
+      },
+      {
+        path: 'offerte',
+        loadComponent: () => import('./home/offerte/offerte.page').then( m => m.OffertePage)
+      },
+      {
+        path: 'carrello',
+        loadComponent: () => import('./home/carrello/carrello.page').then( m => m.CarrelloPage)
+      },
+      {
+        path: 'ordini',
+        loadComponent: () => import('./home/ordini/ordini.page').then( m => m.OrdiniPage)
+      }
+    ]
+  },
+  {
     path: 'dashboard',
-    loadComponent: () => import('./dashboard/dashboard.page').then( m => m.DashboardPage),
-    canActivate: [authGuard]
+    loadComponent: () => import('./home/dashboard/dashboard.page').then( m => m.DashboardPage)
   }
 ];
