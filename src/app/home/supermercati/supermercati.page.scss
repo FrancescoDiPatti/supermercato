@@ -1,3 +1,19 @@
+:host {
+  --border-radius-sm: 8px;
+  --border-radius-md: 12px;
+  --border-radius-lg: 16px;
+  --border-radius-xl: 18px;
+  --shadow-light: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow-medium: 0 4px 12px rgba(0, 0, 0, 0.1);
+  --shadow-strong: 0 12px 32px rgba(0, 0, 0, 0.16);
+  --shadow-intense: 0 16px 40px rgba(0, 0, 0, 0.18);
+  --transition-default: 0.2s ease;
+  --transition-smooth: 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  --text-color-muted: #444;
+  --card-width: 220px;
+  --card-height: 210px;
+}
+
 .map-container {
   height: calc(100vh - min(42vh, 320px));
   padding: clamp(8px, 2vw, 16px);
@@ -5,9 +21,10 @@
   #map {
     height: 90%;
     width: 100%;
-    border-radius: clamp(12px, 2vw, 16px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border-radius: clamp(var(--border-radius-md), 2vw, var(--border-radius-lg));
+    box-shadow: var(--shadow-medium);
   }
+  
   @media (max-height: 777px) {
     #map {
       height: 85%;
@@ -23,19 +40,20 @@
   z-index: 2;
   overflow: visible;
 
-  .supermarkets-title {
-    margin: 0;
-    font-size: 1.2rem;
-    font-weight: 600;
-    flex: 1;
-    letter-spacing: 0.01em;
-    color: var(--ion-color-dark);
-  }
-
   .supermarkets-header {
     display: flex;
     align-items: center;
+    
+    .supermarkets-title {
+      margin: 0;
+      font-size: 1.2rem;
+      font-weight: 600;
+      flex: 1;
+      letter-spacing: 0.01em;
+      color: var(--ion-color-dark);
+    }
   }
+
   .add-supermarket-btn {
     display: flex;
     align-items: center;
@@ -47,87 +65,88 @@
     font-size: 1em;
     --background: var(--ion-color-primary-contrast);
     --color: var(--ion-color-primary);
-    --border-radius: 18px;
-    --box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    --border-radius: var(--border-radius-xl);
+    --box-shadow: var(--shadow-light);
     --border-width: 1.5px;
     --border-color: var(--ion-color-primary);
     will-change: background, color, box-shadow, transform;
-    transition: background 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.2s, transform 0.2s;
-    &:hover, &:focus {
+    transition: background var(--transition-default), 
+                color var(--transition-default), 
+                border-color var(--transition-default), 
+                box-shadow var(--transition-default), 
+                transform var(--transition-default);
+
+    &:hover, 
+    &:focus {
       --background: var(--ion-color-primary) !important;
       --border-color: var(--ion-color-primary) !important;
       transform: translateY(-2px) scale(1.04);
       
-      .add-supermarket-icon, .add-supermarket-label {
-        color: #fff ;
-        fill: #fff ;
+      .add-supermarket-icon, 
+      .add-supermarket-label {
+        color: #fff;
+        fill: #fff;
       }
     }
-  }
-  .add-supermarket-icon {
-    font-size: 1.3em;
-    margin-right: 4px;
-    color: inherit;
-  }
-  .add-supermarket-label {
-    font-size: 1em;
-    font-weight: 600;
-    letter-spacing: 0.01em;
-    color: inherit;
-  }
 
+    .add-supermarket-icon {
+      font-size: 1.3em;
+      margin-right: 4px;
+      color: inherit;
+    }
+
+    .add-supermarket-label {
+      font-size: 1em;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      color: inherit;
+    }
+  }
   .supermarket-cards-swiper,
   swiper-container {
     width: 100%;
     height: 100%;
     --swiper-pagination-color: var(--ion-color-primary);
-    --swiper-navigation-color: var(--ion-color-primary);
   }
-
   .supermarket-card {
-    width: 220px;
-    max-width: 60vw;
-    flex: 0 0 auto;
-    height: 210px;
-    margin: 0 8px;
-    background: var(--ion-color-primary-contrast);
-    border-radius: 16px;
+    width: var(--card-width);
+    height: var(--card-height);
+    border-radius: var(--border-radius-lg);
     overflow: hidden;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    position: relative;
+    transition: all var(--transition-smooth);
     opacity: 0.85;
     filter: saturate(0.85);
-    will-change: transform, box-shadow, opacity;
     margin-top: 10px;
-    scroll-snap-align: start;
     border: 1.5px solid var(--ion-item-border-color);
     backdrop-filter: blur(2px);
-    will-change: transform, box-shadow, opacity;
 
     &:hover {
       opacity: 1;
       filter: saturate(1);
-      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.16);
-      transform: translateY(-4px) scale(1.035);
+      box-shadow: var(--shadow-strong);
+      transform: translateY(-4px) scale(1.003);
       border-color: var(--ion-color-primary);
     }
+
     &.active {
-      //gradient
       background: linear-gradient(135deg, var(--ion-color-primary) 0%, #54b950 100%);
-      transform: translateY(-6px) scale(1.03);
-      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.18);
+      transform: translateY(-6px) scale(1.005);
+      box-shadow: var(--shadow-intense);
       opacity: 1;
       border-color: var(--ion-color-primary);
+      
       .card-content {
         h3, p, .distance {
           color: var(--ion-color-primary-contrast);
-          text-shadow: 0 2px 8px rgba(0,0,0,0.12);
+          text-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
         }
       }
     }
+
     .card-image {
       height: 42%;
+      
       img {
         width: 100%;
         height: 100%;
@@ -135,11 +154,14 @@
         filter: brightness(0.98) contrast(1.08) saturate(1.1);
       }
     }
+
     .card-content {
-      padding: 10px 12px 8px 12px;
+      padding: 10px 12px 8px;
       height: 58%;
       display: flex;
       flex-direction: column;
+      text-align: center;
+
       h3 {
         font-size: 15px;
         margin: 0 0 4px 0;
@@ -147,41 +169,41 @@
         letter-spacing: 0.01em;
         overflow: hidden;
       }
-      p {
+
+      p, .distance {
         font-size: 13px;
         margin-bottom: 2px;
-        color: #444;
+        color: var(--text-color-muted);
         text-overflow: ellipsis;
         overflow: hidden;
         white-space: nowrap;
       }
+
       .distance {
-        font-size: 13px;
-        margin-bottom: 2px;
-        color: #444;
-        text-overflow: ellipsis;
-        overflow: hidden;
-        white-space: nowrap;
         font-weight: 600;
-        margin-left: 3px;
+        display: block;
       }
+
       .card-actions {
         margin-top: auto;
         display: flex;
         gap: 6px;
+        justify-content: center;
+
         ion-button {
           font-size: 11px;
           height: 22px;
-          --padding-start: 2px;
-          --padding-end: 2px;
-          --border-radius: 12px;
+          --padding-start: 5px;
+          --padding-end: 5px;
+          --border-radius: var(--border-radius-md);
           --background: var(--ion-color-primary-contrast);
           --color: var(--ion-color-primary);
-          --box-shadow: none;
-          transition: background 0.2s, color 0.2s;
+          transition: background var(--transition-default), color var(--transition-default);
+
           ion-icon {
             margin-right: 2px;
           }
+
           &:hover {
             --background: var(--ion-color-primary);
             --color: var(--ion-color-primary-contrast);
@@ -192,14 +214,25 @@
   }
 
   swiper-slide {
-    width: 220px;
+    width: var(--card-width);
     max-width: 60vw;
     flex: 0 0 auto;
   }
 }
-
-:host ::ng-deep {  .leaflet-popup-content-wrapper {
-    border-radius: 12px;
+// Leaflet
+:host ::ng-deep {  
+  .leaflet-marker-icon {
+    cursor: pointer;
+    pointer-events: auto;
+    z-index: 1000;
+  }
+  
+  .leaflet-marker-shadow {
+    pointer-events: none;
+  }
+  
+  .leaflet-popup-content-wrapper {
+    border-radius: var(--border-radius-md);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
     border: 1px solid var(--ion-color-primary);
   }
@@ -213,41 +246,10 @@
       display: block;
       margin-bottom: 4px;
     }
-    
-    .offers-badge {
-      display: inline-block;
-      background: var(--ion-color-primary);
-      color: white;
-      padding: 2px 8px;
-      border-radius: 12px;
-      font-size: 0.9em;
-      margin-top: 4px;
-    }
   }
 }
 
-.location-error {
-  position: absolute;
-  top: 16px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 1000;
-  text-align: center;
-
-  ion-chip {
-    --background: rgba(255, 183, 77, 0.9);
-    --color: #fff;
-    backdrop-filter: blur(8px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    font-size: 0.9em;
-    padding: 8px 16px;
-
-    ion-icon {
-      margin-right: 8px;
-    }
-  }
-}
-
+// Loading
 .loading-container {
   display: flex;
   flex-direction: column;
@@ -257,68 +259,187 @@
   width: 100%;
   height: 100%;
   min-height: 200px;
-
+  
   ion-spinner {
     color: var(--ion-color-primary);
     transform: scale(1.5);
   }
-
+  
   ion-label {
     color: var(--ion-color-medium);
     font-size: 0.9em;
   }
 }
 
-.add-supermarket-modal {
-  --width: 98vw;
-  --max-width: 420px;
-  --border-radius: 20px;
-  --box-shadow: 0 8px 32px rgba(0,0,0,0.18);
-  .modal-content-animate {
-    animation: modalFadeIn 0.35s cubic-bezier(.4,2,.6,1) both;
-    background: var(--ion-background-color, #fff);
-    border-radius: 20px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+// Modal styles
+.supermarket-modal {
+  --width: 90%;
+  --max-width: 460px;
+  --min-height: 400px;
+  --backdrop-opacity: 0.4;
+
+  &::part(content) {
+    border-radius: var(--border-radius-lg);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
   }
-  .modal-item {
-    border-radius: 14px;
-    margin-bottom: 12px;
-    background: var(--ion-color-light-shade, #f8f8f8);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-    transition: box-shadow 0.2s;
-    &:focus-within {
-      box-shadow: 0 4px 16px rgba(0,0,0,0.10);
+
+  ion-header,
+  ion-toolbar {
+    --background: var(--ion-color-primary);
+  }
+
+  .modal-content-padding {
+    padding: 20px 16px;
+  }
+
+  ion-list {
+    background: transparent;
+    padding: 0;
+  }
+
+  ion-item {
+    --padding-start: 0;
+    --inner-border-width: 0;
+    --inner-padding-end: 0;
+    --border-color: transparent;
+    --background: transparent;
+    margin-bottom: 20px;
+    border-radius: var(--border-radius-md);
+    transition: all var(--transition-default);
+
+    ion-label {
+      color: var(--ion-color-dark);
+      font-weight: 600;
+      font-size: 15px;
+      margin-bottom: 10px;
+      letter-spacing: 0.01em;
+    }
+
+    ion-input {
+      --background: #f8f9fa;
+      --color: var(--ion-color-dark);
+      --padding-start: 18px;
+      --padding-end: 18px;
+      --padding-top: 14px;
+      --padding-bottom: 14px;
+      --placeholder-color: var(--ion-color-medium);
+      --placeholder-opacity: 0.8;
+      --border-radius: 10px;
+      transition: all var(--transition-default);
+
+      &:focus-within {
+        --background: #ffffff;
+        border-color: var(--ion-color-primary);
+        box-shadow: 0 4px 16px rgba(var(--ion-color-primary-rgb), 0.1);
+        transform: translateY(-1px);
+      }
+    }
+
+    ion-note {
+      font-size: 12px;
+      padding-left: 18px;
+      margin-top: 6px;
+      color: var(--ion-color-medium);
+      font-weight: 400;
     }
   }
-  .autocomplete-list {
-    margin: 0 0 12px 0;
-    border-radius: 12px;
-    background: var(--ion-color-light);
-    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-    max-height: 180px;
+
+  .address-suggestions {
+    border-radius: var(--border-radius-md);
+    overflow: hidden;
+    background-color: #f8f9fa;
+    max-height: 200px;
     overflow-y: auto;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: var(--shadow-light);
+
+    ion-list {
+      background: transparent;
+      padding: 0;
+    }
+
     ion-item {
-      font-size: 0.98em;
-      border-radius: 10px;
-      margin: 2px 0;
-      transition: background 0.15s;
-      &:hover, &:focus {
-        background: var(--ion-color-primary-tint);
-        color: var(--ion-color-primary-contrast);
+      --padding-start: 16px;
+      --inner-padding-end: 16px;
+      --min-height: 52px;
+      --background: transparent;
+      --color: var(--ion-color-dark);
+      font-size: 14px;
+      margin: 0;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+      transition: background 0.15s ease;
+
+      &:last-child {
+        border-bottom: none;
       }
+    }
+  }
+
+  .form-actions {
+    margin-top: 20px;
+
+    ion-button {
+      --background: var(--ion-color-primary);
+      --color: #ffffff;
+      --border-radius: 10px;
+      height: 46px;
+      font-weight: 500;
+      font-size: 16px;
+      margin: 0;
+
       ion-icon {
+        font-size: 20px;
         margin-right: 8px;
       }
     }
   }
-  .modal-actions {
-    margin-top: 18px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+}
+// Manager info
+.manager-info {
+  display: flex;
+  align-items: center;
+  margin: 10px 0 15px;
+  padding: 8px 12px;
+  background-color: rgba(var(--ion-color-primary-rgb), 0.1);
+  border-radius: var(--border-radius-sm);
+  border-left: 3px solid var(--ion-color-primary);
+
+  ion-icon {
+    font-size: 20px;
+    margin-right: 8px;
+    color: var(--ion-color-primary);
+  }
+
+  p {
+    margin: 0;
+    font-size: 14px;
+    color: var(--ion-color-dark);
   }
 }
+
+// Animation
 @keyframes modalFadeIn {
-  0% { opacity: 0; transform: translateY(40px) scale(0.98); }
-  100% { opacity: 1; transform: none; }
+  0% { 
+    opacity: 0; 
+    transform: translateY(20px) scale(0.98); 
+  }
+  100% { 
+    opacity: 1; 
+    transform: none; 
+  }
+}
+
+// Responsive design
+@media (max-width: 360px) {
+  .supermarket-modal {
+    --width: 98vw !important;
+    --min-height: 350px;
+  }
+}
+
+@media (min-width: 768px) {
+  .supermarket-modal {
+    --width: 450px;
+  }
 }

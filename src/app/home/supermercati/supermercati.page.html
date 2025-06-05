@@ -19,13 +19,13 @@
         <ion-icon slot="start" name="add-circle-outline" class="add-supermarket-icon"></ion-icon>
         <span class="add-supermarket-label">Aggiungi</span>
       </ion-button>
-    </div>
+    </div>      
     <swiper-container
       slides-per-view="auto"
       space-between="12"
-      centered-slides="false"
+      keyboard="true"
       pagination="true"
-      navigation="true"
+      [attr.centered-slides]="isSmallDevice ? 'true' : null"
       class="supermarket-cards-swiper"
       dir="ltr"
     >
@@ -45,7 +45,7 @@
             <p>
               {{supermarket.address}}
               <span class="distance" *ngIf="getDistanceFromUser(supermarket.latitude, supermarket.longitude)">
-                •  {{getDistanceFromUser(supermarket.latitude, supermarket.longitude)}}
+                {{getDistanceFromUser(supermarket.latitude, supermarket.longitude)}}
               </span>
             </p>
             <div class="card-actions">
@@ -63,55 +63,85 @@
       </swiper-slide>
       <div class="loading-container" *ngIf="isLoading">
         <ion-spinner></ion-spinner>
-        <ion-label>Caricamento supermercati...</ion-label>
+        <ion-label>caricamento supermercati...</ion-label>
       </div>
     </swiper-container>
-  </div>
-
-  <ng-container *ngIf="addSupermarketModalOpen">
-    <ion-modal [isOpen]="addSupermarketModalOpen" (didDismiss)="closeAddSupermarketModal()" class="add-supermarket-modal">
-      <ng-template>
-        <ion-header>
-          <ion-toolbar color="primary">
-            <ion-title>Aggiungi Supermercato</ion-title>
-            <ion-buttons slot="end">
-              <ion-button (click)="closeAddSupermarketModal()">
-                <ion-icon name="close-outline"></ion-icon>
-              </ion-button>
-            </ion-buttons>
-          </ion-toolbar>
-        </ion-header>
-        <ion-content>
-          <form (ngSubmit)="submitAddSupermarket()" #addSupermarketForm="ngForm" autocomplete="off">
+  </div>  
+  <ion-modal 
+    [isOpen]="addSupermarketModalOpen" 
+    (didDismiss)="closeAddSupermarketModal()" 
+    [breakpoints]="[0, 0.5, 0.75, 1]"
+    [initialBreakpoint]="0.75"
+    handle-behavior="cycle"
+    class="supermarket-modal">
+    <ng-template>
+      <ion-header class="ion-no-border">
+        <ion-toolbar color="primary">
+          <ion-title>Aggiungi Supermercato</ion-title>
+          <ion-buttons slot="end">
+            <ion-button (mousedown)="$any($event.target).blur()" (click)="closeAddSupermarketModal()">
+              <ion-icon name="close-outline"></ion-icon>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      
+      <ion-content class="ion-padding">
+        <div class="modal-content-padding">
+          <form (ngSubmit)="submitAddSupermarket()" #addSupermarketForm="ngForm">
             <ion-list lines="full">
               <ion-item>
-                <ion-label position="floating">Nome</ion-label>
-                <ion-input required [(ngModel)]="newSupermarket.name" name="name"></ion-input>
-              </ion-item>
-              <ion-item>
-                <ion-label position="floating">Indirizzo</ion-label>
-                <ion-input required [(ngModel)]="newSupermarket.address" name="address" (ionInput)="onAddressInputDebounced()" autocomplete="off"></ion-input>
-              </ion-item>
-              <ion-item *ngIf="addressSuggestions.length > 0">
-                <ion-list>
-                  <ion-item button *ngFor="let suggestion of addressSuggestions" (click)="selectAddressSuggestion(suggestion)">
-                    {{suggestion.display_name}}
-                  </ion-item>
-                </ion-list>
+                <ion-label position="stacked" color="dark">Nome Supermercato</ion-label>
+                <ion-input required [(ngModel)]="newSupermarket.name" name="name" maxlength="40" placeholder="Inserisci il nome" color="dark"></ion-input>
               </ion-item>
               
+              <ion-item>
+                <ion-label position="stacked" color="dark">Indirizzo</ion-label>
+                <ion-input 
+                  required 
+                  [(ngModel)]="newSupermarket.address" 
+                  name="address" 
+                  (ionInput)="onAddressInputDebounced()" 
+                  placeholder="Inserisci l'indirizzo"
+                  maxlength="80"
+                  color="dark">
+                </ion-input>
+              </ion-item>
+              <ion-item *ngIf="isAdmin">
+                <ion-label position="stacked" color="dark">ID Manager</ion-label>
+                <ion-input 
+                  required 
+                  [(ngModel)]="newSupermarket.manager_id" 
+                  name="manager_id" 
+                  placeholder="Inserisci l'ID del manager"
+                  type="number"
+                  color="dark">
+                </ion-input>
+                <ion-note color="medium" slot="helper">Inserisci l'ID del manager a cui assegnare questo supermercato</ion-note>
+              </ion-item>
             </ion-list>
-            <ion-footer>
-              <ion-toolbar>
-                <ion-button expand="block" type="submit" [disabled]="!addSupermarketForm.form.valid || isSubmitting">
-                  <ion-icon name="save-outline" slot="start"></ion-icon>
-                  Salva
-                </ion-button>
-              </ion-toolbar>
-            </ion-footer>
+            
+            <div *ngIf="addressSuggestions.length > 0" class="address-suggestions">
+              <ion-list>
+                <ion-item button *ngFor="let suggestion of addressSuggestions" (click)="selectAddressSuggestion(suggestion)" detail="false">
+                  <ion-icon name="pin-outline" slot="start" color="medium"></ion-icon>
+                  <ion-label class="ion-text-wrap" color="dark">{{suggestion.display_name}}</ion-label>
+                </ion-item>
+              </ion-list>
+            </div>
+            
+            <div class="form-actions">
+              <ion-button 
+                expand="block" 
+                type="submit" 
+                [disabled]="!addSupermarketForm.form.valid || isSubmitting">
+                <ion-icon name="save-outline" slot="start"></ion-icon>
+                <span>Salva</span>
+              </ion-button>
+            </div>
           </form>
-        </ion-content>
-      </ng-template>
-    </ion-modal>
-  </ng-container>
+        </div>
+      </ion-content>
+    </ng-template>
+  </ion-modal>
 </ion-content>

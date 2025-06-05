@@ -39,6 +39,14 @@ ion-menu {
         }
       }
 
+      &.active {
+        --background: var(--ion-color-primary);
+        --color: #fff;
+        ion-icon {
+          color: #fff;
+        }
+      }
+
       ion-icon {
         margin-right: 8px;
         color: var(--ion-color-primary);
@@ -118,5 +126,196 @@ ion-content {
         margin: 10px 0;
       }
     }
+  }
+}
+
+//SEARCH
+.search-container {
+  flex: 1;
+  margin-left: 16px;
+  margin-right: 16px;
+  @media (max-width: 768px) {
+    margin-left: 8px;
+    margin-right: 4px;
+  }
+  .search-wrapper {
+    position: relative;
+    width: 100%;
+    .home-searchbar {
+      --border-radius: 22px;
+      margin: 0;
+      padding: 0;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+  }
+}
+.floating-search-results {
+  position: fixed;
+  top: 56px;
+  left: 0;
+  right: 0;
+  z-index: 10000;
+  width: 98%;
+  margin: 0 auto;
+  border-radius: 0 0 22px 22px;
+  overflow: hidden;
+  pointer-events: auto;
+  backdrop-filter: saturate(180%) blur(10px);
+  background: rgba(255,255,255);
+  opacity: 0;
+  transform: translateY(-20px);
+  visibility: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &.show {
+    opacity: 1;
+    transform: translateY(0);
+    visibility: visible;
+  }
+
+  .search-results {
+    padding: 8px 0;
+  }  .search-result-item {
+    --background: rgba(255,255,255,0.7);
+    margin: 4px 8px;
+    border-radius: 10px;
+    padding: 12px 16px;
+    --inner-padding-start: 0;
+    --inner-padding-end: 0;
+    border: none;
+    opacity: 0;
+    transform: translateY(15px);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: auto;
+    cursor: pointer;
+    
+    &.animate-in {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      --background: rgba(255,255,255,0.9);
+    }
+
+    &.recent-search {
+      --background: rgba(248, 249, 250, 0.8);
+      border-left: 3px solid var(--ion-color-medium);
+      
+      &:hover {
+        --background: rgba(248, 249, 250, 0.95);
+        border-left-color: var(--ion-color-primary);
+      }
+    }
+
+    .search-result-content {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      width: 100%;
+      
+      .result-label {
+        font-weight: 500;
+        color: var(--ion-color-dark);
+        font-size: 14px;
+      }
+      
+      .result-sublabel {
+        font-size: 12px;
+        color: var(--ion-color-medium);
+        font-style: italic;
+      }
+    }
+
+    ion-icon {
+      font-size: 18px;
+      margin-right: 12px;
+      flex-shrink: 0;
+    }
+  }
+}
+@media (max-width: 768px) {
+  .floating-search-results {
+    max-width: 90%;
+  }
+}
+ion-searchbar {
+  --background: transparent;
+  --border-radius: 0;
+  --box-shadow: none;
+  --placeholder-color: #888;
+  --placeholder-opacity: 1;
+  --color: var(--ion-color-dark);
+  --icon-color: var(--ion-color-primary);
+  --clear-button-color: var(--ion-color-primary);
+  --cancel-button-color: var(--ion-color-primary);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &.focused {
+    transform: scale(1.01);
+  }
+}
+
+.glass-overlay {
+  position: fixed;
+  top: 56px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  backdrop-filter: blur(3px);
+  z-index: 10000;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &.active {
+    opacity: 1;
+    visibility: visible;
+  }
+}
+
+ion-searchbar::part(cancel-button) {
+  color: var(--ion-color-primary);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (max-width: 768px) {
+  .glass-overlay {
+    backdrop-filter: blur(8px);
+    
+    &.active {
+      backdrop-filter: blur(8px);
+    }
+  }
+}
+.search-entering {
+  animation: fadeInUp 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.search-leaving {
+  animation: fadeOutUp 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(-15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeOutUp {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-15px);
   }
 }

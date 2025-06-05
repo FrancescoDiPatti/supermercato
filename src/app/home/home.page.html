@@ -4,29 +4,27 @@
       <ion-toolbar>
         <ion-title>SM Simulator</ion-title>
       </ion-toolbar>
-    </ion-header>
-
-    <ion-content class="ion-padding menu-content">
+    </ion-header>    <ion-content class="ion-padding menu-content">
       <div class="menu-items">
-        <ion-button fill="clear" routerLink="dashboard">
+        <ion-button fill="clear" (click)="navigateAndCloseMenu('dashboard')" [class.active]="isMenuActive('dashboard')">
           <ion-icon slot="start" name="grid-outline"></ion-icon>Dashboard
         </ion-button>
-        <ion-button fill="clear" routerLink="supermercati">
+        <ion-button fill="clear" (click)="navigateAndCloseMenu('supermercati')" [class.active]="isMenuActive('supermercati')">
           <ion-icon slot="start" name="storefront-outline"></ion-icon>Supermercati
         </ion-button>
         
-        <ion-button fill="clear" routerLink="prodotti">
+        <ion-button fill="clear" (click)="navigateAndCloseMenu('prodotti')" [class.active]="isMenuActive('prodotti')">
           <ion-icon slot="start" name="cube-outline"></ion-icon>Prodotti
         </ion-button>
         
-        <ion-button fill="clear" routerLink="offerte">
+        <ion-button fill="clear" (click)="navigateAndCloseMenu('offerte')" [class.active]="isMenuActive('offerte')">
           <ion-icon slot="start" name="pricetags-outline"></ion-icon>Offerte
         </ion-button>
-          <ion-button fill="clear" *ngIf="isCustomer" routerLink="carrello">
+        <ion-button fill="clear" *ngIf="isCustomer" (click)="navigateAndCloseMenu('carrello')" [class.active]="isMenuActive('carrello')">
           <ion-icon slot="start" name="cart-outline"></ion-icon>Carrello 
         </ion-button>
         
-        <ion-button fill="clear" *ngIf="isCustomer" routerLink="ordini">
+        <ion-button fill="clear" *ngIf="isCustomer" (click)="navigateAndCloseMenu('ordini')" [class.active]="isMenuActive('ordini')">
           <ion-icon slot="start" name="receipt-outline"></ion-icon>Ordini
         </ion-button>
       </div>
@@ -37,22 +35,60 @@
         </ion-button>
       </div>
     </ion-content>
-  </ion-menu>
-
+  </ion-menu>  
   <div class="ion-page" id="main">
     <ion-header>
       <ion-toolbar>
         <ion-buttons slot="start">
           <ion-menu-button></ion-menu-button>
-        </ion-buttons>
-        <ion-title>X</ion-title>
+        </ion-buttons>        <div class="search-container">
+          <div class="search-wrapper">
+            <ion-searchbar
+              [(ngModel)]="searchTerm"
+              [placeholder]="currentPlaceholder"
+              (ionInput)="onSearchInput($event)"
+              (ionFocus)="onSearchbarFocus()"
+              (ionBlur)="onSearchbarBlur()"
+              (ionClear)="clearSearch()"
+              (ionCancel)="onSearchCancel()"
+              show-clear-button="focus"
+              show-cancel-button="focus"
+              [class.search-active]="isSearchActive"
+              [class.focused]="isSearchActive"
+              class="home-searchbar">
+            </ion-searchbar>
+          </div>
+        </div>
       </ion-toolbar>
     </ion-header>
 
     <ion-content>
       <ion-text color="danger" *ngIf="errorMsg">{{ errorMsg }}</ion-text>
       <router-outlet></router-outlet>
-    </ion-content>
+    </ion-content>    <div class="glass-overlay" [class.active]="showOverlay" *ngIf="showOverlay"></div>
+    <div class="floating-search-results" [class.show]="showResults" *ngIf="showResults">
+      <div class="search-results">        <ion-list>
+          <ion-item 
+            *ngFor="let result of searchResults; let i = index"
+            button
+            (click)="selectResult(result)"
+            class="search-result-item"
+            [class.animate-in]="showResults"
+            [class.recent-search]="result.type === 'recent'"
+            [style.transition-delay.s]="i * 0.05">
+            <ion-icon 
+              [name]="result.icon || (result.type === 'recent' ? 'time-outline' : 'search-outline')" 
+              slot="start"
+              [color]="result.type === 'recent' ? 'medium' : 'primary'">
+            </ion-icon>
+            <div class="search-result-content">
+              <div class="result-label">{{ result.label }}</div>
+              <div class="result-sublabel" *ngIf="result.sublabel">{{ result.sublabel }}</div>
+            </div>
+          </ion-item>
+        </ion-list>
+      </div>
+    </div>
   </div>
 </ion-split-pane>
 
