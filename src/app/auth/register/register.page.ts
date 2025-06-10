@@ -43,7 +43,6 @@ export class RegisterPage implements OnInit {
       activeElement.blur();
     }
   }
-
   onRegister() {
     this.errorMsg = '';
     this.successMsg = '';
@@ -51,6 +50,9 @@ export class RegisterPage implements OnInit {
     if (!this.username || !this.password || !this.email || !this.role) {
       this.errorMsg = 'Tutti i campi sono obbligatori.';
       return;
+    }
+    if (this.authService.isLoggedIn()) {
+      this.authService.logout();
     }
     
     this.authService.register({ username: this.username, password: this.password, email: this.email, role: this.role }).subscribe({
@@ -66,8 +68,7 @@ export class RegisterPage implements OnInit {
           this.errorMsg = err.error?.error || 'Errore di registrazione';
         }
       }
-    });
-  }
+    });  }
 
   goToLogin() {
     this.clearFocus();

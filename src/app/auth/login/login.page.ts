@@ -25,7 +25,8 @@ export class LoginPage implements OnInit {
     private elementRef: ElementRef
   ) { }
 
-  ngOnInit() {}
+  ngOnInit() {
+  }
 
   private clearFocus() {
     const activeElement = document.activeElement as HTMLElement;
@@ -33,13 +34,15 @@ export class LoginPage implements OnInit {
       activeElement.blur();
     }
   }
-
   onLogin() {
     this.errorMsg = '';
 
     if (!this.username || !this.password) {
       this.errorMsg = 'Inserisci username e password.';
       return;
+    }
+    if (this.authService.isLoggedIn()) {
+      this.authService.logout();
     }
     
     this.authService.login({ username: this.username, password: this.password }).subscribe({
@@ -51,8 +54,7 @@ export class LoginPage implements OnInit {
       error: (err) => {
         this.errorMsg = err.error?.error || 'Errore di login';
       }
-    });
-  }
+    });  }
 
   goToRegister() {
     this.clearFocus();

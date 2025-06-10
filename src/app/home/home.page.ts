@@ -94,8 +94,7 @@ export class HomePage implements OnInit, OnDestroy {
   showOverlay: boolean = false;
   isSearchActive: boolean = false;
   currentPlaceholder: string = 'Ricerca...';
-  
-  private searchSubject = new Subject<string>();
+  private searchSubject = new Subject<string>();  
   private subscription: Subscription = new Subscription();
   private readonly RECENT_SEARCHES_KEY = 'recentSearches';
   private readonly MAX_RECENT_SEARCHES = 5;
@@ -114,7 +113,8 @@ export class HomePage implements OnInit, OnDestroy {
     private router: Router,
     private elementRef: ElementRef,
     private menuController: MenuController
-  ) {    addIcons({ 
+  ) {    
+    addIcons({ 
       storefrontOutline, 
       cubeOutline, 
       cartOutline, 
@@ -134,18 +134,16 @@ export class HomePage implements OnInit, OnDestroy {
       this.activeUrl = event.urlAfterRedirects;
       this.updateSearchPlaceholder();
     });
-  }
-  ngOnInit() {
+  }    ngOnInit() {
     this.loadHome();
     this.setupSearch();
     this.loadRecentSearches();
+    this.setupUserChangeListener();
   }
 
   ngOnDestroy() {
     this.subscription.unsubscribe();
-  }
-
-  private setupSearch() {
+  }    private setupSearch() {
     this.subscription.add(
       this.searchSubject.pipe(
         debounceTime(300)
@@ -154,12 +152,29 @@ export class HomePage implements OnInit, OnDestroy {
       })
     );
   }
+
+  private setupUserChangeListener() {
+    const handleUserChange = (event: any) => {
+      if (event.detail.action === 'login') {
+        this.resetSearch();
+        this.recentSearches = [];
+        this.loadRecentSearches();
+      }
+    };
+    window.addEventListener('userChanged', handleUserChange);
+    this.subscription.add({
+      unsubscribe: () => {
+        window.removeEventListener('userChanged', handleUserChange);
+      }
+    } as any);
+  }
   private updateSearchPlaceholder() {
     const config = Object.entries(this.SEARCH_CONFIG).find(([path]) => 
       this.activeUrl.includes(path)
     );
     this.currentPlaceholder = config ? config[1].placeholder : '';
-  }  onSearchInput(event: any) {
+  }  
+  onSearchInput(event: any) {
     const query = event.target.value;
     this.searchTerm = query;
     
@@ -167,26 +182,25 @@ export class HomePage implements OnInit, OnDestroy {
       this.showRecentSearches = false;
       this.searchSubject.next(query);
     } else if (query.length === 0) {
-      this.handleEmptySearch();
+      this.showRecentSearches = true;
+      this.searchResults = this.combineSearchResults([], true);
+      this.showResults = this.searchResults.length > 0;
     } else {
-      this.resetSearchState();
+      this.resetSearch();
     }
   }
 
-  private handleEmptySearch() {
-    this.searchSubject.next('');
-    this.showRecentSearches = true;
-    this.searchResults = this.combineSearchResults([], true);
-    this.showResults = this.searchResults.length > 0;
-  }
 
-  private resetSearchState() {
+  private resetSearch() {
     this.searchResults = [];
     this.showResults = false;
     this.showRecentSearches = false;
-  }  private async performSearch(query: string) {
+    this.showOverlay = false;
+    this.isSearchActive = false;
+  }
+  private async performSearch(query: string) {
     if (!query?.trim()) {
-      this.resetSearchState();
+      this.resetSearch();
       this.isSearching = false;
       return;
     }
@@ -194,17 +208,11 @@ export class HomePage implements OnInit, OnDestroy {
     this.isSearching = true;
     this.showRecentSearches = false;
     
-    try {
-      const rawResults = await this.executeSearch(query);
-      const showRecent = rawResults.length < 3;
-      this.searchResults = this.combineSearchResults(rawResults, showRecent);
-      this.showResults = this.searchResults.length > 0;
-    } catch (error) {
-      console.error('Search error:', error);
-      this.resetSearchState();
-    } finally {
-      this.isSearching = false;
-    }
+    const rawResults = await this.executeSearch(query);
+    const showRecent = rawResults.length < 3;
+    this.searchResults = this.combineSearchResults(rawResults, showRecent);
+    this.showResults = this.searchResults.length > 0;
+    this.isSearching = false;
   }
 
   private async executeSearch(query: string): Promise<SearchResult[]> {
@@ -250,14 +258,16 @@ export class HomePage implements OnInit, OnDestroy {
       };
       window.addEventListener('universalSearchResults', handler);
     });
-  }  selectResult(result: SearchResult) {
+  }
+  selectResult(result: SearchResult) {
     this.searchTerm = result.label;
-    this.resetSearchState();
+    this.resetSearch();
 
     if (result.type === 'recent') {
       this.handleRecentSelection(result);
     } else {
-      this.handleSearchSelection(result);
+      this.saveRecentSearch(result.label, this.getCurrentSearchType(), result);
+      this.handleResultNavigation(result);
     }
   }
 
@@ -274,45 +284,25 @@ export class HomePage implements OnInit, OnDestroy {
         type: 'search',
         icon: result.icon
       };
-      this.navigateToResult(storedResult);
+      this.handleResultNavigation(storedResult);
     } else {
       this.searchSubject.next(result.label);
     }
   }
 
-  private handleSearchSelection(result: SearchResult) {
-    this.saveRecentSearch(result.label, this.getCurrentSearchType(), result);
-    this.navigateToResult(result);
-  }
-  private navigateToResult(result: SearchResult): void {
+  private handleResultNavigation(result: SearchResult): void {
     const currentType = this.getCurrentSearchType();
-    const selectionMethods: { [key: string]: () => void } = {
-      'supermarkets': () => this.selectSupermarket(result),
-      'products': () => this.selectProduct(result),
-      'offers': () => this.selectOffer(result)
-    };
     
-    selectionMethods[currentType]?.();
-  }
+    if (currentType === 'supermarkets') {
+      const event = new CustomEvent('universalSearchSelect', {
+        detail: { result, type: 'supermarkets' }
+      });
+      window.dispatchEvent(event);
+    }
+    // Products and offers here
+  }  
 
-  private selectSupermarket(result: SearchResult): void {
-    this.triggerCustomEvent('universalSearchSelect', result, 'supermarkets');
-  }
-
-  private selectProduct(result: SearchResult): void {
-    // product
-  }
-
-  private selectOffer(result: SearchResult): void {
-    // offer
-  }
-
-  private triggerCustomEvent(eventName: string, result: SearchResult, type: string): void {
-    const event = new CustomEvent(eventName, {
-      detail: { result, type }
-    });
-    window.dispatchEvent(event);
-  }  onSearchbarFocus() {
+  onSearchbarFocus() {
     this.showOverlay = true;
     this.isSearchActive = true;
     
@@ -327,34 +317,22 @@ export class HomePage implements OnInit, OnDestroy {
   }
 
   onSearchbarBlur() {
-    setTimeout(() => this.resetSearchUI(), 200);
+    setTimeout(() => this.resetSearch(), 200);
   }
 
-  private resetSearchUI() {
-    this.showResults = false;
-    this.showOverlay = false;
-    this.isSearchActive = false;
-    this.showRecentSearches = false;
-  }  clearSearch() {
+  clearSearch() {
     this.searchTerm = '';
-    this.resetSearchState();
+    this.resetSearch();
     
     if (this.isSearchActive) {
       this.showRecentSearches = true;
       this.searchResults = this.combineSearchResults([], true);
       this.showResults = this.searchResults.length > 0;
-    } else {
-      this.showOverlay = false;
-      this.isSearchActive = false;
     }
   }
 
   onSearchCancel() {
     this.clearSearch();
-    this.clearFocus();
-  }
-
-  private clearFocus() {
     const activeElement = document.activeElement as HTMLElement;
     if (activeElement) {
       activeElement.blur();
@@ -364,13 +342,12 @@ export class HomePage implements OnInit, OnDestroy {
   private loadHome() {
     this.homeData = null;
     this.errorMsg = '';
-    this.authService.clearHomeData();
-
+    this.authService.clearHomeData();    
     this.homeService.getHome().subscribe({
       next: (res) => {
         this.homeData = res.data;
         if (res.data.user) {
-          this.authService.setUser(res.data.user);
+          this.authService.updateUserData(res.data.user);
         }
       },
       error: (err) => {
@@ -387,12 +364,7 @@ export class HomePage implements OnInit, OnDestroy {
     const stored = localStorage.getItem(key);
     
     if (stored) {
-      try {
-        this.recentSearches = JSON.parse(stored);
-      } catch (error) {
-        console.error('Error loading recent searches:', error);
-        this.recentSearches = [];
-      }
+      this.recentSearches = JSON.parse(stored);
     }
   }
   private saveRecentSearch(query: string, type: string, result?: SearchResult) {
@@ -405,8 +377,8 @@ export class HomePage implements OnInit, OnDestroy {
       timestamp: Date.now(),
       type,
       userId: currentUser.id,
-      data: result?.data, // Store the result data for direct navigation
-      resultId: result?.id // Store the result ID
+      data: result?.data,
+      resultId: result?.id
     };
     this.recentSearches = this.recentSearches.filter(search => 
       search.query.toLowerCase() !== query.toLowerCase() || search.type !== type
@@ -414,7 +386,8 @@ export class HomePage implements OnInit, OnDestroy {
     this.recentSearches.unshift(newSearch);
     this.recentSearches = this.recentSearches.slice(0, this.MAX_RECENT_SEARCHES);
     localStorage.setItem(key, JSON.stringify(this.recentSearches));
-  }  private combineSearchResults(searchResults: SearchResult[], showRecent: boolean = false): SearchResult[] {
+  }  
+  private combineSearchResults(searchResults: SearchResult[], showRecent: boolean = false): SearchResult[] {
     const combinedResults: SearchResult[] = [];
     const actualResults = searchResults.map(result => ({
       ...result,
@@ -468,8 +441,8 @@ export class HomePage implements OnInit, OnDestroy {
 
   isMenuActive(path: string): boolean {
     return this.activeUrl === `/home/${path}` || (path === 'dashboard' && (this.activeUrl === '/home' || this.activeUrl === '/home/dashboard'));
-  }  logout() {
-    this.clearFocus();
+  }  
+  logout() {
     this.clearSearch();
     this.recentSearches = [];
     this.authService.logout();

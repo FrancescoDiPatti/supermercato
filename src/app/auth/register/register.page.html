@@ -9,8 +9,8 @@
     <ion-toolbar>
       <ion-title size="large">Registrazione</ion-title>
     </ion-toolbar>
-  </ion-header>
-  <form (ngSubmit)="onRegister()" style="padding: 16px;">
+  </ion-header>  <form (ngSubmit)="onRegister()" style="padding: 16px;">
+    
     <ion-item>
       <ion-label position="floating">Username</ion-label>
       <ion-input [(ngModel)]="username" name="username" required></ion-input>
@@ -33,13 +33,11 @@
         <ion-select-option value="manager">Manager</ion-select-option>
         <ion-select-option value="admin">Admin</ion-select-option>
       </ion-select>
-    </ion-item>
-
-    <ion-button expand="block" type="submit" style="margin-top: 16px;">Registrati</ion-button>
+    </ion-item>    <ion-button expand="block" type="submit" style="margin-top: 16px;">Registrati</ion-button>
     <ion-text color="danger" *ngIf="errorMsg">{{ errorMsg }}</ion-text>
     <ion-text color="success" *ngIf="successMsg">{{ successMsg }}</ion-text>
 
-    <div style="margin-bottom: 16px; text-align: center; display: flex; align-items: center; justify-content: center; gap: 4px;">
+    <div style="margin-top: 16px; text-align: center; display: flex; align-items: center; justify-content: center; gap: 4px;">
       <span>Hai già un account?</span>
       <ion-button fill="clear" size="small" (click)="goToLogin()" style="margin: 0; padding: 0 4px; height: auto; line-height: 1;">Torna al Login</ion-button>
     </div>
