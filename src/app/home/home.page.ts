@@ -19,7 +19,7 @@ import {
   IonItem,
   MenuController
 } from '@ionic/angular/standalone';
-import { HomeService } from './home.service';
+import { HomeService, SearchResult, RecentSearch } from './home.service';
 import { AuthService } from '../auth/auth.service';
 import { addIcons } from 'ionicons';
 import {
@@ -38,24 +38,6 @@ import {
 import { filter } from 'rxjs/operators';
 import { NavigationEnd } from '@angular/router';
 import { debounceTime, Subject, Subscription } from 'rxjs';
-
-export interface SearchResult {
-  id: string;
-  label: string;
-  sublabel?: string;
-  data?: any;
-  type: 'search' | 'recent';
-  icon?: string;
-}
-
-export interface RecentSearch {
-  query: string;
-  timestamp: number;
-  type: string;
-  userId: string;
-  data?: any;
-  resultId?: string;
-}
 
 @Component({
   selector: 'app-home',
@@ -154,7 +136,7 @@ export class HomePage implements OnInit, OnDestroy {
         this.search(query);
       })
     );
-  }  
+  }
 
   private setupUserListener() {
     const handleUserChange = (event: any) => {
@@ -255,6 +237,7 @@ export class HomePage implements OnInit, OnDestroy {
       window.addEventListener('universalSearchResults', handler);
     });
   }  
+
   // Manage result selection
   selectResult(result: SearchResult) {
     this.searchTerm = result.label;
@@ -267,6 +250,7 @@ export class HomePage implements OnInit, OnDestroy {
       this.navigate(result);
     }
   }  
+
   // Manage recent search
   private handleRecent(result: SearchResult) {
     const recentSearch = this.recentSearches.find(search => 
@@ -286,6 +270,7 @@ export class HomePage implements OnInit, OnDestroy {
       this.searchSubject.next(result.label);
     }
   }  
+
   // Navigate to selected result
   private navigate(result: SearchResult): void {
     const currentType = this.getSearchType();
@@ -334,6 +319,16 @@ export class HomePage implements OnInit, OnDestroy {
       activeElement.blur();
     }
   }
+
+  // Enter key search
+  onEnter(event: any) {
+    event.preventDefault();
+    if (this.searchResults && this.searchResults.length > 0) {
+      this.selectResult(this.searchResults[0]);
+      return;
+    }
+  }
+
   // Load home data
   private loadHome() {
     this.homeData = null;
@@ -351,6 +346,7 @@ export class HomePage implements OnInit, OnDestroy {
       }
     });
   }  
+
   // Load recent search from localstorage
   private loadRecent() {
     const currentUser = this.authService.getUser();
@@ -363,6 +359,7 @@ export class HomePage implements OnInit, OnDestroy {
       this.recentSearches = JSON.parse(stored);
     }
   }  
+
   // Save recent search to localstorage
   private saveRecent(query: string, type: string, result?: SearchResult) {
     const currentUser = this.authService.getUser();
@@ -384,6 +381,7 @@ export class HomePage implements OnInit, OnDestroy {
     this.recentSearches = this.recentSearches.slice(0, this.MAX_RECENT_SEARCHES);
     localStorage.setItem(key, JSON.stringify(this.recentSearches));
   }  
+
   // Combined list
   private combineResults(searchResults: SearchResult[], showRecent: boolean = false): SearchResult[] {
     const combinedResults: SearchResult[] = [];
@@ -415,6 +413,7 @@ export class HomePage implements OnInit, OnDestroy {
     }
     return combinedResults;
   }
+
   // Search type
   private getSearchType(): string {
     const config = Object.entries(this.SEARCH_CONFIG).find(([path]) => 
@@ -423,27 +422,25 @@ export class HomePage implements OnInit, OnDestroy {
     return config ? config[1].type : 'general';
   }
 
-  // User role management qui!!
-  private getUserRole(): string | null {
-    return this.authService.getUser()?.role || null;
-  }
-
+  // User role management
   public get isAdmin(): boolean {
-    return this.getUserRole() === 'admin';
+    const user = this.authService.getUser();
+    return HomeService.isAdmin(user);
   }
-
   public get isManager(): boolean {
-    return this.getUserRole() === 'manager';
+    const user = this.authService.getUser();
+    return HomeService.isManager(user);
   }
-
   public get isCustomer(): boolean {
-    return this.getUserRole() === 'customer';
+    const user = this.authService.getUser();
+    return HomeService.isCustomer(user);
   }
 
   // Menu selected
   isMenuActive(path: string): boolean {
     return this.activeUrl === `/home/${path}` || (path === 'dashboard' && (this.activeUrl === '/home' || this.activeUrl === '/home/dashboard'));
   }  
+
   // Logout and redirect
   logout() {
     this.clearSearch();

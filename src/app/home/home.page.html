@@ -50,6 +50,7 @@
               (ionBlur)="onBlur()"
               (ionClear)="clearSearch()"
               (ionCancel)="onCancel()"
+              (keydown.enter)="onEnter($event)"
               show-clear-button="focus"
               show-cancel-button="focus"
               [class.search-active]="isSearchActive"

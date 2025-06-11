@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IonContent, IonHeader, IonTitle, IonToolbar } from '@ionic/angular/standalone';
 import { AuthService } from '../../auth/auth.service';
+import { HomeService } from '../home.service';
 
 @Component({
   selector: 'app-ordini',
@@ -12,21 +13,24 @@ import { AuthService } from '../../auth/auth.service';
   imports: [IonContent, IonHeader, IonTitle, IonToolbar, CommonModule, FormsModule]
 })
 export class OrdiniPage implements OnInit {
-  constructor(private authService: AuthService) { }
+  constructor(
+    private authService: AuthService,
+    private homeService: HomeService
+  ) { }
 
   public get isAdmin(): boolean {
     const user = this.authService.getUser();
-    return user && user.role === 'admin';
+    return HomeService.isAdmin(user);
   }
 
   public get isManager(): boolean {
     const user = this.authService.getUser();
-    return user && user.role === 'manager';
+    return HomeService.isManager(user);
   }
 
   public get isCustomer(): boolean {
     const user = this.authService.getUser();
-    return user && user.role === 'customer';
+    return HomeService.isCustomer(user);
   }
 
   ngOnInit() {

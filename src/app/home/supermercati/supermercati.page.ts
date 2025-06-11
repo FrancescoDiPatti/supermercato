@@ -86,22 +86,6 @@ export class SupermercatiPage implements OnInit, AfterViewInit, OnDestroy {
   private selectedLat: string = '';
   private selectedLon: string = '';
 
-  // Supermarket images mapping
-  private readonly supermarketImages: { [key: string]: string } = {
-    lidl: 'assets/supermercati/lidl.webp',
-    conad: 'assets/supermercati/conad.webp',
-    crai: 'assets/supermercati/crai.webp',
-    md: 'assets/supermercati/md.webp',
-    esselunga: 'assets/supermercati/esselunga.webp',
-    coop: 'assets/supermercati/coop.webp',
-    eurospin: 'assets/supermercati/eurospin.webp',
-    carrefour: 'assets/supermercati/carrefour.webp',
-    pam: 'assets/supermercati/pam.webp',
-    sigma: 'assets/supermercati/sigma.webp',
-    "in's": 'assets/supermercati/ins.webp',
-    famila: 'assets/supermercati/famila.webp',
-    sisa: 'assets/supermercati/sisa.webp',
-  };  
   constructor(
     private supermarketsService: HomeService,
     private router: Router,
@@ -199,39 +183,20 @@ export class SupermercatiPage implements OnInit, AfterViewInit, OnDestroy {
       this.load();
     }
   }
-
-  // Sorted serch by matching and distance
+  // Sorted search by matching and distance
   private async search(query: string): Promise<any[]> {
-    const lowerQuery = query.toLowerCase();
-    const filtered = this.supermarkets.filter(sm => 
-      sm.name.toLowerCase().includes(lowerQuery) || 
-      sm.address.toLowerCase().includes(lowerQuery)
+    const userPosition = this.userPosition ? {
+      lat: this.userPosition.lat,
+      lng: this.userPosition.lng
+    } : undefined;
+
+    return this.supermarketsService.search(
+      query, 
+      this.supermarkets, 
+      userPosition, 
+      8
     );
-    const sorted = filtered.sort((a, b) => {
-      const aNameMatch = a.name.toLowerCase().includes(lowerQuery);
-      const bNameMatch = b.name.toLowerCase().includes(lowerQuery);
-      if (aNameMatch && !bNameMatch) return -1;
-      if (!aNameMatch && bNameMatch) return 1;
-      if (this.userPosition) {
-        const distA = this.calcDist(
-          this.userPosition.lat, this.userPosition.lng,
-          a.latitude, a.longitude
-        );
-        const distB = this.calcDist(
-          this.userPosition.lat, this.userPosition.lng,
-          b.latitude, b.longitude
-        );
-        return distA - distB;
-      }
-      return a.name.localeCompare(b.name);
-    });
-    return sorted.slice(0, 8).map(sm => ({
-      id: sm.id.toString(),
-      label: sm.name,      sublabel: `${sm.address}${this.getDistFromUser(sm.latitude, sm.longitude) ? 
-        ' • ' + this.getDistFromUser(sm.latitude, sm.longitude) : ''}`,
-      data: sm
-    }));
-  }  
+  }
   // Serch selection handler
   private handleSearchSelect(event: any): void {
     const eventDetail = event.detail;
@@ -341,66 +306,29 @@ export class SupermercatiPage implements OnInit, AfterViewInit, OnDestroy {
         weight: 2,
         opacity: 1,
         fillOpacity: 0.8
-      }).addTo(this.map);
-    }
-  }
-
-  // === DISTANCE CALCULATION === 
-  // Haversine distance formula
-  private calcDist(lat1: number, lon1: number, lat2: number, lon2: number): number {
-    const R = 6371;
-    const dLat = this.deg2rad(lat2 - lat1);
-    const dLon = this.deg2rad(lon2 - lon1);
-    const a = 
-      Math.sin(dLat/2) * Math.sin(dLat/2) +
-      Math.cos(this.deg2rad(lat1)) * Math.cos(this.deg2rad(lat2)) * 
-      Math.sin(dLon/2) * Math.sin(dLon/2); 
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
-    return R * c;
-  }
-
-  private deg2rad(deg: number): number {
-    return deg * (Math.PI/180);
+      }).addTo(this.map);    }
   }
 
   // Sorts supermarkets by distance from user
   private sortByDist(): void {
     if (!this.userPosition) return;
-
-    this.supermarkets.sort((a, b) => {
-      const distA = this.calcDist(
-        this.userPosition!.lat,
-        this.userPosition!.lng,
-        a.latitude,
-        a.longitude
-      );
-      const distB = this.calcDist(
-        this.userPosition!.lat,
-        this.userPosition!.lng,
-        b.latitude,
-        b.longitude
-      );
-      return distA - distB;
-    });
+    this.supermarkets = this.supermarketsService.sortByDistance(
+      this.supermarkets,
+      this.userPosition.lat,
+      this.userPosition.lng
+    );
   }
 
-  // Format distance (meters/kilometers)
-  private formatDist(distance: number): string {
-    if (distance < 1) {
-      return `${Math.round(distance * 1000)} m`;
-    }
-    return `${distance.toFixed(1)} km`;
-  }  
   // Calculate distance from user
   getDistFromUser(latitude: number, longitude: number): string | null {
     if (!this.userPosition) return null;
-    const distance = this.calcDist(
+    const distance = this.supermarketsService.calcDistance(
       this.userPosition.lat,
       this.userPosition.lng,
       latitude,
       longitude
     );
-    return this.formatDist(distance);
+    return this.supermarketsService.formatDistance(distance);
   }
 
   // === MAP METHODS === 
@@ -778,69 +706,22 @@ export class SupermercatiPage implements OnInit, AfterViewInit, OnDestroy {
       }
     });
   }  
-
-  // Logo matching with input
-  private getKey(name: string): string | null {
-    const normalized = name.trim().toLowerCase();
-    let minDistance = Infinity;
-    let closestKey: string | null = null;
-    
-    for (const key of Object.keys(this.supermarketImages)) {
-      const dist = this.levenshtein(normalized, key);
-      if (dist < minDistance) {
-        minDistance = dist;
-        closestKey = key;
-      }
-    }
-    
-    return minDistance <= 4 ? closestKey : null;
-  }
-
-  // Levenshtein string similarity
-  private levenshtein(a: string, b: string): number {
-    const matrix = Array.from({ length: a.length + 1 }, () => new Array(b.length + 1).fill(0));
-    
-    for (let i = 0; i <= a.length; i++) matrix[i][0] = i;
-    for (let j = 0; j <= b.length; j++) matrix[0][j] = j;
-    
-    for (let i = 1; i <= a.length; i++) {
-      for (let j = 1; j <= b.length; j++) {
-        if (a[i - 1] === b[j - 1]) {
-          matrix[i][j] = matrix[i - 1][j - 1];
-        } else {
-          matrix[i][j] = Math.min(
-            matrix[i - 1][j] + 1,
-            matrix[i][j - 1] + 1,
-            matrix[i - 1][j - 1] + 1
-          );
-        }
-      }
-    }
-    
-    return matrix[a.length][b.length];
-  }
   // Return supermarket image 
   getStoreImage(name: string): string {
-    const key = this.getKey(name);
-    return key ? this.supermarketImages[key] : 'assets/supermercati/def_sm.webp';
+    return this.supermarketsService.getStoreImage(name);
   }
 
   // === ROLE CHECK ===
-  private getUserRole(): string | null {
-    const user = this.authService.getUser();
-    return user?.role || null;
-  }
-
   public get isAdminOrManager(): boolean {
-    const role = this.getUserRole();
-    return role === 'admin' || role === 'manager';
+    const user = this.authService.getUser();
+    return HomeService.isAdminOrManager(user);
   }
-
   public get isAdmin(): boolean {
-    return this.getUserRole() === 'admin';
+    const user = this.authService.getUser();
+    return HomeService.isAdmin(user);
   }
-
   public get isManager(): boolean {
-    return this.getUserRole() === 'manager';
+    const user = this.authService.getUser();
+    return HomeService.isManager(user);
   }
 }
