@@ -14,7 +14,8 @@
     <div class="supermarkets-header">
       <h2 class="supermarkets-title">
         {{ userPosition ? 'Supermercati più vicini a te:' : 'Lista supermercati:' }}
-      </h2>      <ion-button *ngIf="isAdminOrManager" fill="outline" (click)="openModal()" class="add-supermarket-btn">
+      </h2>      
+      <ion-button *ngIf="isAdminOrManager" fill="outline" (click)="openModal()" class="add-supermarket-btn">
         <ion-icon slot="start" name="add-circle-outline" class="add-supermarket-icon"></ion-icon>
         <span class="add-supermarket-label">Aggiungi</span>
       </ion-button>
@@ -43,8 +44,8 @@
             <h3>{{supermarket.name}}</h3>
             <p>
               {{supermarket.address}}
-              <span class="distance" *ngIf="getDistanceFromUser(supermarket.latitude, supermarket.longitude)">
-                {{getDistanceFromUser(supermarket.latitude, supermarket.longitude)}}
+              <span class="distance" *ngIf="getDistFromUser(supermarket.latitude, supermarket.longitude)">
+                {{getDistFromUser(supermarket.latitude, supermarket.longitude)}}
               </span>
             </p>
             <div class="card-actions">
@@ -52,7 +53,7 @@
                 <ion-icon name="navigate-outline"></ion-icon>
                 Navigazione
               </ion-button>
-              <ion-button fill="clear" size="small" (click)="selectAndNavigate(supermarket, $event)">
+              <ion-button fill="clear" size="small" (click)="selectAndNav(supermarket, $event)">
                 <ion-icon name="storefront-outline"></ion-icon>
                 Seleziona
               </ion-button>
@@ -99,7 +100,7 @@
                   required 
                   [(ngModel)]="newSupermarket.address" 
                   name="address" 
-                  (ionInput)="onAddressInputDebounced()" 
+                  (ionInput)="onAddressInput()" 
                   placeholder="Inserisci l'indirizzo"
                   maxlength="80"
                   color="dark">
@@ -120,7 +121,7 @@
             </ion-list>
               <div *ngIf="addressSuggestions.length > 0" class="address-suggestions">
               <ion-list>
-                <ion-item button *ngFor="let suggestion of addressSuggestions" (click)="selectAddress(suggestion)" detail="false">
+                <ion-item button *ngFor="let suggestion of addressSuggestions" (click)="selectAddr(suggestion)" detail="false">
                   <ion-icon name="pin-outline" slot="start" color="medium"></ion-icon>
                   <ion-label class="ion-text-wrap" color="dark">{{suggestion.display_name}}</ion-label>
                 </ion-item>

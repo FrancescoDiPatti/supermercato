@@ -6,25 +6,25 @@
       </ion-toolbar>
     </ion-header>    <ion-content class="ion-padding menu-content">
       <div class="menu-items">
-        <ion-button fill="clear" (click)="navigateAndCloseMenu('dashboard')" [class.active]="isMenuActive('dashboard')">
+        <ion-button fill="clear" (click)="navAndClose('dashboard')" [class.active]="isMenuActive('dashboard')">
           <ion-icon slot="start" name="grid-outline"></ion-icon>Dashboard
         </ion-button>
-        <ion-button fill="clear" (click)="navigateAndCloseMenu('supermercati')" [class.active]="isMenuActive('supermercati')">
+        <ion-button fill="clear" (click)="navAndClose('supermercati')" [class.active]="isMenuActive('supermercati')">
           <ion-icon slot="start" name="storefront-outline"></ion-icon>Supermercati
         </ion-button>
         
-        <ion-button fill="clear" (click)="navigateAndCloseMenu('prodotti')" [class.active]="isMenuActive('prodotti')">
+        <ion-button fill="clear" (click)="navAndClose('prodotti')" [class.active]="isMenuActive('prodotti')">
           <ion-icon slot="start" name="cube-outline"></ion-icon>Prodotti
         </ion-button>
         
-        <ion-button fill="clear" (click)="navigateAndCloseMenu('offerte')" [class.active]="isMenuActive('offerte')">
+        <ion-button fill="clear" (click)="navAndClose('offerte')" [class.active]="isMenuActive('offerte')">
           <ion-icon slot="start" name="pricetags-outline"></ion-icon>Offerte
         </ion-button>
-        <ion-button fill="clear" *ngIf="isCustomer" (click)="navigateAndCloseMenu('carrello')" [class.active]="isMenuActive('carrello')">
+        <ion-button fill="clear" *ngIf="isCustomer" (click)="navAndClose('carrello')" [class.active]="isMenuActive('carrello')">
           <ion-icon slot="start" name="cart-outline"></ion-icon>Carrello 
         </ion-button>
         
-        <ion-button fill="clear" *ngIf="isCustomer" (click)="navigateAndCloseMenu('ordini')" [class.active]="isMenuActive('ordini')">
+        <ion-button fill="clear" *ngIf="isCustomer" (click)="navAndClose('ordini')" [class.active]="isMenuActive('ordini')">
           <ion-icon slot="start" name="receipt-outline"></ion-icon>Ordini
         </ion-button>
       </div>
@@ -42,15 +42,14 @@
         <ion-buttons slot="start">
           <ion-menu-button></ion-menu-button>
         </ion-buttons>        <div class="search-container">
-          <div class="search-wrapper">
-            <ion-searchbar
+          <div class="search-wrapper">            <ion-searchbar
               [(ngModel)]="searchTerm"
               [placeholder]="currentPlaceholder"
-              (ionInput)="onSearchInput($event)"
-              (ionFocus)="onSearchbarFocus()"
-              (ionBlur)="onSearchbarBlur()"
+              (ionInput)="onInput($event)"
+              (ionFocus)="onFocus()"
+              (ionBlur)="onBlur()"
               (ionClear)="clearSearch()"
-              (ionCancel)="onSearchCancel()"
+              (ionCancel)="onCancel()"
               show-clear-button="focus"
               show-cancel-button="focus"
               [class.search-active]="isSearchActive"

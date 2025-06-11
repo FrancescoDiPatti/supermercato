@@ -70,11 +70,11 @@ export class SupermercatiPage implements OnInit, AfterViewInit, OnDestroy {
   private selectedSupermarketFromSearch: Supermarket | null = null;
   isLoading = true;
 
+  // UI properties
   isSmallDevice = false;
   private resizeListener?: () => void;
-
-  private handleUniversalSearchBound: (event: any) => void;
-  private handleUniversalSearchSelectBound: (event: any) => void;
+  private handleSearchBound: (event: any) => void;
+  private handleSearchSelectBound: (event: any) => void;
   private handleUserChangedBound: (event: any) => void;
 
   // Modal properties
@@ -117,13 +117,18 @@ export class SupermercatiPage implements OnInit, AfterViewInit, OnDestroy {
       saveOutline,
       locationOutline,
       pinOutline
-    });
-
-    this.handleUniversalSearchBound = this.handleUniversalSearch.bind(this);
-    this.handleUniversalSearchSelectBound = this.handleUniversalSearchSelect.bind(this);
+    });    
+    this.handleSearchBound = this.handleSearch.bind(this);
+    this.handleSearchSelectBound = this.handleSearchSelect.bind(this);
     this.handleUserChangedBound = this.handleUserChanged.bind(this);
-  }  ngOnInit(): void {
-    this.init();
+  }  
+  ngOnInit(): void {
+    this.checkScreen();
+    this.setupResize();
+    this.load();
+    this.startLocation();
+    this.setupDebounce();
+    this.setupSearch();
   }
 
   ngAfterViewInit(): void {
@@ -132,45 +137,35 @@ export class SupermercatiPage implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    this.cleanup();
-  }    // ===INITIALIZATION===
-  private init(): void {
-    this.checkScreenSize();
-    this.setupResize();
-    this.load();
-    this.startLocation();
-    this.setupDebounce();
-    this.setupSearch();
-  }
-  private setupDebounce(): void {
-    this.addressInput$.pipe(debounceTime(400)).subscribe(address => {
-      this.fetchSuggestions(address);
-    });
-  }
-
-  private cleanup(): void {    this.stopLocationUpdates();
+    this.stopLocation();
     if (this.map) {
       this.map.remove();
       this.map = undefined;
     }
     this.mapInitialized = false;
-    this.removeResize();
-    
-    window.removeEventListener('universalSearch', this.handleUniversalSearchBound);
-    window.removeEventListener('universalSearchSelect', this.handleUniversalSearchSelectBound);
+    this.removeResize();    
+    window.removeEventListener('universalSearch', this.handleSearchBound);
+    window.removeEventListener('universalSearchSelect', this.handleSearchSelectBound);
     window.removeEventListener('userChanged', this.handleUserChangedBound);
   }
+
+  // Smooth search suggestions
+  private setupDebounce(): void {
+    this.addressInput$.pipe(debounceTime(400)).subscribe(address => {
+      this.fetchSuggs(address);
+    });
+  }
+
   private setupResize(): void {
     this.resizeListener = () => {
-      this.checkScreenSize();
+      this.checkScreen();
       if (this.mapInitialized) {
         this.map!.invalidateSize();
       }
     };
     window.addEventListener('resize', this.resizeListener);
   }
-
-  private checkScreenSize(): void {
+  private checkScreen(): void {
     this.isSmallDevice = window.innerWidth < 768;
   }
   private removeResize(): void {
@@ -178,14 +173,17 @@ export class SupermercatiPage implements OnInit, AfterViewInit, OnDestroy {
       window.removeEventListener('resize', this.resizeListener);
       this.resizeListener = undefined;
     }
-  }  // ===SEARCH===
+  }  
+
+  // ===SEARCH===
   private setupSearch(): void {
-    window.addEventListener('universalSearch', this.handleUniversalSearchBound);
-    window.addEventListener('universalSearchSelect', this.handleUniversalSearchSelectBound);
+    window.addEventListener('universalSearch', this.handleSearchBound);
+    window.addEventListener('universalSearchSelect', this.handleSearchSelectBound);
     window.addEventListener('userChanged', this.handleUserChangedBound);
   }
 
-  private async handleUniversalSearch(event: any): Promise<void> {
+  // Supermarket search 
+  private async handleSearch(event: any): Promise<void> {
     if (event.detail.type === 'supermarkets') {
       const results = await this.search(event.detail.query);
       const resultEvent = new CustomEvent('universalSearchResults', {
@@ -195,11 +193,14 @@ export class SupermercatiPage implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
+  // User changes
   private handleUserChanged(event: any): void {
     if (event.detail.action === 'login') {
       this.load();
     }
   }
+
+  // Sorted serch by matching and distance
   private async search(query: string): Promise<any[]> {
     const lowerQuery = query.toLowerCase();
     const filtered = this.supermarkets.filter(sm => 
@@ -210,7 +211,8 @@ export class SupermercatiPage implements OnInit, AfterViewInit, OnDestroy {
       const aNameMatch = a.name.toLowerCase().includes(lowerQuery);
       const bNameMatch = b.name.toLowerCase().includes(lowerQuery);
       if (aNameMatch && !bNameMatch) return -1;
-      if (!aNameMatch && bNameMatch) return 1;      if (this.userPosition) {
+      if (!aNameMatch && bNameMatch) return 1;
+      if (this.userPosition) {
         const distA = this.calcDist(
           this.userPosition.lat, this.userPosition.lng,
           a.latitude, a.longitude
@@ -225,13 +227,13 @@ export class SupermercatiPage implements OnInit, AfterViewInit, OnDestroy {
     });
     return sorted.slice(0, 8).map(sm => ({
       id: sm.id.toString(),
-      label: sm.name,
-      sublabel: `${sm.address}${this.getDistanceFromUser(sm.latitude, sm.longitude) ? 
-        ' • ' + this.getDistanceFromUser(sm.latitude, sm.longitude) : ''}`,
+      label: sm.name,      sublabel: `${sm.address}${this.getDistFromUser(sm.latitude, sm.longitude) ? 
+        ' • ' + this.getDistFromUser(sm.latitude, sm.longitude) : ''}`,
       data: sm
     }));
-  }
-  private handleUniversalSearchSelect(event: any): void {
+  }  
+  // Serch selection handler
+  private handleSearchSelect(event: any): void {
     const eventDetail = event.detail;
     const result = eventDetail.result;
     
@@ -250,7 +252,10 @@ export class SupermercatiPage implements OnInit, AfterViewInit, OnDestroy {
     const supermarket = result.data as Supermarket;
     this.selectSupermarket(supermarket);
     this.selectedSupermarketFromSearch = supermarket;
-  }  // === GEOLOCATION ===
+  }
+
+  // === GEOLOCATION === 
+  // GPS tracking and permission management
   private async startLocation(): Promise<void> {
     try {
       if (this.platform.is('hybrid')) {
@@ -262,16 +267,16 @@ export class SupermercatiPage implements OnInit, AfterViewInit, OnDestroy {
           }
         }
       }
-      await this.watchLocation();
+      await this.watchPos();
     } catch (error: any) {
       console.error('Error requesting location permission:', error);
       this.isLoading = false;
     }
-  }
-  private async watchLocation(): Promise<void> {
-    try {
-      const position = await Geolocation.getCurrentPosition({ enableHighAccuracy: true });
-      this.updatePosition({ 
+  }  
+  // Continuous position monitoring
+  private async watchPos(): Promise<void> {
+    try {      const position = await Geolocation.getCurrentPosition({ enableHighAccuracy: true });
+      this.updateUserPos({ 
         coords: { 
           latitude: position.coords.latitude, 
           longitude: position.coords.longitude 
@@ -282,7 +287,7 @@ export class SupermercatiPage implements OnInit, AfterViewInit, OnDestroy {
         { enableHighAccuracy: true }, 
         (pos, err) => {
           if (pos) {
-            this.updatePosition({ 
+            this.updateUserPos({ 
               coords: { 
                 latitude: pos.coords.latitude, 
                 longitude: pos.coords.longitude 
@@ -296,8 +301,9 @@ export class SupermercatiPage implements OnInit, AfterViewInit, OnDestroy {
     } catch (error) {
       console.error('Error starting location updates:', error);
     }
-  }
-  private stopLocationUpdates(): void {
+  }  
+  // Stops traking
+  private stopLocation(): void {
     if (this.watchId) {
       Geolocation.clearWatch({ id: this.watchId });
       this.watchId = null;
@@ -307,21 +313,22 @@ export class SupermercatiPage implements OnInit, AfterViewInit, OnDestroy {
       this.userMarker = undefined;
     }
   }
-
-  private updatePosition(position: { coords: { latitude: number; longitude: number } }): void {
+  // Refresh map view
+  private updateUserPos(position: { coords: { latitude: number; longitude: number } }): void {
     if (position?.coords?.latitude && position?.coords?.longitude) {
       this.locationError = null;
-      this.userPosition = L.latLng(position.coords.latitude, position.coords.longitude);
+      this.userPosition = L.latLng(position.coords.latitude, position.coords.longitude);      
       if (this.map && this.mapInitialized) {
-        this.updateUserMarker();
-        this.map.setView(this.userPosition, 13);      }
+        this.updateMarker();
+        this.map.setView(this.userPosition, 13);      
+      }
       if (this.supermarkets.length > 0) {
         this.sortByDist();
       }
     }
   }
-
-  private updateUserMarker(): void {
+  // Updates user position marker
+  private updateMarker(): void {
     if (!this.map || !this.userPosition) return;
 
     if (this.userMarker) {
@@ -336,7 +343,10 @@ export class SupermercatiPage implements OnInit, AfterViewInit, OnDestroy {
         fillOpacity: 0.8
       }).addTo(this.map);
     }
-  }  // === DISTANCE CALCULATION ===
+  }
+
+  // === DISTANCE CALCULATION === 
+  // Haversine distance formula
   private calcDist(lat1: number, lon1: number, lat2: number, lon2: number): number {
     const R = 6371;
     const dLat = this.deg2rad(lat2 - lat1);
@@ -352,6 +362,8 @@ export class SupermercatiPage implements OnInit, AfterViewInit, OnDestroy {
   private deg2rad(deg: number): number {
     return deg * (Math.PI/180);
   }
+
+  // Sorts supermarkets by distance from user
   private sortByDist(): void {
     if (!this.userPosition) return;
 
@@ -372,13 +384,15 @@ export class SupermercatiPage implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
+  // Format distance (meters/kilometers)
   private formatDist(distance: number): string {
     if (distance < 1) {
       return `${Math.round(distance * 1000)} m`;
     }
     return `${distance.toFixed(1)} km`;
-  }
-  getDistanceFromUser(latitude: number, longitude: number): string | null {
+  }  
+  // Calculate distance from user
+  getDistFromUser(latitude: number, longitude: number): string | null {
     if (!this.userPosition) return null;
     const distance = this.calcDist(
       this.userPosition.lat,
@@ -388,7 +402,8 @@ export class SupermercatiPage implements OnInit, AfterViewInit, OnDestroy {
     );
     return this.formatDist(distance);
   }
-  // === MAP METHODS ===  
+
+  // === MAP METHODS === 
   private initMap(): void {
     if (this.mapInitialized) return;
     
@@ -406,20 +421,18 @@ export class SupermercatiPage implements OnInit, AfterViewInit, OnDestroy {
         attribution: '© Google Maps',
         maxZoom: 20
       }).addTo(this.map);
-      
-      this.map.on('click', (e) => {
+        this.map.on('click', (e) => {
         const target = (e as any).originalEvent?.target;
         if (target && target.classList.contains('leaflet-container')) {
-          this.clearSelection();
+          this.clearSelect();
         }
       });
       
       const mapContainer = this.map.getContainer();
       mapContainer.style.borderRadius = '16px';
       mapContainer.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)';
-      
-      this.mapInitialized = true;      if (this.userPosition) {
-        this.updateUserMarker();
+        this.mapInitialized = true;      if (this.userPosition) {
+        this.updateMarker();
       }
       if (this.supermarkets.length > 0) {
         this.addMarkers();
@@ -429,6 +442,7 @@ export class SupermercatiPage implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
+  // Create markers for supermarkets
   private addMarkers(): void {
     if (!this.map || !this.mapInitialized) return;
     
@@ -508,8 +522,8 @@ export class SupermercatiPage implements OnInit, AfterViewInit, OnDestroy {
     
     setTimeout(() => this.map?.invalidateSize(), 200);    setTimeout(() => this.scrollTo(supermarket), 300);
   }
-
-  private clearSelection(): void {
+  // Clear selection and close all popup
+  private clearSelect(): void {
     this.selectedSupermarket = null;
     this.selectedSupermarketFromSearch = null;
     if (this.markers && this.markers.length > 0) {
@@ -529,6 +543,7 @@ export class SupermercatiPage implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
+  // Swiper transition
   private setupSwiper(): void {
     const swiperContainer = document.querySelector('.supermarket-cards-swiper') as any;
     if (!swiperContainer) return;
@@ -557,7 +572,8 @@ export class SupermercatiPage implements OnInit, AfterViewInit, OnDestroy {
     }, 100);
     
     setTimeout(() => clearInterval(checkSwiper), 5000);
-  }  
+  }    
+  // Scroll to selected supermarket
   private scrollTo(supermarket: Supermarket): void {
     const itemElement = document.querySelector(`[data-supermarket-id="${supermarket.id}"]`) as HTMLElement;
     if (!itemElement) {
@@ -566,15 +582,13 @@ export class SupermercatiPage implements OnInit, AfterViewInit, OnDestroy {
     }
       const swiperContainer = document.querySelector('.supermarket-cards-swiper') as any;
     if (!swiperContainer) {
-      console.warn('Swiper container not found, using fallback');
-      this.fallbackScroll(itemElement);
+      console.warn('Swiper container not found');
       return;
     }
     
     const waitForSwiper = (attempt = 0) => {
       if (attempt > 50) {
-        console.warn('Swiper not ready after 50 attempts, using fallback');
-        this.fallbackScroll(itemElement);
+        console.warn('Swiper not ready after 50 attempts');
         return;
       }
       
@@ -586,16 +600,14 @@ export class SupermercatiPage implements OnInit, AfterViewInit, OnDestroy {
       const swiper = swiperContainer.swiper;
       const slideElement = itemElement.closest('swiper-slide') as HTMLElement;
       if (!slideElement) {
-        console.warn('Slide element not found, using fallback');
-        this.fallbackScroll(itemElement);
+        console.warn('Slide element not found');
         return;
       }
       
       const slides = Array.from(swiperContainer.querySelectorAll('swiper-slide'));
       const slideIndex = slides.indexOf(slideElement);
       if (slideIndex === -1) {
-        console.warn('Slide index not found, using fallback');
-        this.fallbackScroll(itemElement);
+        console.warn('Slide index not found');
         return;
       }
       
@@ -611,60 +623,51 @@ export class SupermercatiPage implements OnInit, AfterViewInit, OnDestroy {
         }, 600);
       } catch (error) {
         console.warn('Error sliding to supermarket card:', error);
-        this.fallbackScroll(itemElement);
       }
     };
-    
     waitForSwiper();
   }
-
-  private fallbackScroll(itemElement: HTMLElement): void {
-    itemElement.scrollIntoView({ 
-      behavior: 'smooth', 
-      block: 'center',
-      inline: 'center'
-    });
-  }
-
   // === NAVIGATION ===
   openInMaps(supermarket: Supermarket, event: Event): void {
     event.stopPropagation();
     const url = `https://www.google.com/maps/dir/?api=1&destination=${supermarket.latitude},${supermarket.longitude}`;
     window.open(url, '_blank');
   }
-
-  selectAndNavigate(supermarket: Supermarket, event: Event): void {
+  // Selects supermarket and navigates to dashboard
+  selectAndNav(supermarket: Supermarket, event: Event): void {
     event.stopPropagation();
     this.selectedSupermarket = supermarket;
     this.supermarketsService.setSelectedSupermarket(supermarket);
     this.router.navigate(['/home/dashboard']);
-  }  // === ADD SUPERMARKET ===
+  }
+  
+  // === ADD SUPERMARKET ===
   openModal(): void {
     this.reset();
     setTimeout(() => {
       this.addSupermarketModalOpen = true;
     }, 100);
   }
-
   closeModal(): void {
     this.addSupermarketModalOpen = false;
     this.addressSuggestions = [];
   }
 
+  // Reset form fields
   private reset(): void {
     this.newSupermarket = { name: '', address: '', manager_id: '' };
     this.addressSuggestions = [];
     this.selectedLat = '';
     this.selectedLon = '';
     this.isSubmitting = false;
-  }
-  onAddressInputDebounced(): void {
+  }  
+  onAddressInput(): void {
     this.addressInput$.next(this.newSupermarket.address);
     this.selectedLat = '';
     this.selectedLon = '';
   }
-
-  async fetchSuggestions(address: string): Promise<void> {
+  // Fetches address suggestions
+  async fetchSuggs(address: string): Promise<void> {
     if (!address || address.length < 3) {
       this.addressSuggestions = [];
       return;
@@ -679,8 +682,8 @@ export class SupermercatiPage implements OnInit, AfterViewInit, OnDestroy {
       this.addressSuggestions = [];
     }
   }
-
-  selectAddress(suggestion: any): void {
+  // Formats address from suggestions
+  selectAddr(suggestion: any): void {
     let formatted = '';
     const address = suggestion.address || {};
     const isItaly = address.country_code && address.country_code.toUpperCase() === 'IT';
@@ -726,9 +729,9 @@ export class SupermercatiPage implements OnInit, AfterViewInit, OnDestroy {
     this.selectedLon = suggestion.lon;
     this.addressSuggestions = [];
   }
+  // Submits new supermarket with validation
   async submit(): Promise<void> {
     if (!this.newSupermarket.name || !this.newSupermarket.address || !this.selectedLat || !this.selectedLon) {
-      console.log('Missing required fields');
       return;
     }
     
@@ -774,7 +777,9 @@ export class SupermercatiPage implements OnInit, AfterViewInit, OnDestroy {
         this.isLoading = false;
       }
     });
-  }  // === IMAGE UTILITY ===
+  }  
+
+  // Logo matching with input
   private getKey(name: string): string | null {
     const normalized = name.trim().toLowerCase();
     let minDistance = Infinity;
@@ -791,6 +796,7 @@ export class SupermercatiPage implements OnInit, AfterViewInit, OnDestroy {
     return minDistance <= 4 ? closestKey : null;
   }
 
+  // Levenshtein string similarity
   private levenshtein(a: string, b: string): number {
     const matrix = Array.from({ length: a.length + 1 }, () => new Array(b.length + 1).fill(0));
     
@@ -813,10 +819,12 @@ export class SupermercatiPage implements OnInit, AfterViewInit, OnDestroy {
     
     return matrix[a.length][b.length];
   }
+  // Return supermarket image 
   getStoreImage(name: string): string {
     const key = this.getKey(name);
     return key ? this.supermarketImages[key] : 'assets/supermercati/def_sm.webp';
   }
+
   // === ROLE CHECK ===
   private getUserRole(): string | null {
     const user = this.authService.getUser();
