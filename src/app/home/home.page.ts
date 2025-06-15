@@ -34,6 +34,7 @@ import {
   arrowBackOutline,
   timeOutline,
   searchOutline,
+  close
 } from 'ionicons/icons';
 import { filter } from 'rxjs/operators';
 import { NavigationEnd } from '@angular/router';
@@ -76,13 +77,12 @@ export class HomePage implements OnInit, OnDestroy {
   showOverlay: boolean = false;
   isSearchActive: boolean = false;
   currentPlaceholder: string = 'Ricerca...';
+  selectedSupermarket: any = null;
   private searchSubject = new Subject<string>();  
   private subscription: Subscription = new Subscription();
   private readonly RECENT_SEARCHES_KEY = 'recentSearches';
   private readonly MAX_RECENT_SEARCHES = 5;
-
   private readonly SEARCH_CONFIG = {
-    '/supermercati': { placeholder: 'Cerca supermercati', type: 'supermarkets' },
     '/prodotti': { placeholder: 'Cerca prodotti', type: 'products' },
     '/offerte': { placeholder: 'Cerca offerte', type: 'offers' },
     '/ordini': { placeholder: 'Cerca ordini', type: 'orders' },
@@ -95,8 +95,7 @@ export class HomePage implements OnInit, OnDestroy {
     private router: Router,
     private elementRef: ElementRef,
     private menuController: MenuController
-  ) {    
-    addIcons({ 
+  ) {    addIcons({ 
       storefrontOutline, 
       cubeOutline, 
       cartOutline, 
@@ -107,7 +106,8 @@ export class HomePage implements OnInit, OnDestroy {
       gridOutline,
       arrowBackOutline,
       timeOutline,
-      searchOutline
+      searchOutline,
+      close
     });
       this.router.events.pipe(
       filter(event => event instanceof NavigationEnd)
@@ -122,10 +122,24 @@ export class HomePage implements OnInit, OnDestroy {
     this.setupSearch();
     this.loadRecent();
     this.setupUserListener();
-  }
-  ngOnDestroy() {
+    
+    // Subscribe to selected supermarket changes
+    this.subscription.add(
+      this.homeService.selectedSupermarket$.subscribe(supermarket => {
+        this.selectedSupermarket = supermarket;
+      })
+    );
+  }  ngOnDestroy() {
     this.subscription.unsubscribe();
-  }  
+  }
+
+  getSupermarketImage(name: string): string {
+    return this.homeService.getStoreImage(name);
+  }
+
+  clearSelectedSupermarket(): void {
+    this.homeService.clearSelectedSupermarket();
+  }
 
   // Debounce search
   private setupSearch() {
@@ -137,13 +151,19 @@ export class HomePage implements OnInit, OnDestroy {
       })
     );
   }
-
-  private setupUserListener() {
+  private setupUserListener() {    
     const handleUserChange = (event: any) => {
       if (event.detail.action === 'login') {
         this.resetSearch();
         this.recentSearches = [];
         this.loadRecent();
+        this.menuController.close();
+      } else if (event.detail.action === 'logout') {
+        this.homeService.clearSelectedSupermarket();
+        this.resetSearch();
+        this.recentSearches = [];
+        // Chiudi il menu dopo il logout
+        this.menuController.close();
       }
     };
     window.addEventListener('userChanged', handleUserChange);
@@ -201,14 +221,11 @@ export class HomePage implements OnInit, OnDestroy {
     this.showResults = this.searchResults.length > 0;
     this.isSearching = false;
   }  
-
   // Research by type
   private async execSearch(query: string): Promise<SearchResult[]> {
     const currentType = this.getSearchType();
     
     switch (currentType) {
-      case 'supermarkets':
-        return this.customSearch(query, 'supermarkets');
       case 'products':
         // TODO: Implement products search
         return [];
@@ -218,26 +235,7 @@ export class HomePage implements OnInit, OnDestroy {
       default:
         return [];
     }
-  }
-  
-  // General research
-  private async customSearch(query: string, type: string): Promise<SearchResult[]> {
-    const event = new CustomEvent('universalSearch', { 
-      detail: { query, type } 
-    });
-    window.dispatchEvent(event);
-    
-    return new Promise((resolve) => {
-      const handler = (event: any) => {
-        if (event.detail.type === type) {
-          window.removeEventListener('universalSearchResults', handler);
-          resolve(event.detail.results);
-        }
-      };
-      window.addEventListener('universalSearchResults', handler);
-    });
   }  
-
   // Manage result selection
   selectResult(result: SearchResult) {
     this.searchTerm = result.label;
@@ -270,19 +268,12 @@ export class HomePage implements OnInit, OnDestroy {
       this.searchSubject.next(result.label);
     }
   }  
-
   // Navigate to selected result
   private navigate(result: SearchResult): void {
     const currentType = this.getSearchType();
     
-    if (currentType === 'supermarkets') {
-      const event = new CustomEvent('universalSearchSelect', {
-        detail: { result, type: 'supermarkets' }
-      });
-      window.dispatchEvent(event);
-    }
     // Products and offers here
-  }  
+  }
 
   onFocus() {
     this.showOverlay = true;
@@ -430,10 +421,19 @@ export class HomePage implements OnInit, OnDestroy {
   public get isManager(): boolean {
     const user = this.authService.getUser();
     return HomeService.isManager(user);
-  }
-  public get isCustomer(): boolean {
+  }  public get isCustomer(): boolean {
     const user = this.authService.getUser();
     return HomeService.isCustomer(user);
+  }
+
+  public get isAdminOrManager(): boolean {
+    const user = this.authService.getUser();
+    return HomeService.isAdmin(user) || HomeService.isManager(user);
+  }
+
+  // Selected supermarket visibility
+  shouldShowSupermarketSelection(): boolean {
+    return this.activeUrl.includes('/prodotti') || this.activeUrl.includes('/offerte');
   }
 
   // Menu selected
@@ -445,6 +445,8 @@ export class HomePage implements OnInit, OnDestroy {
   logout() {
     this.clearSearch();
     this.recentSearches = [];
+    this.homeService.clearSelectedSupermarket();
+    this.menuController.close();
     this.authService.logout();
     this.router.navigate(['/login']);
   }
@@ -452,7 +454,7 @@ export class HomePage implements OnInit, OnDestroy {
   // Navigate and close menu
   navAndClose(route: string) {
     this.router.navigate([`/home/${route}`]);
-    if (window.innerWidth < 768) {
+    if (window.innerWidth < 992) {
       this.menuController.close();
     }
   }

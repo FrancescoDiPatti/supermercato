@@ -1,16 +1,16 @@
-<ion-split-pane when="md" contentId="main">
-  <ion-menu contentId="main" side="start">
+<ion-split-pane when="(min-width: 992px)" contentId="main">
+  <ion-menu contentId="main" side="start" disabled="false">
     <ion-header>
       <ion-toolbar>
         <ion-title>SM Simulator</ion-title>
       </ion-toolbar>
-    </ion-header>    <ion-content class="ion-padding menu-content">
-      <div class="menu-items">
-        <ion-button fill="clear" (click)="navAndClose('dashboard')" [class.active]="isMenuActive('dashboard')">
+    </ion-header>    
+    <ion-content class="ion-padding menu-content">
+
+
+      <div class="menu-items"
+           [class.with-supermarket]="selectedSupermarket">        <ion-button fill="clear" (click)="navAndClose('dashboard')" [class.active]="isMenuActive('dashboard')">
           <ion-icon slot="start" name="grid-outline"></ion-icon>Dashboard
-        </ion-button>
-        <ion-button fill="clear" (click)="navAndClose('supermercati')" [class.active]="isMenuActive('supermercati')">
-          <ion-icon slot="start" name="storefront-outline"></ion-icon>Supermercati
         </ion-button>
         
         <ion-button fill="clear" (click)="navAndClose('prodotti')" [class.active]="isMenuActive('prodotti')">
@@ -28,6 +28,23 @@
           <ion-icon slot="start" name="receipt-outline"></ion-icon>Ordini
         </ion-button>
       </div>
+      <div class="selected-supermarket-section" *ngIf="selectedSupermarket && shouldShowSupermarketSelection()">
+        <div class="selected-supermarket-header">
+          <h3>Supermercato Selezionato</h3>
+          <ion-button fill="clear" size="small" (click)="clearSelectedSupermarket()">
+            <ion-icon name="close" slot="icon-only"></ion-icon>
+          </ion-button>
+        </div>
+        <div class="selected-supermarket-card">
+          <div class="supermarket-image">
+            <img [src]="getSupermarketImage(selectedSupermarket.name)" [alt]="selectedSupermarket.name">
+          </div>
+          <div class="supermarket-info">
+            <h4>{{selectedSupermarket.name}}</h4>
+            <p>{{selectedSupermarket.address}}</p>
+          </div>
+        </div>
+      </div>
 
       <div class="logout-section">
         <ion-button fill="clear" (click)="logout()">
@@ -36,13 +53,16 @@
       </div>
     </ion-content>
   </ion-menu>  
-  <div class="ion-page" id="main">
-    <ion-header>
+  <div class="ion-page" id="main">    
+    <ion-header>      
       <ion-toolbar>
-        <ion-buttons slot="start">
+        <ion-buttons slot="start" class="menu-button-container">
           <ion-menu-button></ion-menu-button>
-        </ion-buttons>        <div class="search-container">
-          <div class="search-wrapper">            <ion-searchbar
+        </ion-buttons>
+        
+        <div class="search-container">
+          <div class="search-wrapper">            
+            <ion-searchbar
               [(ngModel)]="searchTerm"
               [placeholder]="currentPlaceholder"
               (ionInput)="onInput($event)"
@@ -67,7 +87,8 @@
       <router-outlet></router-outlet>
     </ion-content>    <div class="glass-overlay" [class.active]="showOverlay" *ngIf="showOverlay"></div>
     <div class="floating-search-results" [class.show]="showResults" *ngIf="showResults">
-      <div class="search-results">        <ion-list>
+      <div class="search-results">        
+        <ion-list>
           <ion-item 
             *ngFor="let result of searchResults; let i = index"
             button

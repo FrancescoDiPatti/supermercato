@@ -1,18 +1,5 @@
-import { Routes, CanActivateFn, Router } from '@angular/router';
-import { inject } from '@angular/core';
-import { AuthService } from './auth/auth.service';
-
-export const authGuard: CanActivateFn = (route, state) => {
-  const authService = inject(AuthService);
-  const router = inject(Router);
-
-  if (authService.isLoggedIn()) {
-    return true;
-  } else {
-    router.navigate(['/login']);
-    return false;
-  }
-};
+import { Routes } from '@angular/router';
+import { authGuard, adminManagerGuard } from './auth/guards/auth.guard';
 
 export const routes: Routes = [
   {
@@ -34,12 +21,13 @@ export const routes: Routes = [
     canActivate: [authGuard],
     children: [
       {
-        path: 'dashboard',
-        loadComponent: () => import('./home/dashboard/dashboard.page').then( m => m.DashboardPage)
+        path: '',
+        redirectTo: 'dashboard',
+        pathMatch: 'full'
       },
       {
-        path: 'supermercati',
-        loadComponent: () => import('./home/supermercati/supermercati.page').then( m => m.SupermercatiPage)
+        path: 'dashboard',
+        loadComponent: () => import('./home/dashboard/dashboard.page').then( m => m.DashboardPage)
       },
       {
         path: 'prodotti',
@@ -56,6 +44,16 @@ export const routes: Routes = [
       {
         path: 'ordini',
         loadComponent: () => import('./home/ordini/ordini.page').then( m => m.OrdiniPage)
+      }
+    ]
+  },
+  {
+    path: 'crea',
+    children: [
+      {
+        path: 'crea-supermercato',
+        loadComponent: () => import('./crea/crea-supermercato/crea-supermercato.page').then( m => m.CreaSupermercatoPage),
+        canActivate: [adminManagerGuard]
       }
     ]
   }

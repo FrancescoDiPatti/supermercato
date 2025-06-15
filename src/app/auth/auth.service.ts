@@ -6,7 +6,7 @@ import { Observable } from 'rxjs';
   providedIn: 'root'
 })
 export class AuthService {
-  private apiUrl = 'http://localhost:5000/api';
+  private apiUrl = 'http://192.168.69.65:5000/api';
   private readonly AUTH_TOKEN_KEY = 'authToken';
   private readonly USER_KEY = 'user';
   private readonly HOME_DATA_KEY = 'homeData';

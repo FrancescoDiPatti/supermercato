@@ -1,0 +1,195 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>    
+    <ion-buttons slot="start">
+      <ion-button (click)="goBack()">
+        <ion-icon name="arrow-back"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>Aggiungi Supermercato</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" [scrollY]="true" class="ion-padding-bottom">
+  <div class="create-container">
+    <ion-card>
+      <ion-card-header>
+        <div class="header-content">
+          <ion-icon name="storefront" class="header-icon"></ion-icon>
+          <ion-card-title>Nuovo Supermercato</ion-card-title>
+        </div>
+      </ion-card-header>
+      
+      <ion-card-content>
+        <form (ngSubmit)="createSupermarket()" #supermarketForm="ngForm" (click)="onFormClick($event)">
+          <!-- nome -->
+          <ion-item class="form-item">
+            <ion-label position="stacked">Nome Supermercato</ion-label>
+            <ion-input 
+              [(ngModel)]="supermarket.name"
+              name="name"
+              type="text"
+              placeholder="Es. Conad, Coop, Lidl..."
+              required
+              clearInput="true">
+            </ion-input>
+          </ion-item>          <!-- indirizzo -->
+          <ion-item class="form-item">
+            <ion-label position="stacked">Indirizzo</ion-label>
+            <ion-input 
+              [(ngModel)]="supermarket.address"
+              name="address"
+              type="text"
+              placeholder="Es. Via Roma 123, Milano"
+              required
+              clearInput="true"
+              (ionInput)="onAddressInput($event)">
+            </ion-input>
+          </ion-item>
+          <!-- suggerimenti indirizzo -->
+          <div class="suggestions-container" *ngIf="addressSuggestions.length > 0 || isSearching">
+            <div class="suggestions-header">
+              <ion-text color="medium">
+                <span *ngIf="isSearching">
+                  <ion-spinner name="dots"></ion-spinner>
+                  Ricerca indirizzi...
+                </span>
+                <span *ngIf="!isSearching && addressSuggestions.length > 0">
+                  Indirizzi suggeriti:
+                </span>
+              </ion-text>
+            </div>              
+            <div class="suggestions-list" *ngIf="!isSearching && addressSuggestions.length > 0">
+              <ion-item 
+                *ngFor="let suggestion of addressSuggestions; trackBy: trackByLatLon"
+                class="suggestion-item"
+                (click)="selectSuggestion(suggestion)">
+                <ion-icon name="location" slot="start" color="primary"></ion-icon>
+                <ion-label>
+                  <h3>{{suggestion.display_name.split(',')[0] || suggestion.display_name}}</h3>
+                  <p>{{suggestion.display_name}}</p>
+                </ion-label>
+              </ion-item>
+            </div>
+          </div>
+          <!-- indirizzo selezionato -->
+          <div *ngIf="selectedLat && selectedLon" class="geocode-result">
+            <ion-item class="result-item">
+              <ion-icon name="location" slot="start" color="success"></ion-icon>
+              <ion-label>
+                <h3>Indirizzo Selezionato</h3>
+                <p>{{ supermarket.address }}</p>
+                <p class="coordinates">
+                  Coordinate: {{selectedLat | number:'1.6-6'}}, {{selectedLon | number:'1.6-6'}}
+                </p>
+              </ion-label>
+              <ion-icon name="checkmark-circle" slot="end" color="success"></ion-icon>
+            </ion-item>
+          </div>          <!-- seleziona manager (solo admin) -->
+          <ion-item class="form-item" *ngIf="isAdmin">
+            <ion-label position="stacked">Seleziona Manager</ion-label>
+            <ion-input 
+              [(ngModel)]="managerSearchText"
+              name="manager_search"
+              type="text"
+              placeholder="Cerca un manager..."
+              required
+              clearInput="true"
+              (ionInput)="onManagerInput($event)"
+              (ionFocus)="onManagerFocus()"
+              (ionBlur)="onManagerBlur()"
+              [disabled]="loadingManagers">
+            </ion-input>
+          </ion-item>
+          <!-- suggerimenti manager -->
+          <div class="suggestions-container" *ngIf="showManagerSuggestions && (managerSuggestions.length > 0 || loadingManagers)">
+            <div class="suggestions-header">
+              <ion-text color="medium">
+                <span *ngIf="loadingManagers">
+                  <ion-spinner name="dots"></ion-spinner>
+                  Caricamento manager...
+                </span>
+                <span *ngIf="!loadingManagers && managerSuggestions.length > 0">
+                  Manager disponibili:
+                </span>
+              </ion-text>
+            </div>            <div class="suggestions-list" *ngIf="!loadingManagers && managerSuggestions.length > 0">
+              <ion-item 
+                *ngFor="let manager of managerSuggestions; trackBy: trackById"
+                class="suggestion-item"
+                (click)="selectManager(manager)">
+                <ion-icon name="person" slot="start" color="primary"></ion-icon>
+                <ion-label>
+                  <h3>{{ manager.username }}</h3>
+                  <p>{{ manager.email }}</p>
+                </ion-label>
+              </ion-item>
+            </div>
+          </div>
+
+          <!-- manager selezionato -->
+          <div *ngIf="selectedManager" class="geocode-result">
+            <ion-item class="result-item">
+              <ion-icon name="person" slot="start" color="success"></ion-icon>
+              <ion-label>
+                <h3>Manager Selezionato</h3>
+                <p>{{selectedManager.username}}</p>
+                <p class="coordinates">
+                  Email: {{selectedManager.email}}
+                </p>
+              </ion-label>
+              <ion-icon name="checkmark-circle" slot="end" color="success"></ion-icon>
+            </ion-item>
+          </div>       
+          <!-- bottoni -->
+          <div class="action-buttons">            
+            <ion-button 
+              expand="block" 
+              type="submit"
+              color="primary"
+              [disabled]="isLoading || !supermarketForm.form.valid || (isAdmin && !supermarket.manager_id) || !isAddressSelected">
+              <ion-icon slot="start" name="save"></ion-icon>
+              <span *ngIf="!isLoading">Crea Supermercato</span>
+              <span *ngIf="isLoading">
+                <ion-spinner name="crescent"></ion-spinner>
+                Creando...
+              </span>
+            </ion-button>
+            <ion-button 
+              expand="block" 
+              fill="clear"
+              color="medium"
+              (click)="resetForm()"
+              [disabled]="isLoading">
+              Ripristina
+            </ion-button>
+          </div>
+        </form>
+      </ion-card-content>
+    </ion-card>  </div>
+</ion-content>
+
+<!-- alert -->
+<div class="custom-alert-backdrop" [class.show]="showCustomAlert" (click)="closeAlert()">
+  <div class="custom-alert" [class.show]="showCustomAlert" [class.success]="alertType === 'success'" [class.error]="alertType === 'error'" (click)="$event.stopPropagation()">
+    <div class="alert-header">
+      <div class="alert-icon-container">
+        <ion-icon [name]="alertIcon" [color]="alertType === 'success' ? 'success' : 'danger'"></ion-icon>
+      </div>
+      <ion-button fill="clear" size="small" class="close-btn" (click)="closeAlert()">
+        <ion-icon name="close"></ion-icon>
+      </ion-button>
+    </div>
+    <div class="alert-content">
+      <h3 class="alert-title">{{ alertTitle }}</h3>
+      <p class="alert-message">{{ alertMessage }}</p>
+    </div>
+    <div class="alert-actions">
+      <ion-button 
+        expand="block" 
+        [color]="alertType === 'success' ? 'primary' : 'danger'"
+        (click)="closeAlert()">
+        OK
+      </ion-button>
+    </div>
+  </div>
+</div>

@@ -1,3 +1,5 @@
+@use "theme/mixins.scss" as *;
+
 /*
  * App Global CSS
  * ----------------------------------------------------------------------------
@@ -76,11 +78,7 @@ h1, h2, h3, h4, h5, h6, p, span, ion-label {
 }
 
 ion-input, ion-textarea, ion-select {
-  --background: #ffffff;
-  --color: #000000;
-  --placeholder-color: #666666;
-  border: 1px solid rgb(112, 161, 112);
-  border-radius: 8px;
+  @include input-base;
 }
 
 ion-menu {

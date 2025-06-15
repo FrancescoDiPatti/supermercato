@@ -1,0 +1,952 @@
+@use '../../../theme/mixins.scss' as *;
+
+// === DASHBOARD LAYOUT ===
+.dashboard-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  @include container-padding;
+}
+
+// === MAP SECTION ===
+.map-section {
+  @include card-base;
+  margin-bottom: 24px;
+  
+  &:hover,
+  &.expanded {
+    @include hover-lift;
+  }
+  
+  &.expanded {
+    .toggle-icon {
+      transform: rotate(180deg);
+    }
+    
+    .map-content {
+      max-height: 400px;
+      padding: 0;
+      
+      @include tablet-responsive {
+        max-height: 300px;
+      }
+      
+      @include small-mobile-responsive {
+        max-height: 250px;
+      }
+    }
+  }
+  
+  &.auto-collapsed {
+    margin-bottom: 16px;
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.05);
+  }
+}
+
+.map-header {
+  @include flex-between;
+  padding: 14px 20px;
+  cursor: pointer;
+  transition: $transition-smooth;
+  background: white;
+  border-bottom: 1px solid var(--ion-color-light-shade);
+  
+  @include small-mobile-responsive {
+    padding: 12px 16px;
+  }
+}
+
+.map-header-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  
+  @include small-mobile-responsive {
+    gap: 8px;
+  }
+}
+
+.map-icon {
+  font-size: 24px;
+  color: var(--ion-color-primary);
+  transition: color 0.3s ease;
+  
+  @include small-mobile-responsive {
+    font-size: 20px;
+  }
+}
+
+.map-header-text {
+  h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--ion-color-dark);
+    transition: color 0.3s ease;
+    
+    @include small-mobile-responsive {
+      font-size: 14px;
+    }
+  }
+  
+  p {
+    margin: 4px 0 0 0;
+    font-size: 12px;
+    color: var(--ion-color-medium);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    
+    @include small-mobile-responsive {
+      font-size: 11px;
+    }
+    
+    ion-icon {
+      font-size: 14px;
+      
+      @include small-mobile-responsive {
+        font-size: 12px;
+      }
+    }
+  }
+}
+
+.toggle-icon {
+  font-size: 20px;
+  color: var(--ion-color-medium);
+  transition: transform 0.3s ease, color 0.3s ease;
+  
+  @include small-mobile-responsive {
+    font-size: 18px;
+  }
+}
+
+.map-content {
+  max-height: 0;
+  overflow: hidden;
+  transition: $transition-smooth;
+}
+
+.map-container {
+  height: 400px;
+  position: relative;
+  
+  @include tablet-responsive {
+    height: 300px;
+  }
+  
+  @include small-mobile-responsive {
+    height: 250px;
+  }
+  
+  #supermarket-map {
+    width: 100%;
+    height: 100%;
+  }
+}
+
+.map-loading {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  @include flex-center;
+  flex-direction: column;
+  gap: 12px;
+  background: var(--ion-color-light);
+  z-index: 10;
+  
+  ion-spinner {
+    width: 32px;
+    height: 32px;
+  }
+  
+  ion-text {
+    font-size: 14px;
+    color: var(--ion-color-medium);
+  }
+}
+
+// === ANIMATIONS ===
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+
+@keyframes cardSelected {
+  0% {
+    transform: translateY(-2px) scale(1);
+  }
+  50% {
+    transform: translateY(-2px) scale(1.05);
+  }
+  100% {
+    transform: translateY(-2px) scale(1.02);
+  }
+}
+
+@keyframes iconPulse {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+// === ANIMATION CLASSES ===
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+.product-loading {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: $transition-smooth;
+  
+  .product-image-container {
+    @include shimmer-effect;
+    
+    ion-img {
+      opacity: 0;
+    }
+  }
+  
+  .product-info {
+    h4,
+    .product-description {
+      @include shimmer-effect;
+      border-radius: 4px;
+      margin-bottom: 8px;
+      
+      &::after {
+        content: '';
+        display: block;
+        height: 100%;
+      }
+    }
+    
+    h4 {
+      height: 16px;
+    }
+    
+    .product-description {
+      height: 12px;
+    }
+    
+    .price-container .current-price {
+      @include shimmer-effect;
+      height: 14px;
+      border-radius: 4px;
+      display: inline-block;
+      width: 60px;
+    }
+  }
+  
+  .add-button {
+    opacity: 0.3;
+  }
+}
+
+.product-animate {
+  animation: slideInUp 0.20s ease-out forwards;
+  
+  .product-image-container {
+    background: none;
+    
+    ion-img {
+      opacity: 1;
+      transition: opacity 0.2s ease;
+    }
+  }
+  
+  .product-info {
+    h4, 
+    .product-description, 
+    .price-container .current-price {
+      background: none;
+      animation: none;
+    }
+  }
+  
+  .add-button {
+    opacity: 1;
+    transition: opacity 0.2s ease;
+  }
+}
+
+// === SUPERMARKET SELECTION ===
+.supermarket-selection {
+  margin-bottom: 32px;
+  transition: $transition-smooth;
+  
+  &.compact {
+    margin-bottom: 16px;
+    
+    .selection-header h2 {
+      font-size: 16px;
+    }
+    
+    .supermarkets-container.mobile {
+      max-height: 120px;
+      overflow-x: auto;
+      
+      .supermarket-card {
+        min-width: 280px;
+      }
+    }
+  }
+}
+
+.selection-header {
+  @include flex-between;
+  margin-bottom: 20px;
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.header-icon {
+  font-size: 24px;
+  color: var(--ion-color-primary);
+}
+
+.selection-header h2 {
+  margin: 0;
+  color: var(--ion-color-primary);
+  font-weight: 600;
+  font-size: 20px;
+  transition: font-size 0.3s ease;
+}
+
+.sort-indicator {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ion-color-medium);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  
+  ion-icon {
+    font-size: 14px;
+    color: var(--ion-color-success);
+  }
+}
+
+.view-all-btn {
+  --size: 40px;
+  --border-radius: 50%;
+  --box-shadow: none;
+  
+  ion-icon {
+    font-size: 18px;
+  }
+  
+  &:hover {
+    @include button-hover-scale;
+  }
+}
+
+// === SUPERMARKET CONTAINERS & CARDS ===
+.supermarkets-container {
+  @include horizontal-scroll;
+  
+  &.active {
+    scroll-behavior: auto;
+  }
+  
+  &:not(.mobile) {
+    cursor: grab;
+    
+    &:active {
+      cursor: grabbing;
+    }
+    
+    &.active {
+      user-select: none;
+    }
+  }
+  
+  &.mobile {
+    flex-wrap: nowrap;
+    @include hide-scrollbar;
+  }
+}
+
+.supermarket-card {
+  @include supermarket-card-base;
+  
+  &.selected {
+    border: 2px solid var(--ion-color-primary);
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 8px 20px rgba(var(--ion-color-primary-rgb), 0.2);
+    background: rgba(var(--ion-color-primary-rgb), 0.02);
+    animation: cardSelected 0.3s ease-out;
+  }
+}
+
+.selected-icon {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  color: var(--ion-color-primary);
+  font-size: 24px;
+  background: white;
+  border-radius: 50%;
+  padding: 2px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  animation: iconPulse 0.6s ease-out;
+}
+
+.supermarket-image-container {
+  @include supermarket-image;
+}
+
+.supermarket-info {
+  flex: 1;
+  padding: 16px 16px 16px 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  
+  h4 {
+    margin: 0 0 8px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--ion-color-dark);
+    line-height: 1.2;
+  }
+  
+  .supermarket-card.selected & h4 {
+    color: var(--ion-color-primary);
+  }
+}
+
+.supermarket-address {
+  margin: 0 0 12px 0;
+  font-size: 13px;
+  color: var(--ion-color-medium);
+  line-height: 1.3;
+  @include text-truncate(2);
+}
+
+.supermarket-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.distance {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--ion-color-primary);
+  font-weight: 500;
+  
+  ion-icon {
+    font-size: 14px;
+  }
+}
+
+.offers-count {
+  font-size: 12px;
+  color: var(--ion-color-success);
+  font-weight: 500;
+}
+// === CREATE SUPERMARKET CARD ===
+.supermarket-card.create-card {
+  border: 2px dashed var(--ion-color-primary);
+  background: rgba(var(--ion-color-primary-rgb), 0.02);
+  
+  &:hover {
+    background: rgba(var(--ion-color-primary-rgb), 0.05);
+    border-color: var(--ion-color-primary-shade);
+    @include hover-lift;
+    box-shadow: 0 8px 20px rgba(var(--ion-color-primary-rgb), 0.15);
+  }
+}
+
+.create-card-content {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 16px;
+}
+
+.create-icon {
+  width: 80px;
+  height: 80px;
+  @include flex-center;
+  background: rgba(var(--ion-color-primary-rgb), 0.1);
+  border-radius: $border-radius-md;
+  margin-right: 16px;
+  flex-shrink: 0;
+  
+  ion-icon {
+    font-size: 36px;
+    color: var(--ion-color-primary);
+  }
+}
+
+.create-info {
+  flex: 1;
+  
+  h4 {
+    margin: 0 0 8px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--ion-color-primary);
+    line-height: 1.2;
+  }
+  
+  .create-description {
+    margin: 0;
+    font-size: 13px;
+    color: var(--ion-color-primary-shade);
+    opacity: 0.8;
+  }
+}
+
+// === SHARED COMPONENTS ===
+.loading-container {
+  @include flex-center;
+  flex-direction: column;
+  gap: 16px;
+  padding: 40px;
+  
+  ion-spinner {
+    width: 40px;
+    height: 40px;
+  }
+}
+
+.section {
+  @include section-spacing;
+  
+  h3 {
+    margin: 0 0 16px 0;
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--ion-color-dark);
+  }
+}
+
+// === CATEGORIES SECTION ===
+.categories-section .categories-container {
+  @include horizontal-scroll;
+  @include hide-scrollbar;
+}
+
+.category-item {
+  @include card-subtle;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: $padding-sm $padding-md;
+  min-width: 80px;
+  cursor: pointer;
+  position: relative;
+  
+  @include hover-lift-subtle;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    
+    .category-icon ion-img {
+      transform: scale(1.1);
+    }
+  }
+  
+  &.selected {
+    background: var(--ion-color-primary);
+    color: white;
+    
+    .category-name {
+      color: white;
+    }
+  }
+}
+
+.category-icon {
+  width: 32px;
+  height: 32px;
+  margin-bottom: 8px;
+  @include flex-center;
+  
+  ion-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
+    transition: transform 0.2s ease;
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+  }
+}
+
+.category-name {
+  font-size: 12px;
+  font-weight: 500;
+  text-align: center;
+  color: var(--ion-color-dark);
+  white-space: nowrap;
+}
+
+.category-count {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  --background: var(--ion-color-secondary);
+  --color: white;
+  font-size: 10px;
+  min-width: 18px;
+  height: 18px;
+}
+
+// === PRODUCTS SECTION ===
+.products-container {
+  @include horizontal-scroll;
+  @include hide-scrollbar;
+  
+  &.offers-container .product-card {
+    min-width: 200px;
+    max-width: 220px;
+  }
+}
+
+.product-card {
+  @include product-card-base;
+  
+  &.offer-card {
+    border: 2px solid var(--ion-color-tertiary);
+  }
+}
+
+.product-image-container {
+  @include product-image-container;
+}
+
+.discount-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  --background: var(--ion-color-danger);
+  --color: white;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.product-info {
+  padding: 12px;
+  
+  h4 {
+    margin: 0 0 8px 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ion-color-dark);
+    line-height: 1.2;
+    @include text-truncate(2);
+  }
+  
+  .product-description {
+    margin: 0 0 12px 0;
+    font-size: 12px;
+    color: var(--ion-color-medium);
+    line-height: 1.3;
+    @include text-truncate(2);
+  }
+}
+
+.price-container {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  
+  .current-price {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--ion-color-primary);
+  }
+  
+  .original-price {
+    font-size: 12px;
+    color: var(--ion-color-medium);
+    text-decoration: line-through;
+  }
+}
+
+.add-button {
+  position: absolute;
+  bottom: 0px;
+  right: 0px;
+  --background: var(--ion-color-primary);
+  --color: white;
+  --box-shadow: none;
+  width: 30px;
+  height: 30px;
+  
+  @include button-hover-scale;
+  
+  ion-icon {
+    font-size: 18px;
+  }
+}
+
+// === PURCHASE HISTORY ===
+.history-section {
+  @include card-base;
+  padding: 20px;
+  
+  h3 {
+    margin-bottom: 20px;
+  }
+}
+
+.history-item {
+  border-bottom: 1px solid var(--ion-color-light);
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  
+  &:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+  }
+  
+  h4 {
+    margin: 0 0 4px 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ion-color-dark);
+  }
+  
+  p {
+    margin: 2px 0;
+    font-size: 12px;
+    color: var(--ion-color-medium);
+  }
+}
+
+.purchase-details {
+  font-weight: 500;
+  color: var(--ion-color-primary);
+}
+
+.purchase-date {
+  font-size: 11px;
+  color: var(--ion-color-medium-shade);
+}
+
+.no-history {
+  text-align: center;
+  color: var(--ion-color-medium);
+  padding: 20px;
+}
+
+// === EMPTY STATE ===
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--ion-color-medium);
+}
+
+.empty-icon {
+  font-size: 80px;
+  margin-bottom: 20px;
+  opacity: 0.5;
+}
+
+.empty-state h3 {
+  color: var(--ion-color-dark);
+  margin-bottom: 12px;
+}
+
+.empty-state p {
+  margin: 0;
+  line-height: 1.5;
+}
+
+// === MOBILE RESPONSIVE ===
+@include mobile-responsive {
+  .dashboard-container {
+    padding: 8px;
+  }
+  
+  // Supermarket selection mobile
+  .supermarket-selection {
+    margin-bottom: 20px;
+    
+    &.compact {
+      margin-bottom: 12px;
+    }
+  }
+  
+  .selection-header {
+    margin-bottom: 16px;
+    
+    h2 {
+      font-size: 18px;
+    }
+  }
+  
+  .view-all-btn {
+    --size: 36px;
+    
+    ion-icon {
+      font-size: 16px;
+    }
+  }
+  
+  // Supermarket cards mobile
+  .supermarket-card {
+    min-width: 260px;
+    max-width: 280px;
+    
+    &.selected {
+      transform: translateY(-2px) scale(1.01);
+    }
+  }
+  
+  .supermarket-image-container {
+    width: 60px;
+    height: 60px;
+    margin: 10px;
+  }
+  
+  .supermarket-info {
+    padding: 10px 10px 10px 0;
+    
+    h4 {
+      font-size: 14px;
+    }
+  }
+  
+  .supermarket-address {
+    font-size: 11px;
+    margin-bottom: 8px;
+  }
+  
+  .supermarket-meta {
+    gap: 2px;
+  }
+  
+  .distance,
+  .offers-count {
+    font-size: 11px;
+  }
+  
+  // Categories mobile
+  .categories-container {
+    gap: 8px;
+  }
+  
+  .category-item {
+    min-width: 70px;
+    padding: 10px 12px;
+  }
+  
+  .category-icon {
+    width: 24px;
+    height: 24px;
+    margin-bottom: 6px;
+    
+    ion-img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      image-rendering: -webkit-optimize-contrast;
+      image-rendering: crisp-edges;
+    }
+  }
+  
+  .category-name {
+    font-size: 11px;
+  }
+  
+  // Products mobile
+  .products-container {
+    gap: 10px;
+    
+    &.offers-container .product-card {
+      min-width: 160px;
+      max-width: 180px;
+    }
+  }
+  
+  .product-card {
+    min-width: 130px;
+    max-width: 150px;
+  }
+  
+  .product-image-container {
+    height: 100px;
+  }
+  
+  .product-info {
+    padding: 10px;
+    
+    h4 {
+      font-size: 13px;
+    }
+    
+    .product-description {
+      font-size: 11px;
+    }
+    
+    .current-price {
+      font-size: 14px;
+    }
+  }
+  
+  .add-button {
+    width: 32px;
+    height: 32px;
+    
+    ion-icon {
+      font-size: 16px;
+    }
+  }
+}
