@@ -1,12 +1,15 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, throwError } from 'rxjs';
+import { catchError, switchMap } from 'rxjs/operators';
+import { ApiConfig } from '../config/api.config';
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
-  private apiUrl = 'http://192.168.69.65:5000/api';
+  private apiUrls = ApiConfig.getAllApiUrls();
+  private currentApiUrl: string = ApiConfig.getPrimaryApiUrl();
   private readonly AUTH_TOKEN_KEY = 'authToken';
   private readonly USER_KEY = 'user';
   private readonly HOME_DATA_KEY = 'homeData';
@@ -14,14 +17,23 @@ export class AuthService {
   private readonly DEFAULT_SESSION_DURATION = 10 * 60 * 60 * 1000;
   // 5 minuti
   private readonly EXTENSION_THRESHOLD = 5 * 60 * 1000;
-
   constructor(private http: HttpClient) { }
   login(credentials: { username: string; password: string }): Observable<any> {
-    return this.http.post(`${this.apiUrl}/login`, credentials);
+    return this.http.post(ApiConfig.ENDPOINTS.AUTH.LOGIN, credentials).pipe(
+      catchError(() => {
+        // Se fallisce, prova con localhost
+        return this.http.post(ApiConfig.ENDPOINTS.AUTH.LOGIN_URLS[1], credentials);
+      })
+    );
   }
 
   register(data: { username: string; password: string; email: string; role: string }): Observable<any> {
-    return this.http.post(`${this.apiUrl}/register`, data);
+    return this.http.post(ApiConfig.ENDPOINTS.AUTH.REGISTER, data).pipe(
+      catchError(() => {
+        // Se fallisce, prova con localhost
+        return this.http.post(ApiConfig.ENDPOINTS.AUTH.REGISTER_URLS[1], data);
+      })
+    );
   }
 
   setUser(user: any) {

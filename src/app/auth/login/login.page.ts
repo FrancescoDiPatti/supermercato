@@ -1,7 +1,17 @@
 import { Component, OnInit, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { IonContent, IonHeader, IonTitle, IonToolbar, IonItem, IonLabel, IonInput, IonButton, IonText } from '@ionic/angular/standalone';
+import { 
+  IonContent, 
+  IonHeader, 
+  IonTitle, 
+  IonToolbar, 
+  IonItem, 
+  IonLabel, 
+  IonInput, 
+  IonButton, 
+  IonText 
+} from '@ionic/angular/standalone';
 import { AuthService } from '../auth.service';
 import { Router } from '@angular/router';
 
@@ -10,9 +20,19 @@ import { Router } from '@angular/router';
   templateUrl: './login.page.html',
   styleUrls: ['./login.page.scss'],
   standalone: true,
-  imports: [IonContent, IonHeader, IonTitle, IonToolbar, IonItem, IonLabel, IonInput, IonButton, IonText,
-            CommonModule, FormsModule,
-          ]
+  imports: [
+    CommonModule, 
+    FormsModule,
+    IonContent, 
+    IonHeader, 
+    IonTitle, 
+    IonToolbar, 
+    IonItem, 
+    IonLabel, 
+    IonInput, 
+    IonButton, 
+    IonText
+  ]
 })
 export class LoginPage implements OnInit {
   username = '';

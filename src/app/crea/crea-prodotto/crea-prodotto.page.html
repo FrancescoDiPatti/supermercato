@@ -1,0 +1,250 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>    
+    <ion-buttons slot="start">
+      <ion-button (click)="goBack()">
+        <ion-icon name="arrow-back"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>Aggiungi Prodotto</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" [scrollY]="true" class="ion-padding-bottom">
+  <div class="create-container">
+    <ion-card>
+      <ion-card-header>
+        <div class="header-content">
+          <ion-icon name="cube" class="header-icon"></ion-icon>
+          <ion-card-title>Nuovo Prodotto</ion-card-title>
+        </div>
+      </ion-card-header>
+      
+      <ion-card-content>        
+        <form #productForm="ngForm" (click)="onFormClick($event)">
+          <!-- Ricerca OpenFoodFacts -->
+          <div class="search-section">                       
+            <div class="search-container">
+              <div class="search-input-container" style="position: relative;">
+                <ion-searchbar 
+                  [(ngModel)]="searchQuery"
+                  [ngModelOptions]="{standalone: true}"
+                  placeholder="Nome prodotto o codice a barre"
+                  [disabled]="isLoading"
+                  showClearButton="focus"
+                  class="green-search-icon"
+                  (keyup.enter)="onSearchSubmit()"
+                  (ionInput)="onSearchInput()">
+                </ion-searchbar>
+                <button 
+                  type="button"
+                  (click)="onSearchSubmit()"
+                  [disabled]="isLoading || !searchQuery || searchQuery.trim().length < 3"
+                  style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); width: 24px; height: 24px; background: transparent; border: none; cursor: pointer; z-index: 10;">
+                </button>
+              </div>
+              <!-- Loading search -->
+              <div *ngIf="isSearching" class="search-loading">
+                <ion-spinner name="dots"></ion-spinner>
+                <ion-text>Ricerca in corso...</ion-text>
+              </div>
+              <!-- No results found -->
+              <div *ngIf="!isSearching && showSearchResults && searchResults.length === 0" class="search-no-results">
+                <ion-icon name="close" color="danger"></ion-icon>
+                <ion-text>Nessun prodotto trovato per "{{searchQuery}}"</ion-text>
+              </div>
+            </div>
+          </div>
+          <!-- Search Results Section -->
+          <div class="search-results-section" *ngIf="showSearchResults && !isSearching && searchResults.length > 0">
+            <ion-list class="search-results-list">
+              <ion-item 
+                *ngFor="let result of searchResults; let i = index" 
+                [class.max-results]="i >= 8"
+                class="search-result-item"
+                [class.selected]="selectedOpenFoodProduct?.code === result.code"
+                button
+                (click)="selectProduct(result)">
+                <ion-thumbnail slot="start" class="product-thumbnail" *ngIf="getProductImageUrl(result)">
+                  <ion-img [src]="getProductImageUrl(result)" [alt]="result.product_name"></ion-img>
+                </ion-thumbnail>
+                <ion-thumbnail slot="start" class="product-thumbnail placeholder-thumbnail" *ngIf="!getProductImageUrl(result)">
+                  <ion-icon name="image"></ion-icon>
+                </ion-thumbnail>
+                <ion-label class="product-label">
+                  <h3>{{getBestProductName(result)}}</h3>
+                  <p *ngIf="result.brands">{{result.brands}}</p>
+                  <ion-note *ngIf="result.code">Codice: {{result.code}}</ion-note>
+                </ion-label>                
+                <ion-icon slot="end" name="checkmark-circle" *ngIf="selectedOpenFoodProduct?.code === result.code"></ion-icon>
+              </ion-item>
+            </ion-list>
+          </div>
+          <!-- Selected product info -->
+          <div class="selected-product" *ngIf="selectedOpenFoodProduct">
+            <ion-card class="product-preview">
+              <ion-card-header>
+                <ion-card-title>Prodotto Selezionato</ion-card-title>
+              </ion-card-header>
+              <ion-card-content>
+                <div class="product-preview-content">
+                  <ion-thumbnail *ngIf="getProductImageUrl(selectedOpenFoodProduct)">
+                    <ion-img [src]="getProductImageUrl(selectedOpenFoodProduct)"></ion-img>
+                  </ion-thumbnail>
+                  <div class="product-preview-info">
+                    <h4>{{getBestProductName(selectedOpenFoodProduct)}}</h4>
+                    <p *ngIf="selectedOpenFoodProduct.brands">{{selectedOpenFoodProduct.brands}}</p>
+                    <ion-note>{{selectedOpenFoodProduct.code}}</ion-note>
+                  </div>
+                </div>
+                <ion-button 
+                  fill="clear" 
+                  size="small" 
+                  (click)="clearSearch()">
+                  <ion-icon name="close" slot="start"></ion-icon>
+                  Rimuovi selezione
+                </ion-button>              
+              </ion-card-content>
+            </ion-card>
+          </div>
+
+          <div class="form-divider"></div>
+          <!-- Form fields -->
+          <div class="form-section">
+            <div class="section-header">
+              <h3>Informazioni Prodotto</h3>
+            </div>
+            <!-- Nome -->
+             <ion-item class="form-item">
+              <ion-label position="stacked">Nome Prodotto</ion-label>
+              <ion-input 
+                [(ngModel)]="product.name"
+                name="name"
+                type="text"
+                placeholder="Es. Nutella 350g, Coca Cola 1,5L..."
+                required
+                clearInput="true"
+                maxlength="32">
+              </ion-input>
+              <ion-text slot="end" class="char-counter" [color]="product.name.length >= 32 ? 'danger' : product.name.length >= 29 ? 'warning' : 'medium'">
+                {{product.name.length}}/32
+              </ion-text>
+            </ion-item>
+            <!-- Barcode -->
+            <ion-item class="form-item">
+              <ion-label position="stacked">Codice a Barre</ion-label>
+              <ion-input 
+                [(ngModel)]="product.barcode"
+                name="barcode"
+                type="text"
+                placeholder="Es. 8076809513821"
+                required
+                clearInput="true"
+                pattern="[0-9]*"
+                maxlength="13">
+              </ion-input>
+              <ion-text slot="end" class="char-counter" [color]="product.barcode.length >= 13 ? 'danger' : product.barcode.length >= 10 ? 'warning' : 'medium'">
+                {{product.barcode.length}}/13
+              </ion-text>
+            </ion-item>
+            <!-- Descrizione -->
+            <ion-item class="form-item">
+              <ion-label position="stacked">Descrizione Breve</ion-label>
+              <ion-input
+                [(ngModel)]="product.description"
+                name="description"
+                placeholder="Descrizione del prodotto..."
+                rows="3"
+                required
+                clearInput="true"
+                autoGrow="true"
+                maxlength="32">
+              </ion-input>
+              <ion-text slot="end" class="char-counter" [color]="product.description.length >= 32 ? 'danger' : product.description.length >= 29 ? 'warning' : 'medium'">
+                {{product.description.length}}/32
+              </ion-text>
+            </ion-item>
+          </div>
+          <!-- Category selection -->
+          <div class="category-section">
+            <ion-text color="medium">
+              <h3>Categoria</h3>
+            </ion-text>
+            <ion-radio-group [(ngModel)]="product.category" name="category">              
+              <ion-list class="category-list" #categoryList>
+                <ion-item 
+                  *ngFor="let category of categories" 
+                  class="category-list-item"
+                  [class.selected]="product.category === category.name"
+                  button
+                  (click)="selectCategory(category.name)">
+                  <ion-thumbnail slot="start" class="category-thumbnail">
+                    <ion-img [src]="getCategoryIcon(category)" [alt]="category.name"></ion-img>
+                  </ion-thumbnail>
+                  <ion-label class="category-label">
+                    <h3>{{category.name}}</h3>
+                  </ion-label>
+                  <ion-radio slot="end" [value]="category.name"></ion-radio>
+                </ion-item>
+              </ion-list>
+            </ion-radio-group>
+          </div>
+          <div class="form-divider"></div>
+          <!-- Submit button -->
+          <div class="submit-section">
+            <ion-button 
+              expand="block" 
+              [disabled]="isLoading || !isFormValid()"
+              (click)="createProduct()"
+              class="submit-button">
+              <ion-icon name="save" slot="start" *ngIf="!isLoading"></ion-icon>
+              <ion-spinner name="crescent" slot="start" *ngIf="isLoading"></ion-spinner>
+              {{isLoading ? 'Creazione in corso...' : 'Crea Prodotto'}}
+            </ion-button>
+          </div>
+        </form>
+      </ion-card-content>
+    </ion-card>
+  </div>
+  <!-- Rate Limit Alert -->
+  <div class="rate-limit-alert" *ngIf="showRateLimitAlert">
+    <ion-card class="rate-limit-card">
+      <ion-card-content>
+        <div class="rate-limit-content">
+          <ion-icon name="warning" color="warning"></ion-icon>
+          <span>{{rateLimitMessage}}</span>
+          <ion-button 
+            fill="clear" 
+            size="small"
+            (click)="dismissRateLimitAlert()">
+            <ion-icon name="close"></ion-icon>
+          </ion-button>
+        </div>
+      </ion-card-content>
+    </ion-card>
+  </div>
+  <!-- Custom Alert -->
+  <div class="custom-alert-backdrop" [class.show]="showCustomAlert" (click)="closeAlert()">
+    <div class="custom-alert" [class.show]="showCustomAlert" [class.success]="alertType === 'success'" [class.error]="alertType === 'error'" (click)="$event.stopPropagation()">
+      <div class="alert-header">
+        <div class="alert-icon-container">
+          <ion-icon [name]="alertIcon" [color]="alertType === 'success' ? 'success' : 'danger'"></ion-icon>
+        </div>
+        <ion-button fill="clear" size="small" class="close-btn" (click)="closeAlert()">
+          <ion-icon name="close"></ion-icon>
+        </ion-button>
+      </div>
+      <div class="alert-content">
+        <h3 class="alert-title">{{ alertTitle }}</h3>
+        <p class="alert-message">{{ alertMessage }}</p>
+      </div>
+      <div class="alert-actions">
+        <ion-button 
+          expand="block" 
+          [color]="alertType === 'success' ? 'primary' : 'danger'"
+          (click)="closeAlert()">
+          OK
+        </ion-button>
+      </div>
+    </div>
+  </div>
+</ion-content>

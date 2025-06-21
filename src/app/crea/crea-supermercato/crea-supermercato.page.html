@@ -30,9 +30,14 @@
               type="text"
               placeholder="Es. Conad, Coop, Lidl..."
               required
-              clearInput="true">
+              clearInput="true"
+              maxlength="32">
             </ion-input>
-          </ion-item>          <!-- indirizzo -->
+            <ion-text slot="end" class="char-counter" [color]="supermarket.name.length >= 32 ? 'danger' : supermarket.name.length >= 29 ? 'warning' : 'medium'">
+              {{supermarket.name.length}}/32
+            </ion-text>
+          </ion-item>
+          <!-- indirizzo -->
           <ion-item class="form-item">
             <ion-label position="stacked">Indirizzo</ion-label>
             <ion-input 
@@ -42,26 +47,29 @@
               placeholder="Es. Via Roma 123, Milano"
               required
               clearInput="true"
+              maxlength="32"
               (ionInput)="onAddressInput($event)">
             </ion-input>
-          </ion-item>
-          <!-- suggerimenti indirizzo -->
-          <div class="suggestions-container" *ngIf="addressSuggestions.length > 0 || isSearching">
-            <div class="suggestions-header">
-              <ion-text color="medium">
-                <span *ngIf="isSearching">
-                  <ion-spinner name="dots"></ion-spinner>
-                  Ricerca indirizzi...
-                </span>
-                <span *ngIf="!isSearching && addressSuggestions.length > 0">
-                  Indirizzi suggeriti:
-                </span>
-              </ion-text>
-            </div>              
-            <div class="suggestions-list" *ngIf="!isSearching && addressSuggestions.length > 0">
+            <ion-text slot="end" class="char-counter" [color]="supermarket.address.length >= 32 ? 'danger' : supermarket.address.length >= 29 ? 'warning' : 'medium'">
+              {{supermarket.address.length}}/32
+            </ion-text>
+          </ion-item>          <!-- suggerimenti indirizzo -->
+          <div class="address-section">
+            <!-- Loading search -->
+            <div *ngIf="isSearching" class="search-loading">
+              <ion-spinner name="dots"></ion-spinner>
+              <ion-text>Ricerca in corso...</ion-text>
+            </div>
+            <!-- No results found -->
+            <div *ngIf="!isSearching && showAddressResults && addressSuggestions.length === 0" class="search-no-results">
+              <ion-icon name="close" color="danger"></ion-icon>
+              <ion-text>Nessun indirizzo trovato</ion-text>
+            </div>            <!-- Suggerimenti -->
+            <ion-list class="search-results-list" *ngIf="!isSearching && addressSuggestions.length > 0">
               <ion-item 
                 *ngFor="let suggestion of addressSuggestions; trackBy: trackByLatLon"
                 class="suggestion-item"
+                button
                 (click)="selectSuggestion(suggestion)">
                 <ion-icon name="location" slot="start" color="primary"></ion-icon>
                 <ion-label>
@@ -69,10 +77,10 @@
                   <p>{{suggestion.display_name}}</p>
                 </ion-label>
               </ion-item>
-            </div>
+            </ion-list>
           </div>
           <!-- indirizzo selezionato -->
-          <div *ngIf="selectedLat && selectedLon" class="geocode-result">
+          <div *ngIf="selectedLat && selectedLon" class="search-result">
             <ion-item class="result-item">
               <ion-icon name="location" slot="start" color="success"></ion-icon>
               <ion-label>
@@ -84,7 +92,8 @@
               </ion-label>
               <ion-icon name="checkmark-circle" slot="end" color="success"></ion-icon>
             </ion-item>
-          </div>          <!-- seleziona manager (solo admin) -->
+          </div>
+          <!-- seleziona manager (solo admin) -->
           <ion-item class="form-item" *ngIf="isAdmin">
             <ion-label position="stacked">Seleziona Manager</ion-label>
             <ion-input 
@@ -127,7 +136,7 @@
           </div>
 
           <!-- manager selezionato -->
-          <div *ngIf="selectedManager" class="geocode-result">
+          <div *ngIf="selectedManager" class="search-result ">
             <ion-item class="result-item">
               <ion-icon name="person" slot="start" color="success"></ion-icon>
               <ion-label>
@@ -139,14 +148,15 @@
               </ion-label>
               <ion-icon name="checkmark-circle" slot="end" color="success"></ion-icon>
             </ion-item>
-          </div>       
+          </div>
           <!-- bottoni -->
-          <div class="action-buttons">            
+          <div class="submit-section">            
             <ion-button 
               expand="block" 
               type="submit"
               color="primary"
-              [disabled]="isLoading || !supermarketForm.form.valid || (isAdmin && !supermarket.manager_id) || !isAddressSelected">
+              class="submit-button"
+              [disabled]="isLoading || !supermarketForm.form.valid || (isInitialized && isAdmin && !supermarket.manager_id) || !isAddressSelected">
               <ion-icon slot="start" name="save"></ion-icon>
               <span *ngIf="!isLoading">Crea Supermercato</span>
               <span *ngIf="isLoading">
@@ -158,6 +168,7 @@
               expand="block" 
               fill="clear"
               color="medium"
+              class="submit-button"
               (click)="resetForm()"
               [disabled]="isLoading">
               Ripristina

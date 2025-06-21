@@ -1,0 +1,97 @@
+@use '../../../theme/mixins.scss' as *;
+
+.input-item {
+  margin-bottom: 10px;
+  @include input;
+  ion-input {
+    --padding-top: 18px;
+    --padding-bottom: 18px;
+  }
+  
+  ion-label {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    transition: all 0.2s ease;
+    color: var(--ion-color-medium);
+  }
+  &.item-has-value ion-label,&.item-has-focus ion-label {
+    top: 8px;
+    transform: translateY(0);
+    font-size: 12px;
+    color: var(--ion-color-primary);
+  }
+}
+
+form {
+    padding: 16px;
+}
+
+.register-button {
+    margin-top: 16px;
+}
+
+.login-section {
+    margin-top: 16px;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+}
+
+.login-button {
+    margin: 0;
+    padding: 0 4px;
+    height: auto;
+    line-height: 1;
+}
+
+// ===== ROLE SECTION =====
+.role-section {
+  margin-bottom: 24px;
+  h3 {
+    margin: 0 0 8px 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--ion-color-dark);
+  }
+}
+
+.role-list {
+  border: 2px solid var(--ion-color-primary);
+  border-radius: 12px;
+  padding: 5px 10px 5px 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  .role-list-item {
+    margin: 3px 6px;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+    .role-label {
+      h3 {
+        margin: 0;
+        font-size: 14px;
+        font-weight: 500;
+      }
+    }
+    ion-radio {
+      --color-checked: var(--ion-color-primary);
+      --border-color-checked: var(--ion-color-primary);
+    }
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    } 
+    &.selected {
+      --background: var(--ion-color-primary-tint);
+      box-shadow: 0 0px 4px rgba(var(--ion-color-primary-rgb), 0.8);
+      transform: scale(1.01);
+      .role-label h3 {
+        color: var(--ion-color-primary);
+        font-weight: 600;
+      }
+    }
+
+  }
+}

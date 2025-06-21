@@ -19,7 +19,9 @@ ion-menu {
     }
     
     .selected-supermarket-header {
-      @include flex-between;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
       margin-bottom: 12px;
       
       @include tablet-responsive {
@@ -294,10 +296,40 @@ ion-content {
     transform: translateY(0);
     visibility: visible;
   }
-
   .search-results {
     padding: 8px 0;
-  }  .search-result-item {
+  }
+  .search-loading {
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    .loading-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      .loading-spinner {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        .spinner {
+          width: 24px;
+          height: 24px;
+          border: 2px solid var(--ion-color-light);
+          border-top: 2px solid var(--ion-color-primary);
+          border-radius: 50%;
+          animation: spin 1s linear infinite;
+        }
+        .loading-text {
+          font-size: 12px;
+          color: var(--ion-color-medium);
+          font-weight: 500;
+        }
+      }
+    }
+  }.search-result-item {
     --background: rgba(255,255,255,0.7);
     margin: 4px 8px;
     border-radius: 10px;
@@ -440,4 +472,9 @@ ion-searchbar::part(cancel-button) {
     opacity: 0;
     transform: translateY(-15px);
   }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }

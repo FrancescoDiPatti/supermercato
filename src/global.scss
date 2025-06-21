@@ -39,7 +39,7 @@
 /*@import '@ionic/angular/css/palettes/dark.system.css';*/
 
 ion-content {
-  --background: #ffffff;
+  --background: var(--ion-color-light);
 }
 
 ion-item {
@@ -57,11 +57,21 @@ ion-list {
   background: #ffffff;
 }
 
-
-
 ion-toolbar {
   --background: #ffffff;
   --color: #000000;
+}
+
+h1, h2, h3, h4, h5, h6, p, span, ion-label {
+  color: #000000;
+}
+
+ion-menu {
+  --background: #ffffff;
+  
+  ion-content {
+    --background: #ffffff;
+  }
 }
 
 ion-header {
@@ -70,21 +80,5 @@ ion-header {
 
   ion-toolbar:last-child {
     --border-width: 0;
-  }
-}
-
-h1, h2, h3, h4, h5, h6, p, span, ion-label {
-  color: #000000;
-}
-
-ion-input, ion-textarea, ion-select {
-  @include input-base;
-}
-
-ion-menu {
-  --background: #ffffff;
-  
-  ion-content {
-    --background: #ffffff;
   }
 }

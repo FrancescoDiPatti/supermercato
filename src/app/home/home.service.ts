@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { environment } from '../../environments/environment';
+import { ApiConfig } from '../config/api.config';
 
 // Import the dedicated services
 import { SupermercatiService, Supermarket, User } from '../services/supermercati/supermercati.service';
@@ -30,9 +30,8 @@ export class HomeService {  constructor(
     private userService: UserService,
     private carrelloService: CarrelloService
   ) { }
-
   getHome(): Observable<any> {
-    return this.http.get(`${environment.apiUrl}/dashboard`, { withCredentials: true });
+    return this.http.get(ApiConfig.ENDPOINTS.DASHBOARD, { withCredentials: true });
   }
 
   // Delegate to SupermercatiService
@@ -48,7 +47,6 @@ export class HomeService {  constructor(
   loadAndSetupSupermarkets(isManager?: boolean, managerId?: string, userPosition?: { lat: number; lng: number }) { 
     return this.supermercatiService.loadAndSetupSupermarkets(isManager, managerId, userPosition); 
   }
-
   // Delegate to ProdottiService
   getProductImage(productName: string, barcode?: string) { return this.prodottiService.getProductImage(productName, barcode); }
   getCategoryIcon(category: string) { return this.prodottiService.getCategoryIcon(category); }
@@ -58,7 +56,27 @@ export class HomeService {  constructor(
   filterProductsByCategory(products: any[], categoryName: string) { return this.prodottiService.filterProductsByCategory(products, categoryName); }
   loadSupermarketProducts(supermarketId: number) { return this.prodottiService.loadSupermarketProducts(supermarketId); }
   loadSupermarketOffers(supermarketId: number) { return this.prodottiService.loadSupermarketOffers(supermarketId); }
+  loadSupermarketProductsWithoutImages(supermarketId: number) { return this.prodottiService.loadSupermarketProductsWithoutImages(supermarketId); }
+  loadSupermarketOffersWithoutImages(supermarketId: number) { return this.prodottiService.loadSupermarketOffersWithoutImages(supermarketId); }
   loadPurchaseHistory(limit?: number) { return this.prodottiService.loadPurchaseHistory(limit); }
+  createProduct(product: any) { return this.prodottiService.createProduct(product); }
+  
+  // Rate limiting and image loading utilities
+  getRateLimitInfo() { return this.prodottiService.getRateLimitInfo(); }
+  canLoadImages() { return this.prodottiService.canLoadImages(); }
+  resetRateLimits() { return this.prodottiService.resetRateLimits(); }
+  loadProductImagesWithProgress(products: any[], onProgress?: (current: number, total: number, type: 'barcode' | 'name') => void) {
+    return this.prodottiService.loadProductImagesWithProgress(products, onProgress);
+  }
+  loadImagesForLoadedProducts(allProducts: any[]) {
+    return this.prodottiService.loadImagesForLoadedProducts(allProducts);
+  }
+
+  // Test methods for debugging
+  testBarcodeImageSearch(barcode: string) { return this.prodottiService.testBarcodeImageSearch(barcode); }
+  testNameImageSearch(productName: string) { return this.prodottiService.testNameImageSearch(productName); }
+  testUnifiedImageLoading() { return this.prodottiService.testUnifiedImageLoading(); }
+  analyzeProductDeduplication(products: any[]) { return this.prodottiService.analyzeProductDeduplication(products); }
 
   // Delegate to PosizioneService
   calcDistance(lat1: number, lon1: number, lat2: number, lon2: number) { return this.posizioneService.calcDistance(lat1, lon1, lat2, lon2); }
@@ -69,7 +87,13 @@ export class HomeService {  constructor(
   }
   getCurrentPosition() { return this.posizioneService.getCurrentPosition(); }
   formatAddress(suggestion: any, inputAddress: string) { return this.posizioneService.formatAddress(suggestion, inputAddress); }
-  fetchAddressSuggestions(address: string) { return this.posizioneService.fetchAddressSuggestions(address); }  
+  fetchAddressSuggestions(address: string) { return this.posizioneService.fetchAddressSuggestions(address); }
+
+  // Delegate to SearchService
+  search(query: string, supermarkets: Supermarket[], userPosition?: { lat: number; lng: number }, maxResults?: number) { 
+    return this.searchService.search(query, supermarkets, userPosition, maxResults); 
+  }
+  
   // Delegate to UiService
   checkScreenSize() { return this.uiService.checkScreenSize(); }
   setupHorizontalScroll(containerSelector: string) { return this.uiService.setupHorizontalScroll(containerSelector); }

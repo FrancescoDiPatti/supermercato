@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable } from 'rxjs';
-import { environment } from '../../../environments/environment';
+import { ApiConfig } from '../../config/api.config';
 
 export interface Supermarket {
   id: number;
@@ -24,7 +24,6 @@ export interface User {
   providedIn: 'root'
 })
 export class SupermercatiService {
-  private apiUrl = `${environment.apiUrl}/api`;
   private selectedSupermarketSubject = new BehaviorSubject<Supermarket | null>(null);
 
   // Supermarket images mapping
@@ -43,17 +42,14 @@ export class SupermercatiService {
     famila: 'assets/supermercati/famila.webp',
     sisa: 'assets/supermercati/sisa.webp',
   };
-
-  constructor(private http: HttpClient) { }
-
+  constructor(private http: HttpClient) {}
   getSupermarkets(): Observable<{ supermarkets: Supermarket[] }> {
-    return this.http.get<{ supermarkets: Supermarket[] }>(`${this.apiUrl}/supermarkets`);
+    return this.http.get<{ supermarkets: Supermarket[] }>(ApiConfig.ENDPOINTS.SUPERMARKETS.LIST);
   }
 
   getSupermarketDetails(id: number): Observable<{ supermarket: Supermarket }> {
-    return this.http.get<{ supermarket: Supermarket }>(`${this.apiUrl}/supermarkets/${id}`);
+    return this.http.get<{ supermarket: Supermarket }>(ApiConfig.ENDPOINTS.SUPERMARKETS.BY_ID(id.toString()));
   }
-
   setSelectedSupermarket(supermarket: Supermarket): void {
     this.selectedSupermarketSubject.next(supermarket);
   }
@@ -61,20 +57,18 @@ export class SupermercatiService {
   getSelectedSupermarket(): Supermarket | null {
     return this.selectedSupermarketSubject.value;
   }
-
   clearSelectedSupermarket(): void {
     this.selectedSupermarketSubject.next(null);
   }
 
   selectedSupermarket$ = this.selectedSupermarketSubject.asObservable();
-
   addSupermarket(supermarket: { name: string; address: string; latitude: string; longitude: string; manager_id?: string; }): Promise<any> {
-    return this.http.post(`${this.apiUrl}/add_supermarket`, supermarket).toPromise();
+    return this.http.post(ApiConfig.ENDPOINTS.SUPERMARKETS.ADD, supermarket).toPromise();
   }
 
   getManagers(): Observable<User[]> {
     return new Observable(observer => {
-      this.http.get(`${environment.apiUrl}/dashboard`, { withCredentials: true }).subscribe({
+      this.http.get(ApiConfig.ENDPOINTS.DASHBOARD, { withCredentials: true }).subscribe({
         next: (data: any) => {
           if (data?.status === 'success' && data?.data?.users) {
             const managers = data.data.users.filter((user: User) => user.role === 'manager');

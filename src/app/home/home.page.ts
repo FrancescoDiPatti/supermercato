@@ -81,12 +81,11 @@ export class HomePage implements OnInit, OnDestroy {
   private searchSubject = new Subject<string>();  
   private subscription: Subscription = new Subscription();
   private readonly RECENT_SEARCHES_KEY = 'recentSearches';
-  private readonly MAX_RECENT_SEARCHES = 5;
-  private readonly SEARCH_CONFIG = {
+  private readonly MAX_RECENT_SEARCHES = 5;  private readonly SEARCH_CONFIG = {
     '/prodotti': { placeholder: 'Cerca prodotti', type: 'products' },
     '/offerte': { placeholder: 'Cerca offerte', type: 'offers' },
     '/ordini': { placeholder: 'Cerca ordini', type: 'orders' },
-    '/dashboard': { placeholder: '', type: 'general' },
+    '/dashboard': { placeholder: 'Cerca supermercati', type: 'supermarkets' },
     '/carrello': { placeholder: '', type: 'general' }
   } as const;
   constructor(
@@ -181,7 +180,6 @@ export class HomePage implements OnInit, OnDestroy {
     );
     this.currentPlaceholder = config ? config[1].placeholder : '';
   }  
-
   // Manage search input
   onInput(event: any) {
     const query = event.target.value;
@@ -189,16 +187,20 @@ export class HomePage implements OnInit, OnDestroy {
     
     if (query.length >= 2) {
       this.showRecentSearches = false;
+      this.showOverlay = true;
       this.searchSubject.next(query);
     } else if (query.length === 0) {
       this.showRecentSearches = true;
+      this.showOverlay = true;
       this.searchResults = this.combineResults([], true);
       this.showResults = this.searchResults.length > 0;
     } else {
-      this.resetSearch();
+      this.showOverlay = true;
+      this.searchResults = [];
+      this.showResults = false;
+      this.showRecentSearches = false;
     }
   }
-
   // Reset search
   private resetSearch() {
     this.searchResults = [];
@@ -206,21 +208,21 @@ export class HomePage implements OnInit, OnDestroy {
     this.showRecentSearches = false;
     this.showOverlay = false;
     this.isSearchActive = false;
-  }  
-  private async search(query: string) {
+    this.isSearching = false;
+  }  private async search(query: string) {
     if (!query?.trim()) {
       this.resetSearch();
-      this.isSearching = false;
       return;
     }    
     this.isSearching = true;
     this.showRecentSearches = false;
+    this.showOverlay = true;
     const rawResults = await this.execSearch(query);
     const showRecent = rawResults.length < 3;
     this.searchResults = this.combineResults(rawResults, showRecent);
     this.showResults = this.searchResults.length > 0;
     this.isSearching = false;
-  }  
+  }
   // Research by type
   private async execSearch(query: string): Promise<SearchResult[]> {
     const currentType = this.getSearchType();
@@ -232,13 +234,37 @@ export class HomePage implements OnInit, OnDestroy {
       case 'offers':
         // TODO: Implement offers search
         return [];
+      case 'supermarkets':
+        return this.searchSupermarkets(query);
       default:
         return [];
     }
-  }  
+  }
+  // Search supermarkets using the search service (priority near)
+  private async searchSupermarkets(query: string): Promise<SearchResult[]> {
+    try {
+      const supermarkets = await this.homeService.getSupermarketsForCurrentUser();
+      if (supermarkets.length === 0) {
+        return [];
+      }
+      let userPosition: { lat: number; lng: number } | null = null;
+      try {
+        userPosition = await this.homeService.getCurrentPosition();
+      } catch (e) {}
+      const searchResults = this.homeService.search(query, supermarkets, userPosition || undefined);
+      return searchResults.map((result: SearchResult) => ({
+        ...result,
+        icon: 'storefront-outline'
+      }));
+    } catch (error) {
+      console.error('Error searching supermarkets:', error);
+      return [];
+    }
+  }
   // Manage result selection
   selectResult(result: SearchResult) {
     this.searchTerm = result.label;
+    this.isSearching = false;
     this.resetSearch();
 
     if (result.type === 'recent') {
@@ -247,7 +273,7 @@ export class HomePage implements OnInit, OnDestroy {
       this.saveRecent(result.label, this.getSearchType(), result);
       this.navigate(result);
     }
-  }  
+  }
 
   // Manage recent search
   private handleRecent(result: SearchResult) {
@@ -267,14 +293,34 @@ export class HomePage implements OnInit, OnDestroy {
     } else {
       this.searchSubject.next(result.label);
     }
-  }  
+  }
   // Navigate to selected result
   private navigate(result: SearchResult): void {
     const currentType = this.getSearchType();
     
-    // Products and offers here
+    // Handle supermarket selection from search
+    if (currentType === 'supermarkets' && result.data) {
+      if (!this.activeUrl.includes('/dashboard')) {
+        this.router.navigate(['/home/dashboard']).then(() => {
+          setTimeout(() => {
+            this.selectSupermarketFromSearch(result.data);
+          }, 100);
+        });
+      } else {
+        this.selectSupermarketFromSearch(result.data);
+      }
+    }
+    
+    // Products and offers here (TODO)
   }
 
+  // Select and center supermarket
+  private selectSupermarketFromSearch(supermarket: any): void {
+    this.homeService.setSelectedSupermarket(supermarket);
+    window.dispatchEvent(new CustomEvent('supermarketSelectedFromSearch', {
+      detail: { supermarket }
+    }));
+  }
   onFocus() {
     this.showOverlay = true;
     this.isSearchActive = true;
@@ -292,18 +338,19 @@ export class HomePage implements OnInit, OnDestroy {
   onBlur() {
     setTimeout(() => this.resetSearch(), 200);
   }
-
   clearSearch() {
     this.searchTerm = '';
+    this.isSearching = false;
     this.resetSearch();
       if (this.isSearchActive) {
       this.showRecentSearches = true;
+      this.showOverlay = true;
       this.searchResults = this.combineResults([], true);
       this.showResults = this.searchResults.length > 0;
     }
-  }
-  
+  }  
   onCancel() {
+    this.isSearching = false;
     this.clearSearch();
     const activeElement = document.activeElement as HTMLElement;
     if (activeElement) {

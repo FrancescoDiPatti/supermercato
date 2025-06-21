@@ -1,0 +1,49 @@
+@use '../../../theme/mixins.scss' as *;
+
+.input-item {
+  margin-bottom: 10px;
+  @include input;
+  ion-input {
+    --padding-top: 18px;
+    --padding-bottom: 18px;
+  }
+  
+  ion-label {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    transition: all 0.2s ease;
+    color: var(--ion-color-medium);
+  }
+  &.item-has-value ion-label,&.item-has-focus ion-label {
+    top: 8px;
+    transform: translateY(0);
+    font-size: 12px;
+    color: var(--ion-color-primary);
+  }
+}
+
+form {
+    padding: 16px;
+}
+
+.login-button {
+    margin-top: 16px;
+}
+
+.register-section {
+    margin-top: 16px;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+}
+
+.register-button {
+    margin: 0;
+    padding: 0 4px;
+    height: auto;
+    line-height: 1;
+}

@@ -54,6 +54,11 @@ export const routes: Routes = [
         path: 'crea-supermercato',
         loadComponent: () => import('./crea/crea-supermercato/crea-supermercato.page').then( m => m.CreaSupermercatoPage),
         canActivate: [adminManagerGuard]
+      },
+      {
+        path: 'crea-prodotto',
+        loadComponent: () => import('./crea/crea-prodotto/crea-prodotto.page').then( m => m.CreaProdottoPage),
+        canActivate: [adminManagerGuard]
       }
     ]
   }

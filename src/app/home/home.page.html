@@ -85,9 +85,15 @@
     <ion-content>
       <ion-text color="danger" *ngIf="errorMsg">{{ errorMsg }}</ion-text>
       <router-outlet></router-outlet>
-    </ion-content>    <div class="glass-overlay" [class.active]="showOverlay" *ngIf="showOverlay"></div>
-    <div class="floating-search-results" [class.show]="showResults" *ngIf="showResults">
-      <div class="search-results">        
+    </ion-content>    <div class="glass-overlay" [class.active]="showOverlay" *ngIf="showOverlay"></div>    <div class="floating-search-results" [class.show]="showResults || isSearching" *ngIf="showResults || isSearching">      <div class="search-loading" *ngIf="isSearching">
+        <div class="loading-container">
+          <div class="loading-spinner">
+            <div class="spinner"></div>
+            <span class="loading-text">Ricerca in corso...</span>
+          </div>
+        </div>
+      </div>
+      <div class="search-results" *ngIf="!isSearching">        
         <ion-list>
           <ion-item 
             *ngFor="let result of searchResults; let i = index"
@@ -97,7 +103,7 @@
             [class.animate-in]="showResults"
             [class.recent-search]="result.type === 'recent'"
             [style.transition-delay.s]="i * 0.05">
-            <ion-icon 
+            <ion-icon
               [name]="result.icon || (result.type === 'recent' ? 'time-outline' : 'search-outline')" 
               slot="start"
               [color]="result.type === 'recent' ? 'medium' : 'primary'">

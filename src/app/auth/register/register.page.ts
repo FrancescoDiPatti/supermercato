@@ -1,7 +1,20 @@
 import { Component, OnInit, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { IonContent, IonHeader, IonTitle, IonToolbar, IonItem, IonLabel, IonInput, IonButton, IonText, IonSelect, IonSelectOption } from '@ionic/angular/standalone';
+import { 
+  IonContent, 
+  IonHeader, 
+  IonTitle, 
+  IonToolbar, 
+  IonItem, 
+  IonLabel, 
+  IonInput, 
+  IonButton, 
+  IonText, 
+  IonRadioGroup,
+  IonRadio,
+  IonList
+} from '@ionic/angular/standalone';
 import { AuthService } from '../auth.service';
 import { Router } from '@angular/router';
 
@@ -9,10 +22,22 @@ import { Router } from '@angular/router';
   selector: 'app-register',
   templateUrl: './register.page.html',
   styleUrls: ['./register.page.scss'],
-  standalone: true,
-  imports: [IonContent, IonHeader, IonTitle, IonToolbar, IonItem, IonLabel, IonInput, IonButton, IonText, IonSelect, IonSelectOption,
-            CommonModule, FormsModule,
-          ]
+  standalone: true,  imports: [
+    CommonModule, 
+    FormsModule,
+    IonContent, 
+    IonHeader, 
+    IonTitle, 
+    IonToolbar, 
+    IonItem, 
+    IonLabel, 
+    IonInput, 
+    IonButton, 
+    IonText, 
+    IonRadioGroup,
+    IonRadio,
+    IonList
+  ]
 })
 export class RegisterPage implements OnInit {
   username = '';
@@ -70,6 +95,9 @@ export class RegisterPage implements OnInit {
       }
     });  }
 
+  selectRole(selectedRole: string) {
+    this.role = selectedRole;
+  }
   goToLogin() {
     this.clearFocus();
     this.router.navigate(['/login'], {
