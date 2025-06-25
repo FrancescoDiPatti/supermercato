@@ -1,9 +1,13 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
+import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
+import { AuthService } from '../../auth/auth.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class UserService {
+  private authService = inject(AuthService);
 
   constructor() { }
 
@@ -28,8 +32,11 @@ export class UserService {
   // === USER MANAGEMENT ===
   
   getCurrentUser(): any {
-    const user = localStorage.getItem('user');
-    return user ? JSON.parse(user) : null;
+    return this.authService.getUser();
+  }
+
+  getCurrentUser$(): Observable<any> {
+    return this.authService.user$;
   }
 
   isUserAdmin(): boolean {
@@ -37,9 +44,21 @@ export class UserService {
     return UserService.isAdmin(user);
   }
 
+  isUserAdmin$(): Observable<boolean> {
+    return this.authService.user$.pipe(
+      map(user => UserService.isAdmin(user))
+    );
+  }
+
   isUserManager(): boolean {
     const user = this.getCurrentUser();
     return UserService.isManager(user);
+  }
+
+  isUserManager$(): Observable<boolean> {
+    return this.authService.user$.pipe(
+      map(user => UserService.isManager(user))
+    );
   }
 
   isUserAdminOrManager(): boolean {
@@ -47,7 +66,17 @@ export class UserService {
     return UserService.isAdminOrManager(user);
   }
 
+  isUserAdminOrManager$(): Observable<boolean> {
+    return this.authService.user$.pipe(
+      map(user => UserService.isAdminOrManager(user))
+    );
+  }
+
   canCreateSupermarket(): boolean {
     return this.isUserAdminOrManager();
+  }
+
+  canCreateSupermarket$(): Observable<boolean> {
+    return this.isUserAdminOrManager$();
   }
 }

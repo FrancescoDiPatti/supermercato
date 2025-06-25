@@ -14,7 +14,7 @@ export interface RecentSearch {
   query: string;
   timestamp: number;
   type: string;
-  userId: string;
+  userId: number;
   data?: any;
   resultId?: string;
 }

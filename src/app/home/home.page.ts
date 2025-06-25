@@ -19,7 +19,8 @@ import {
   IonItem,
   MenuController
 } from '@ionic/angular/standalone';
-import { HomeService, SearchResult, RecentSearch } from './home.service';
+import { HomeService } from './home.service';
+import { SearchResult, RecentSearch } from '../services/search/search.service';
 import { AuthService } from '../auth/auth.service';
 import { addIcons } from 'ionicons';
 import {
@@ -149,28 +150,23 @@ export class HomePage implements OnInit, OnDestroy {
         this.search(query);
       })
     );
-  }
-  private setupUserListener() {    
-    const handleUserChange = (event: any) => {
-      if (event.detail.action === 'login') {
-        this.resetSearch();
-        this.recentSearches = [];
-        this.loadRecent();
-        this.menuController.close();
-      } else if (event.detail.action === 'logout') {
-        this.homeService.clearSelectedSupermarket();
-        this.resetSearch();
-        this.recentSearches = [];
-        // Chiudi il menu dopo il logout
-        this.menuController.close();
-      }
-    };
-    window.addEventListener('userChanged', handleUserChange);
-    this.subscription.add({
-      unsubscribe: () => {
-        window.removeEventListener('userChanged', handleUserChange);
-      }
-    } as any);
+  }  private setupUserListener() {    
+    this.subscription.add(
+      this.authService.authState.subscribe(authState => {
+        if (authState.isAuthenticated && authState.user) {
+          // User logged in
+          this.resetSearch();
+          this.recentSearches = [];
+          this.loadRecent();
+          this.menuController.close();
+        } else {
+          this.homeService.clearSelectedSupermarket();
+          this.resetSearch();
+          this.recentSearches = [];
+          this.menuController.close();
+        }
+      })
+    );
   }
 
   // Set placehoalder

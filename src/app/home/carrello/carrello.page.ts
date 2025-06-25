@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IonContent, IonHeader, IonTitle, IonToolbar } from '@ionic/angular/standalone';
-import { AuthService } from '../../auth/auth.service';
+import { UserService } from '../../services/user/user.service';
 
 @Component({
   selector: 'app-carrello',
@@ -12,21 +12,17 @@ import { AuthService } from '../../auth/auth.service';
   imports: [IonContent, IonHeader, IonTitle, IonToolbar, CommonModule, FormsModule]
 })
 export class CarrelloPage implements OnInit {
-  constructor(private authService: AuthService) { }
-
-  public get isAdmin(): boolean {
-    const user = this.authService.getUser();
-    return user && user.role === 'admin';
+  constructor(private userService: UserService) { }  public get isAdmin(): boolean {
+    return this.userService.isUserAdmin();
   }
 
   public get isManager(): boolean {
-    const user = this.authService.getUser();
-    return user && user.role === 'manager';
+    return this.userService.isUserManager();
   }
 
   public get isCustomer(): boolean {
-    const user = this.authService.getUser();
-    return user && user.role === 'customer';
+    const user = this.userService.getCurrentUser();
+    return user?.role === 'customer';
   }
 
   ngOnInit() {

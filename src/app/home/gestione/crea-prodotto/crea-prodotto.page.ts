@@ -14,15 +14,10 @@ import {
   arrowBack, save, search, cube, 
   checkmarkCircle, closeCircle, close, image 
 } from 'ionicons/icons';
-import { HomeService } from '../../home/home.service';
-import { AuthService } from '../../auth/auth.service';
-import { OpenFoodFactsService, OpenFoodFactsProduct } from '../../services/openfoodfacts.service';
+import { HomeService, Category } from '../../home.service';
+import { AuthService } from '../../../auth/auth.service';
+import { OpenFoodFactsService, OpenFoodFactsProduct } from '../../../services/openfoodfacts.service';
 import { Subject, takeUntil } from 'rxjs';
-
-export interface Category {
-  name: string;
-  icon: string;
-}
 
 @Component({
   selector: 'app-crea-prodotto',
@@ -73,31 +68,32 @@ export class CreaProdottoPage implements OnInit, OnDestroy {
 
   // Categories - Allineate con la dashboard
   categories: Category[] = [
-    { name: 'Frutta', icon: 'fruit.png' },
-    { name: 'Verdura', icon: 'cabbage.png' },
-    { name: 'Carne', icon: 'meat.png' },
-    { name: 'Pesce', icon: 'seafood.png' },
-    { name: 'Panetteria', icon: 'bread.png' },
-    { name: 'Latticini', icon: 'milk.png' },
-    { name: 'Bevande', icon: 'drinks.png' },
-    { name: 'Alcolici', icon: 'wine-bottle.png' },
-    { name: 'Snack', icon: 'snacks.png' },
-    { name: 'Biscotti', icon: 'cookies.png' },
-    { name: 'Pasticceria', icon: 'cake.png' },
-    { name: 'Cereali', icon: 'cereal.png' },
-    { name: 'Riso', icon: 'rice.png' },
-    { name: 'Pasta', icon: 'spaghetti.png' },
-    { name: 'Condimenti', icon: 'ketchup.png' },
-    { name: 'Casa', icon: 'cleaning-tools.png' },
-    { name: 'Igiene', icon: 'soap.png' },
-    { name: 'Cosmetici', icon: 'cosmetology.png' },
-    { name: 'Animali', icon: 'pet-food.png' },
-    { name: 'Mobili', icon: 'furniture.png' },
-    { name: 'Elettronica', icon: 'smart-tv.png' },
-    { name: 'Vestiti', icon: 'clothes-hanger.png' },
-    { name: 'Surgelati', icon: 'fish.png' },
-    { name: 'Giardinaggio', icon: 'shovel.png' },
-    { name: 'Altro', icon: 'packing.png' }  ];
+    { name: 'Frutta', icon: 'fruit.png', count: 0 },
+    { name: 'Verdura', icon: 'cabbage.png', count: 0 },
+    { name: 'Carne', icon: 'meat.png', count: 0 },
+    { name: 'Pesce', icon: 'seafood.png', count: 0 },
+    { name: 'Panetteria', icon: 'bread.png', count: 0 },
+    { name: 'Latticini', icon: 'milk.png', count: 0 },
+    { name: 'Bevande', icon: 'drinks.png', count: 0 },
+    { name: 'Alcolici', icon: 'wine-bottle.png', count: 0 },
+    { name: 'Snack', icon: 'snacks.png', count: 0 },
+    { name: 'Biscotti', icon: 'cookies.png', count: 0 },
+    { name: 'Pasticceria', icon: 'cake.png', count: 0 },
+    { name: 'Cereali', icon: 'cereal.png', count: 0 },
+    { name: 'Riso', icon: 'rice.png', count: 0 },
+    { name: 'Pasta', icon: 'spaghetti.png', count: 0 },
+    { name: 'Condimenti', icon: 'ketchup.png', count: 0 },
+    { name: 'Casa', icon: 'cleaning-tools.png', count: 0 },
+    { name: 'Igiene', icon: 'soap.png', count: 0 },
+    { name: 'Cosmetici', icon: 'cosmetology.png', count: 0 },
+    { name: 'Animali', icon: 'pet-food.png', count: 0 },
+    { name: 'Mobili', icon: 'furniture.png', count: 0 },
+    { name: 'Elettronica', icon: 'smart-tv.png', count: 0 },
+    { name: 'Vestiti', icon: 'clothes-hanger.png', count: 0 },
+    { name: 'Surgelati', icon: 'fish.png', count: 0 },
+    { name: 'Giardinaggio', icon: 'shovel.png', count: 0 },
+    { name: 'Altro', icon: 'packing.png', count: 0 }
+  ];
 
   // Reactive streams
   private readonly destroy$ = new Subject<void>();  constructor(
@@ -163,8 +159,7 @@ export class CreaProdottoPage implements OnInit, OnDestroy {
     this.isSearching = true;
     this.openFoodFactsService.smartSearch(query)
       .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (response) => {
+      .subscribe({        next: (response: any) => {
           this.searchResults = response.results;
           this.lastSearchType = response.type;
           this.isSearching = false;
@@ -175,7 +170,7 @@ export class CreaProdottoPage implements OnInit, OnDestroy {
             this.showSearchResults = true;
           }
         },
-        error: (error) => {
+        error: (error: any) => {
           console.error('Errore nella ricerca:', error);
           this.isSearching = false;
           this.showSearchResults = false;        }

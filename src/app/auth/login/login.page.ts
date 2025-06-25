@@ -63,17 +63,22 @@ export class LoginPage implements OnInit {
     }
     if (this.authService.isLoggedIn()) {
       this.authService.logout();
-    }
-      this.authService.login({ username: this.username, password: this.password }).subscribe({
+    }      this.authService.login({ username: this.username, password: this.password }).subscribe({
       next: (res) => {
         this.authService.setUser(res.user);
+        this.clearForm();
         this.clearFocus();
         this.router.navigate(['/home/dashboard']);
       },
       error: (err) => {
-        this.errorMsg = err.error?.error || 'Errore di login';
-      }
+        this.errorMsg = err.error?.error || 'Errore di login';      }
     });}
+
+  private clearForm(): void {
+    this.username = '';
+    this.password = '';
+    this.errorMsg = '';
+  }
 
   goToRegister() {
     this.clearFocus();

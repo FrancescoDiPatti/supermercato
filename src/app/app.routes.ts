@@ -44,21 +44,25 @@ export const routes: Routes = [
       {
         path: 'ordini',
         loadComponent: () => import('./home/ordini/ordini.page').then( m => m.OrdiniPage)
-      }
-    ]
-  },
-  {
-    path: 'crea',
-    children: [
-      {
-        path: 'crea-supermercato',
-        loadComponent: () => import('./crea/crea-supermercato/crea-supermercato.page').then( m => m.CreaSupermercatoPage),
-        canActivate: [adminManagerGuard]
       },
       {
-        path: 'crea-prodotto',
-        loadComponent: () => import('./crea/crea-prodotto/crea-prodotto.page').then( m => m.CreaProdottoPage),
-        canActivate: [adminManagerGuard]
+        path: 'gestione',
+        children: [
+          {
+            path: 'crea-supermercato',
+            loadComponent: () => import('./home/gestione/crea-supermercato/crea-supermercato.page').then( m => m.CreaSupermercatoPage),
+            canActivate: [adminManagerGuard]
+          },
+          {
+            path: 'crea-prodotto',
+            loadComponent: () => import('./home/gestione/crea-prodotto/crea-prodotto.page').then( m => m.CreaProdottoPage),
+            canActivate: [adminManagerGuard]
+          },
+          {
+            path: 'aggiungi-prodotto',
+            loadComponent: () => import('./home/gestione/aggiungi-prodotto/aggiungi-prodotto.page').then( m => m.AggiungiProdottoPage)
+          }
+        ]
       }
     ]
   }

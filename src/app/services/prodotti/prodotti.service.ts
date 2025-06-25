@@ -33,9 +33,8 @@ export class ProdottiService {
         for (const [key, value] of Object.entries(cacheData)) {
           this.imageCache.set(key, value as { url: string; timestamp: number });
         }
-        this.cleanExpiredCache();
-      } catch (error) {
-        console.error('Error loading image cache:', error);
+        this.cleanExpiredCache();      } catch (error) {
+        // Ignore cache loading errors
       }
     }
   }
@@ -81,14 +80,13 @@ export class ProdottiService {
     
     try {
       // Priorità 2: Se abbiamo un barcode, usa SOLO la ricerca per barcode (100 req/min limit)
-      if (barcode && barcode.trim()) {
-        if (this.openFoodFactsService.canSearchByBarcode()) {
+      if (barcode && barcode.trim()) {        if (this.openFoodFactsService.canSearchByBarcode()) {
           const productResult = await this.openFoodFactsService.getProductByBarcode(barcode.trim()).toPromise();
           if (productResult?.product) {
             imageUrl = this.openFoodFactsService.getBestImageUrl(productResult.product) || '';
           }
         } else {
-          console.warn(`Rate limit raggiunto per ricerca barcode. Prodotto: ${productName}`);
+          // Rate limit reached for barcode search
         }
       }
       
@@ -96,18 +94,17 @@ export class ProdottiService {
       // usa la ricerca per nome (ma solo se abbiamo ancora richieste disponibili)
       if (!imageUrl && !barcode) {
         if (this.openFoodFactsService.canSearchByName()) {
-          console.log(`Ricerca per nome (no barcode disponibile): ${productName}`);
           const searchResult = await this.openFoodFactsService.searchProducts(productName, 1, 1).toPromise();
           if (searchResult?.products?.[0]) {
             imageUrl = this.openFoodFactsService.getBestImageUrl(searchResult.products[0]) || '';
           }
         } else {
-          console.warn(`Rate limit raggiunto per ricerca nome. Prodotto: ${productName}`);
+          // Rate limit reached for name search
         }
       }
       
     } catch (error) {
-      console.error('Errore nel recupero immagine prodotto:', error);
+      // Error retrieving product image
     }
     
     // Cache il risultato (anche se vuoto) per evitare richieste duplicate
@@ -123,13 +120,10 @@ export class ProdottiService {
   /**
    * Carica le immagini per un batch di prodotti rispettando i rate limits
    * Ottimizzato per evitare richieste duplicate su barcode uguali
-   */
-  private async loadProductImagesInBatches(products: any[]): Promise<void> {
+   */  private async loadProductImagesInBatches(products: any[]): Promise<void> {
     // Separa prodotti con e senza barcode per ottimizzare l'uso dei rate limits
     const productsWithBarcode = products.filter(p => p.barcode && p.barcode.trim());
     const productsWithoutBarcode = products.filter(p => !p.barcode || !p.barcode.trim());
-    
-    console.log(`Loading images: ${productsWithBarcode.length} with barcode, ${productsWithoutBarcode.length} without barcode`);
     
     // Prima carica le immagini per prodotti con barcode (100 req/min limit)
     // Raggruppa per barcode unico per evitare richieste duplicate
@@ -156,9 +150,7 @@ export class ProdottiService {
       }
       uniqueMap.get(key)!.push(product);
     });
-    
-    const uniqueKeys = Array.from(uniqueMap.keys());
-    console.log(`Processing ${uniqueKeys.length} unique ${searchType}s for ${products.length} products`);
+      const uniqueKeys = Array.from(uniqueMap.keys());
     
     // Processa in batch gli identificatori unici
     const batchSize = searchType === 'barcode' ? this.BATCH_SIZE * 4 : this.BATCH_SIZE;
@@ -177,15 +169,14 @@ export class ProdottiService {
             imageUrl = await this.getProductImage(representativeProduct.name, representativeProduct.barcode);
           } else {
             imageUrl = await this.getProductImage(representativeProduct.name);
-          }
-          
+          }          
           // Applica l'immagine a tutti i prodotti con lo stesso identificatore
           productsWithSameKey.forEach(product => {
             product.image_url = imageUrl;
           });
           
         } catch (error) {
-          console.error(`Error loading image for ${searchType} ${key}:`, error);
+          // Error loading image, apply fallback
           // Applica fallback a tutti i prodotti con lo stesso identificatore
           productsWithSameKey.forEach(product => {
             product.image_url = 'assets/icon/favicon.png';
@@ -194,11 +185,9 @@ export class ProdottiService {
       });
       
       await Promise.all(promises);
-      
-      // Aspetta tra un batch e l'altro solo se non è l'ultimo batch
+        // Aspetta tra un batch e l'altro solo se non è l'ultimo batch
       if (i + batchSize < uniqueKeys.length) {
         const delay = searchType === 'barcode' ? this.BATCH_DELAY / 2 : this.BATCH_DELAY;
-        console.log(`Waiting ${delay}ms before next batch...`);
         await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
@@ -264,12 +253,11 @@ export class ProdottiService {
           productsWithSameKey.forEach(product => {
             product.image_url = imageUrl;
           });
-          
-          processedProducts += productsWithSameKey.length;
+            processedProducts += productsWithSameKey.length;
           onProgress?.(processedProducts, products.length, searchType);
           
         } catch (error) {
-          console.error(`Error loading image for ${searchType} ${key}:`, error);
+          // Error loading image, apply fallback
           productsWithSameKey.forEach(product => {
             product.image_url = 'assets/icon/favicon.png';
           });
@@ -307,10 +295,8 @@ export class ProdottiService {
         uniqueMap.set(key, []);
       }
       uniqueMap.get(key)!.push(product);
-    });
-    
+    });    
     const uniqueKeys = Array.from(uniqueMap.keys());
-    console.log(`🎯 Global deduplication: ${uniqueKeys.length} unique identifiers for ${allProducts.length} total products`);
     
     // Separa per tipo di ricerca
     const barcodeKeys = uniqueKeys.filter(key => {
@@ -320,10 +306,7 @@ export class ProdottiService {
     
     const nameKeys = uniqueKeys.filter(key => {
       const products = uniqueMap.get(key)!;
-      return !products[0].barcode || !products[0].barcode.trim();
-    });
-    
-    console.log(`🔍 Will make ${barcodeKeys.length} barcode requests and ${nameKeys.length} name requests`);
+      return !products[0].barcode || !products[0].barcode.trim();    });
     
     // Processa prima i barcode (100 req/min limit)
     await this.processUniqueKeys(barcodeKeys, uniqueMap, 'barcode');
@@ -363,9 +346,8 @@ export class ProdottiService {
           productsWithSameKey.forEach(product => {
             product.image_url = imageUrl;
           });
-          
-        } catch (error) {
-          console.error(`Error loading image for ${searchType} ${key}:`, error);
+            } catch (error) {
+          // Error loading image for product batch
           productsWithSameKey.forEach(product => {
             product.image_url = 'assets/icon/favicon.png';
           });
@@ -373,10 +355,8 @@ export class ProdottiService {
       });
       
       await Promise.all(promises);
-      
-      if (i + batchSize < keys.length) {
+        if (i + batchSize < keys.length) {
         const delay = searchType === 'barcode' ? this.BATCH_DELAY / 2 : this.BATCH_DELAY;
-        console.log(`Waiting ${delay}ms before next batch...`);
         await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
@@ -462,36 +442,29 @@ export class ProdottiService {
         { withCredentials: true }
       ).toPromise();
       
-      return response;
-    } catch (error) {
-      console.error('Error creating product:', error);
+      return response;    } catch (error) {
       throw error;
     }
   }
   // === PRODUCT LOADING UTILITIES ===
-  
-  async loadSupermarketProducts(supermarketId: number): Promise<any[]> {
+    async loadSupermarketProducts(supermarketId: number): Promise<any[]> {
     try {
-      const response = await this.http.get<{ products: any[] }>(
+      const response = await this.http.get<any>(
         ApiConfig.ENDPOINTS.SUPERMARKETS.PRODUCTS(supermarketId.toString()), 
         { withCredentials: true }
       ).toPromise();
-        const products = response?.products || [];
+      
+      const products = response.products || [];
       
       if (products.length > 0) {
-        // Pulisce e valida i barcode prima di caricare le immagini
-        this.cleanAndValidateBarcodes(products);
-        
-        console.log(`Loading images for ${products.length} products from supermarket ${supermarketId}`);
-        // Usa il sistema di batch per caricare le immagini rispettando i rate limits
+        // Use batch system to load images respecting rate limits
         await this.loadProductImagesInBatches(products);
-        // Assegna immagini di fallback basate sulla categoria
+        // Assign default fallback images based on category
         this.assignDefaultImages(products);
       }
       
       return products;
     } catch (error) {
-      console.error('Error loading products:', error);
       return [];
     }
   }
@@ -518,7 +491,7 @@ export class ProdottiService {
           // Pulisce e valida i barcode prima di caricare le immagini
           this.cleanAndValidateBarcodes(offerProducts);
           
-          console.log(`Loading images for ${offerProducts.length} offer products from supermarket ${supermarketId}`);
+
           // Usa il sistema di batch per caricare le immagini delle offerte
           await this.loadProductImagesInBatches(offerProducts);
           // Assegna immagini di fallback basate sulla categoria  
@@ -527,9 +500,7 @@ export class ProdottiService {
         
         return offerProducts;
       }
-      return [];
-    } catch (error) {
-      console.error('Error loading offers:', error);
+      return [];    } catch (error) {
       return [];
     }
   }
@@ -538,9 +509,7 @@ export class ProdottiService {
         ApiConfig.ENDPOINTS.PURCHASES, 
         { withCredentials: true }
       ).toPromise();
-      return response?.purchases?.slice(0, limit) || [];
-    } catch (error) {
-      console.error('Error loading purchase history:', error);
+      return response?.purchases?.slice(0, limit) || [];    } catch (error) {
       return [];
     }
   }
@@ -559,12 +528,10 @@ export class ProdottiService {
       if (products.length > 0) {
         // Pulisce e valida i barcode ma NON carica le immagini
         this.cleanAndValidateBarcodes(products);
-        console.log(`Loaded ${products.length} products without images from supermarket ${supermarketId}`);
+
       }
       
-      return products;
-    } catch (error) {
-      console.error('Error loading products without images:', error);
+      return products;    } catch (error) {
       return [];
     }
   }
@@ -592,14 +559,12 @@ export class ProdottiService {
         if (offerProducts.length > 0) {
           // Pulisce e valida i barcode ma NON carica le immagini
           this.cleanAndValidateBarcodes(offerProducts);
-          console.log(`Loaded ${offerProducts.length} offer products without images from supermarket ${supermarketId}`);
+
         }
         
         return offerProducts;
       }
-      return [];
-    } catch (error) {
-      console.error('Error loading offers without images:', error);
+      return [];    } catch (error) {
       return [];
     }
   }
@@ -683,98 +648,6 @@ export class ProdottiService {
       }
     });
   }
-
-  /**
-   * Metodo di test per verificare la ricerca di immagini per barcode
-   */
-  async testBarcodeImageSearch(barcode: string): Promise<void> {
-    console.log(`Testing barcode image search for: ${barcode}`);
-    
-    const rateLimitsBefore = this.getRateLimitInfo();
-    console.log('Rate limits before:', rateLimitsBefore);
-    
-    try {
-      const imageUrl = await this.getProductImage('Test Product', barcode);
-      console.log(`Result image URL: ${imageUrl}`);
-      
-      const rateLimitsAfter = this.getRateLimitInfo();
-      console.log('Rate limits after:', rateLimitsAfter);
-      
-      if (rateLimitsBefore.productRequests.used !== rateLimitsAfter.productRequests.used) {
-        console.log('✅ Barcode search used product API (correct)');
-      } else if (rateLimitsBefore.searchRequests.used !== rateLimitsAfter.searchRequests.used) {
-        console.log('❌ Barcode search used search API (should not happen)');
-      } else {
-        console.log('ℹ️ Request was cached or failed');
-      }
-      
-    } catch (error) {
-      console.error('Error in barcode test:', error);
-    }
-  }
-  
-  /**
-   * Metodo di test per verificare la ricerca di immagini per nome
-   */
-  async testNameImageSearch(productName: string): Promise<void> {
-    console.log(`Testing name image search for: ${productName}`);
-    
-    const rateLimitsBefore = this.getRateLimitInfo();
-    console.log('Rate limits before:', rateLimitsBefore);
-    
-    try {
-      const imageUrl = await this.getProductImage(productName);
-      console.log(`Result image URL: ${imageUrl}`);
-      
-      const rateLimitsAfter = this.getRateLimitInfo();
-      console.log('Rate limits after:', rateLimitsAfter);
-      
-      if (rateLimitsBefore.searchRequests.used !== rateLimitsAfter.searchRequests.used) {
-        console.log('✅ Name search used search API (correct)');
-      } else if (rateLimitsBefore.productRequests.used !== rateLimitsAfter.productRequests.used) {
-        console.log('❌ Name search used product API (should not happen)');
-      } else {
-        console.log('ℹ️ Request was cached or failed');
-      }
-      
-    } catch (error) {
-      console.error('Error in name test:', error);
-    }
-  }
-
-  /**
-   * Test della deduplicazione unificata per verificare il funzionamento
-   */
-  async testUnifiedImageLoading(): Promise<void> {
-    console.log('🧪 Testing Unified Image Loading System');
-    
-    const rateLimitsBefore = this.getRateLimitInfo();
-    console.log('Rate limits before test:', rateLimitsBefore);
-      // Simula prodotti con barcode duplicati
-    const testProducts: any[] = [
-      { name: 'Nutella 1', barcode: '3017620425035', id: 1 },
-      { name: 'Nutella 2', barcode: '3017620425035', id: 2 }, // Stesso barcode
-      { name: 'Panna 1', barcode: '8002580019481', id: 3 },
-      { name: 'Panna 2', barcode: '8002580019481', id: 4 }, // Stesso barcode
-      { name: 'Acqua', barcode: '', id: 5 }, // Senza barcode
-      { name: 'Acqua naturale', barcode: '', id: 6 }, // Nome diverso
-    ];
-    
-    console.log(`Input: ${testProducts.length} products with potential duplicates`);
-    
-    await this.loadImagesForLoadedProducts(testProducts);
-    
-    const rateLimitsAfter = this.getRateLimitInfo();
-    console.log('Rate limits after test:', rateLimitsAfter);
-    
-    const requestsMade = (rateLimitsAfter.productRequests.used - rateLimitsBefore.productRequests.used) + 
-                         (rateLimitsAfter.searchRequests.used - rateLimitsBefore.searchRequests.used);
-    
-    console.log(`✅ Test completed: ${requestsMade} total API requests made`);
-    console.log('Expected: 4 requests (2 unique barcodes + 2 unique names)');
-    console.log('Products with images:', testProducts.map(p => `${p.name}: ${p.image_url || 'No image'}`));
-  }
-
   /**
    * Valida se una stringa è un barcode valido
    */
@@ -799,7 +672,6 @@ export class ProdottiService {
           product.barcode = product.barcode.replace(/[\s-]/g, '');
         } else {
           // Rimuove barcode non validi
-          console.warn(`Invalid barcode removed for product ${product.name}: ${product.barcode}`);
           product.barcode = null;
         }
       }

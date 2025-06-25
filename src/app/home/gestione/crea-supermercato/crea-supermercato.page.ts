@@ -9,8 +9,8 @@ import {
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { storefront, save, arrowBack, person, checkmarkCircle, closeCircle, close } from 'ionicons/icons';
-import { HomeService, User } from '../../home/home.service';
-import { AuthService } from '../../auth/auth.service';
+import { HomeService, User } from '../../home.service';
+import { AuthService } from '../../../auth/auth.service';
 import { debounceTime, Subject, takeUntil } from 'rxjs';
 
 @Component({

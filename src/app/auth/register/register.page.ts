@@ -79,10 +79,10 @@ export class RegisterPage implements OnInit {
     if (this.authService.isLoggedIn()) {
       this.authService.logout();
     }
-    
-    this.authService.register({ username: this.username, password: this.password, email: this.email, role: this.role }).subscribe({
+      this.authService.register({ username: this.username, password: this.password, email: this.email, role: this.role }).subscribe({
       next: (res) => {
         this.successMsg = 'Registrazione avvenuta con successo!';
+        this.clearForm();
         this.clearFocus();
         setTimeout(() => this.router.navigate(['/login']), 1000);
       },
@@ -91,13 +91,22 @@ export class RegisterPage implements OnInit {
           this.errorMsg = 'Username già registrato. Scegli un altro username.';
         } else {
           this.errorMsg = err.error?.error || 'Errore di registrazione';
-        }
-      }
-    });  }
+        }      }
+    });}
+
+  private clearForm(): void {
+    this.username = '';
+    this.password = '';
+    this.email = '';
+    this.role = '';
+    this.errorMsg = '';
+    this.successMsg = '';
+  }
 
   selectRole(selectedRole: string) {
     this.role = selectedRole;
   }
+  
   goToLogin() {
     this.clearFocus();
     this.router.navigate(['/login'], {

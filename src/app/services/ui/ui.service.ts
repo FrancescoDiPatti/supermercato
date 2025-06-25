@@ -3,8 +3,6 @@ import { Injectable } from '@angular/core';
 export interface AnimationState {
   animatedProducts: Set<number>;
   animatedOffers: Set<number>;
-  productsLoading: boolean;
-  offersLoading: boolean;
 }
 
 export interface SupermarketDataState {
@@ -252,8 +250,6 @@ export class UiService {
   resetAnimations(state: AnimationState): void {
     state.animatedProducts.clear();
     state.animatedOffers.clear();
-    state.productsLoading = false;
-    state.offersLoading = false;
   }
 
   /**
@@ -262,13 +258,9 @@ export class UiService {
   startOffersAnimation(offerProducts: any[], state: AnimationState): void {
     if (offerProducts.length === 0) return;
     
-    state.offersLoading = true;
     offerProducts.forEach((product, index) => {
       setTimeout(() => {
         state.animatedOffers.add(product.id);
-        if (index === offerProducts.length - 1) {
-          state.offersLoading = false;
-        }
       }, index * 60);
     });
   }
@@ -280,14 +272,10 @@ export class UiService {
     if (filteredProducts.length === 0) return;
     
     const offerDelay = offerProducts.length > 0 ? offerProducts.length * 60 + 120 : 0;
-    state.productsLoading = true;
     
     filteredProducts.forEach((product, index) => {
       setTimeout(() => {
         state.animatedProducts.add(product.id);
-        if (index === filteredProducts.length - 1) {
-          state.productsLoading = false;
-        }
       }, offerDelay + index * 50);
     });
   }
@@ -311,36 +299,17 @@ export class UiService {
   }
 
   /**
-   * Check if product is animated
-   */
-  isProductAnimated(productId: number, state: AnimationState): boolean {
-    return state.animatedProducts.has(productId);
-  }
-
-  /**
-   * Check if offer is animated
-   */
-  isOfferAnimated(productId: number, state: AnimationState): boolean {
-    return state.animatedOffers.has(productId);
-  }
-
-  /**
    * Create initial animation state
    */
   createAnimationState(): AnimationState {
     return {
       animatedProducts: new Set<number>(),
-      animatedOffers: new Set<number>(),
-      productsLoading: false,
-      offersLoading: false
+      animatedOffers: new Set<number>()
     };
   }
 
-  // === SUPERMARKET DATA UTILITIES (moved from SupermarketDataService) ===
+  // === SUPERMARKET DATA ===
 
-  /**
-   * Create initial supermarket data state
-   */
   createDataState(): SupermarketDataState {
     return {
       products: [],

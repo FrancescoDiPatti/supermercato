@@ -1,8 +1,21 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, throwError } from 'rxjs';
-import { catchError, switchMap } from 'rxjs/operators';
+import { Observable, throwError, BehaviorSubject, timer } from 'rxjs';
+import { catchError, switchMap, takeUntil, tap } from 'rxjs/operators';
 import { ApiConfig } from '../config/api.config';
+
+export interface User {
+  id: number;
+  username: string;
+  email: string;
+  role: string;
+}
+
+export interface AuthState {
+  isAuthenticated: boolean;
+  user: User | null;
+  sessionExpiry: number | null; // null = no expiry
+}
 
 @Injectable({
   providedIn: 'root'
@@ -10,19 +23,80 @@ import { ApiConfig } from '../config/api.config';
 export class AuthService {
   private apiUrls = ApiConfig.getAllApiUrls();
   private currentApiUrl: string = ApiConfig.getPrimaryApiUrl();
-  private readonly AUTH_TOKEN_KEY = 'authToken';
-  private readonly USER_KEY = 'user';
-  private readonly HOME_DATA_KEY = 'homeData';
-  // 10 ore
-  private readonly DEFAULT_SESSION_DURATION = 10 * 60 * 60 * 1000;
-  // 5 minuti
-  private readonly EXTENSION_THRESHOLD = 5 * 60 * 1000;
-  constructor(private http: HttpClient) { }
+  private readonly SESSION_STORAGE_KEY = 'authState';
+  
+  // BehaviorSubject for managing authentication state
+  private authState$ = new BehaviorSubject<AuthState>({
+    isAuthenticated: false,
+    user: null,
+    sessionExpiry: null
+  });
+  
+  // Public observables
+  public readonly isAuthenticated$ = this.authState$.asObservable().pipe(
+    tap(state => state.isAuthenticated),
+    switchMap(state => [state.isAuthenticated])
+  );
+  
+  public readonly user$ = this.authState$.asObservable().pipe(
+    tap(state => state.user),
+    switchMap(state => [state.user])
+  );
+    public readonly authState = this.authState$.asObservable();
+  
+  constructor(private http: HttpClient) {
+    this.loadSessionFromStorage();
+    this.setupSessionPersistence();
+  }
+  
+  private loadSessionFromStorage(): void {
+    try {
+      const savedSession = sessionStorage.getItem(this.SESSION_STORAGE_KEY);
+      if (savedSession) {
+        const authState: AuthState = JSON.parse(savedSession);
+        // Verify that the saved session is still valid structure
+        if (authState && typeof authState.isAuthenticated === 'boolean' && authState.user) {
+          this.authState$.next(authState);
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to load session from storage:', error);
+      this.clearSessionStorage();
+    }
+  }
+  
+  private setupSessionPersistence(): void {
+    // Save session state to sessionStorage whenever it changes
+    this.authState$.subscribe(authState => {
+      if (authState.isAuthenticated && authState.user) {
+        this.saveSessionToStorage(authState);
+      } else {
+        this.clearSessionStorage();
+      }
+    });
+  }
+  
+  private saveSessionToStorage(authState: AuthState): void {
+    try {
+      sessionStorage.setItem(this.SESSION_STORAGE_KEY, JSON.stringify(authState));
+    } catch (error) {
+      console.warn('Failed to save session to storage:', error);
+    }
+  }
+  
+  private clearSessionStorage(): void {
+    sessionStorage.removeItem(this.SESSION_STORAGE_KEY);
+  }
   login(credentials: { username: string; password: string }): Observable<any> {
     return this.http.post(ApiConfig.ENDPOINTS.AUTH.LOGIN, credentials).pipe(
       catchError(() => {
         // Se fallisce, prova con localhost
         return this.http.post(ApiConfig.ENDPOINTS.AUTH.LOGIN_URLS[1], credentials);
+      }),
+      tap((response: any) => {
+        if (response && response.user) {
+          this.setAuthenticatedUser(response.user);
+        }
       })
     );
   }
@@ -34,114 +108,55 @@ export class AuthService {
         return this.http.post(ApiConfig.ENDPOINTS.AUTH.REGISTER_URLS[1], data);
       })
     );
-  }
-
-  setUser(user: any) {
-    localStorage.setItem(this.USER_KEY, JSON.stringify(user));
-    this.setAuthToken();    const event = new CustomEvent('userChanged', { 
-      detail: { action: 'login', user } 
+  }  private setAuthenticatedUser(user: User): void {
+    this.authState$.next({
+      isAuthenticated: true,
+      user: user,
+      sessionExpiry: null // null = infinite session, managed by sessionStorage
     });
-    window.dispatchEvent(event);
   }
 
-  updateUserData(user: any) {
-    localStorage.setItem(this.USER_KEY, JSON.stringify(user));
-    if (this.isAuthenticationValid()) {
-      this.extendSession();
+  setUser(user: User): void {
+    this.setAuthenticatedUser(user);
+  }  updateUserData(user: User): void {
+    const currentState = this.authState$.value;
+    if (currentState.isAuthenticated) {
+      this.authState$.next({
+        ...currentState,
+        user: user
+      });
     }
   }
 
-  private setAuthToken() {
-    const token = this.generateAuthToken();
-    localStorage.setItem(this.AUTH_TOKEN_KEY, token);
+  getUser(): User | null {
+    return this.authState$.value.user;
   }
 
-  private generateAuthToken(): string {
-    const timestamp = Date.now();
-    const randomValue = Math.random().toString(36).substring(2);
-    const tokenData = {
-      created: timestamp,
-      random: randomValue,
-      maxDuration: this.DEFAULT_SESSION_DURATION,
-      extensions: 0
-    };
-    return btoa(JSON.stringify(tokenData));
-  }
-  private getTokenData(token: string): { created: number; random: string; maxDuration: number; extensions: number } | null {
-    try {
-      const decodedToken = atob(token);
-      return JSON.parse(decodedToken);
-    } catch (error) {
-      return null;
-    }
-  }
-
-  private updateTokenTimestamp(): void {
-    const token = localStorage.getItem(this.AUTH_TOKEN_KEY);
-    if (!token) return;
-
-    const tokenData = this.getTokenData(token);
-    if (!tokenData) return;
-
-    tokenData.maxDuration += this.EXTENSION_THRESHOLD;
-    tokenData.extensions += 1;
-    
-    const updatedToken = btoa(JSON.stringify(tokenData));
-    localStorage.setItem(this.AUTH_TOKEN_KEY, updatedToken);
-  }
-  
-  getUser() {
-    if (!this.isAuthenticationValid()) {
-      return null;
-    }
-    const user = localStorage.getItem(this.USER_KEY);
-    return user ? JSON.parse(user) : null;
-  }
-
-  private extendSession() {
-    this.updateTokenTimestamp();
-  }
-
-  private isAuthenticationValid(): boolean {
-    const token = localStorage.getItem(this.AUTH_TOKEN_KEY);
-    
-    if (!token) {
-      return false;
-    }
-    
-    const tokenData = this.getTokenData(token);
-    if (!tokenData) {
-      return false;
-    }
-    
-    const currentTime = Date.now();
-    const tokenAge = currentTime - tokenData.created;
-    const maxAllowedDuration = tokenData.maxDuration;
-    const timeRemaining = maxAllowedDuration - tokenAge;
-    
-    // estende sessione se sta scadendo il tempo
-    if (timeRemaining <= this.EXTENSION_THRESHOLD && timeRemaining > 0) {
-      this.extendSession();
-      return true;
-    }
-    
-    return tokenAge < maxAllowedDuration;
-  }
-
-  logout() {
-    localStorage.removeItem(this.USER_KEY);
-    localStorage.removeItem(this.HOME_DATA_KEY);
-    localStorage.removeItem(this.AUTH_TOKEN_KEY);
-    const event = new CustomEvent('userChanged', { 
-      detail: { action: 'logout', user: null }
+  isLoggedIn(): boolean {
+    const currentState = this.authState$.value;
+    return currentState.isAuthenticated && currentState.user !== null;
+  }  logout(): void {
+    this.authState$.next({
+      isAuthenticated: false,
+      user: null,
+      sessionExpiry: null
     });
-    window.dispatchEvent(event);
-  }
-    isLoggedIn(): boolean {
-    return this.isAuthenticationValid() && !!localStorage.getItem(this.USER_KEY);
   }
 
-  clearHomeData() {
-    localStorage.removeItem(this.HOME_DATA_KEY);
+  // Compatibility method - kept for backward compatibility
+  clearHomeData(): void {
+    // This method does nothing in the new sessionStorage-based system
+    // Data is automatically cleared on logout via setupSessionPersistence()
+  }
+
+  // Helper methods for session management
+  getSessionTimeRemaining(): number {
+    // SessionStorage-based session - returns -1 to indicate persistence until tab closure
+    return -1;
+  }
+
+  isSessionExpiring(): boolean {
+    // SessionStorage-based session - never expires until tab closure
+    return false;
   }
 }

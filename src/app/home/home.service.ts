@@ -13,8 +13,40 @@ import { MapService, LeafletEvent } from '../services/map/map.service';
 import { UserService } from '../services/user/user.service';
 import { CarrelloService, CartItem } from '../services/carrello/carrello.service';
 
-// Re-export interfaces for backward compatibility
-export { Supermarket, User, SearchResult, RecentSearch, LeafletEvent, CartItem, AnimationState, SupermarketDataState };
+export interface Product {
+  id: number;
+  name: string;
+  description: string;
+  category: string;
+  price: number;
+  quantity: number;
+  on_offer: boolean;
+  offer_price?: number;
+  image_url?: string;
+  barcode?: string;
+}
+
+export interface Category {
+  name: string;
+  icon: string;
+  count: number;
+}
+
+export interface PurchaseHistory {
+  id: number;
+  product_name: string;
+  supermarket_name: string;
+  quantity: number;
+  total_price: number;
+  purchase_date: string;
+}
+
+// Re-export interfaces from other services
+export { Supermarket, User } from '../services/supermercati/supermercati.service';
+export { SearchResult, RecentSearch } from '../services/search/search.service';
+export { LeafletEvent } from '../services/map/map.service';
+export { CartItem } from '../services/carrello/carrello.service';
+export { AnimationState, SupermarketDataState } from '../services/ui/ui.service';
 
 @Injectable({
   providedIn: 'root'
@@ -44,9 +76,7 @@ export class HomeService {  constructor(
   addSupermarket(supermarket: any) { return this.supermercatiService.addSupermarket(supermarket); }  getManagers() { return this.supermercatiService.getManagers(); }
   getStoreImage(name: string) { return this.supermercatiService.getStoreImage(name); }
   getSupermarketsForCurrentUser() { return this.supermercatiService.getSupermarketsForCurrentUser(); }
-  loadAndSetupSupermarkets(isManager?: boolean, managerId?: string, userPosition?: { lat: number; lng: number }) { 
-    return this.supermercatiService.loadAndSetupSupermarkets(isManager, managerId, userPosition); 
-  }
+  loadAndSetupSupermarkets(userPosition?: { lat: number; lng: number }) { return this.supermercatiService.loadAndSetupSupermarkets(userPosition); }
   // Delegate to ProdottiService
   getProductImage(productName: string, barcode?: string) { return this.prodottiService.getProductImage(productName, barcode); }
   getCategoryIcon(category: string) { return this.prodottiService.getCategoryIcon(category); }
@@ -60,22 +90,46 @@ export class HomeService {  constructor(
   loadSupermarketOffersWithoutImages(supermarketId: number) { return this.prodottiService.loadSupermarketOffersWithoutImages(supermarketId); }
   loadPurchaseHistory(limit?: number) { return this.prodottiService.loadPurchaseHistory(limit); }
   createProduct(product: any) { return this.prodottiService.createProduct(product); }
+  async loadSupermarketDataWithoutImages(supermarketId: number, dataState?: any, includeProducts: boolean = true, includeOffers: boolean = true) {
+    const results: { products: any[], offerProducts: any[] } = { products: [], offerProducts: [] };
+    
+    if (includeProducts) {
+      results.products = await this.prodottiService.loadSupermarketProductsWithoutImages(supermarketId);
+    }
+    
+    if (includeOffers) {
+      results.offerProducts = await this.prodottiService.loadSupermarketOffersWithoutImages(supermarketId);
+    }
+    
+    if (dataState) {
+      if (includeProducts) {
+        this.updateProducts(dataState, results.products);
+      }
+      if (includeOffers) {
+        this.updateOfferProducts(dataState, results.offerProducts);
+      }
+    }
+    
+    return results;
+  }
+  loadSupermarketProductsOnly(supermarketId: number, dataState?: any) {
+    return this.prodottiService.loadSupermarketProductsWithoutImages(supermarketId);
+  }
+  loadSupermarketOffersOnly(supermarketId: number, dataState?: any) {
+    return this.prodottiService.loadSupermarketOffersWithoutImages(supermarketId);
+  }
   
   // Rate limiting and image loading utilities
   getRateLimitInfo() { return this.prodottiService.getRateLimitInfo(); }
   canLoadImages() { return this.prodottiService.canLoadImages(); }
   resetRateLimits() { return this.prodottiService.resetRateLimits(); }
   loadProductImagesWithProgress(products: any[], onProgress?: (current: number, total: number, type: 'barcode' | 'name') => void) {
-    return this.prodottiService.loadProductImagesWithProgress(products, onProgress);
-  }
+    return this.prodottiService.loadProductImagesWithProgress(products, onProgress);  }
   loadImagesForLoadedProducts(allProducts: any[]) {
     return this.prodottiService.loadImagesForLoadedProducts(allProducts);
   }
 
-  // Test methods for debugging
-  testBarcodeImageSearch(barcode: string) { return this.prodottiService.testBarcodeImageSearch(barcode); }
-  testNameImageSearch(productName: string) { return this.prodottiService.testNameImageSearch(productName); }
-  testUnifiedImageLoading() { return this.prodottiService.testUnifiedImageLoading(); }
+  // Analysis method for deduplication
   analyzeProductDeduplication(products: any[]) { return this.prodottiService.analyzeProductDeduplication(products); }
 
   // Delegate to PosizioneService
@@ -195,23 +249,11 @@ export class HomeService {  constructor(
   resetAnimations(state: AnimationState): void {
     this.uiService.resetAnimations(state);
   }
-  startOffersAnimation(offerProducts: any[], state: AnimationState): void {
-    this.uiService.startOffersAnimation(offerProducts, state);
-  }
-  startProductsAnimation(filteredProducts: any[], offerProducts: any[], state: AnimationState): void {
-    this.uiService.startProductsAnimation(filteredProducts, offerProducts, state);
-  }
   startAllProductAnimations(filteredProducts: any[], offerProducts: any[], state: AnimationState): void {
     this.uiService.startAllProductAnimations(filteredProducts, offerProducts, state);
   }
   startCategoryAnimation(filteredProducts: any[], state: AnimationState): void {
     this.uiService.startCategoryAnimation(filteredProducts, state);
-  }
-  isProductAnimated(productId: number, state: AnimationState): boolean {
-    return this.uiService.isProductAnimated(productId, state);
-  }
-  isOfferAnimated(productId: number, state: AnimationState): boolean {
-    return this.uiService.isOfferAnimated(productId, state);
   }
   createAnimationState(): AnimationState {
     return this.uiService.createAnimationState();

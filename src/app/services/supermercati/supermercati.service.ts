@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { ApiConfig } from '../../config/api.config';
+import { AuthService } from '../../auth/auth.service';
 
 export interface Supermarket {
   id: number;
@@ -42,7 +43,7 @@ export class SupermercatiService {
     famila: 'assets/supermercati/famila.webp',
     sisa: 'assets/supermercati/sisa.webp',
   };
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient, private authService: AuthService) {}
   getSupermarkets(): Observable<{ supermarkets: Supermarket[] }> {
     return this.http.get<{ supermarkets: Supermarket[] }>(ApiConfig.ENDPOINTS.SUPERMARKETS.LIST);
   }
@@ -162,15 +163,11 @@ export class SupermercatiService {
       return [];
     }
   }
-
   private getCurrentUser(): any {
-    const user = localStorage.getItem('user');
-    return user ? JSON.parse(user) : null;
+    return this.authService.getUser();
   }
 
   async loadAndSetupSupermarkets(
-    isManager: boolean = false, 
-    managerId?: string,
     userPosition?: { lat: number; lng: number }
   ): Promise<Supermarket[]> {
     try {
@@ -178,7 +175,6 @@ export class SupermercatiService {
       if (userPosition) {
         supermarkets = this.sortByDistance(supermarkets, userPosition.lat, userPosition.lng);
       }
-      
       return supermarkets;
     } catch (error) {
       console.error('Error loading supermarkets:', error);

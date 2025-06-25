@@ -772,7 +772,67 @@ $breakpoint-small-mobile: 480px;
   }
 }
 
+// === EMPTY STATES ===
+@mixin empty-state-base {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--ion-color-medium);
 
+  .empty-icon {
+    font-size: 80px;
+    margin-bottom: 20px;
+    opacity: 0.5;
+    color: var(--ion-color-medium);
+  }
+
+  h3 {
+    color: var(--ion-color-dark);
+    margin-bottom: 12px;
+    font-size: 18px;
+    font-weight: 600;
+  }
+
+  p {
+    margin: 0;
+    line-height: 1.5;
+    font-size: 14px;
+    opacity: 0.8;
+  }
+
+  @include mobile-responsive {
+    padding: 40px 16px;
+
+    .empty-icon {
+      font-size: 60px;
+      margin-bottom: 16px;
+    }
+
+    h3 {
+      font-size: 16px;
+      margin-bottom: 8px;
+    }
+
+    p {
+      font-size: 13px;
+    }
+  }
+}
+
+@mixin empty-state-supermarket {
+  @include empty-state-base;
+  
+  .empty-icon {
+    color: var(--ion-color-primary);
+  }
+}
+
+@mixin empty-state-orders {
+  @include empty-state-base;
+  
+  .empty-icon {
+    color: var(--ion-color-tertiary);
+  }
+}
 
 // ACTION BUTTON
 @mixin action-buttons {

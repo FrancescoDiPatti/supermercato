@@ -3,9 +3,25 @@
 @include loading-spinner;
 @include add-button;
 
+// === RESPONSIVE LAYOUT ===
+.desktop-layout {
+  display: block;
+  
+  @media (max-width: 991px) {
+    display: none;
+  }
+}
+
+.mobile-layout {
+  display: none;
+  
+  @media (max-width: 991px) {
+    display: block;
+  }
+}
+
 // === DASHBOARD LAYOUT ===
 .dashboard-container {
-  max-width: 1400px;
   margin: 0 auto;
   @include container-padding;
 }
@@ -184,7 +200,7 @@
     scroll-behavior: auto;
   }
   
-  &:not(.mobile) {
+  @media (min-width: 992px) {
     cursor: grab;
     
     &:active {
@@ -458,25 +474,7 @@
 
 // === EMPTY STATE ===
 .empty-state {
-  text-align: center;
-  padding: 60px 20px;
-  color: var(--ion-color-medium);
-}
-
-.empty-icon {
-  font-size: 80px;
-  margin-bottom: 20px;
-  opacity: 0.5;
-}
-
-.empty-state h3 {
-  color: var(--ion-color-dark);
-  margin-bottom: 12px;
-}
-
-.empty-state p {
-  margin: 0;
-  line-height: 1.5;
+  @include empty-state-supermarket;
 }
 
 // === MOBILE RESPONSIVE ===
