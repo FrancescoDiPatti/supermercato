@@ -336,6 +336,10 @@ $breakpoint-small-mobile: 480px;
   scroll-padding: 20px;
   
   @include custom-scrollbar;
+
+  &.active {
+    scroll-behavior: auto;
+  }
   
   &:hover::-webkit-scrollbar {
     height: 8px;

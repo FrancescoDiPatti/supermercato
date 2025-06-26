@@ -127,7 +127,8 @@ export class CreaProdottoPage implements OnInit, OnDestroy {
   // ===== NAVIGATION =====
   goBack(): void {
     this.router.navigate(['/home/dashboard']);
-  }  // ===== PRODUCT SEARCH =====
+  }
+  // ===== PRODUCT SEARCH =====
   onSearchInput(): void {
     if (this.showSearchResults) {
       this.showSearchResults = false;

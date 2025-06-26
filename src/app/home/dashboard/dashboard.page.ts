@@ -83,13 +83,13 @@ export class DashboardPage implements OnInit, AfterViewInit, OnDestroy, ViewWill
       requestAnimationFrame(() => this.centerSelectedSupermarket(this.selectedSupermarket!));
     }
   }
-  
+
   async ngOnInit() {
     await this.initializeComponent();
   }
 
   ngAfterViewInit() {
-    this.setupHorizontalScroll();
+    setTimeout(() => this.setupHorizontalScroll(), 500);
     if (this.isMapExpanded && !this.map) {
       requestAnimationFrame(() => this.initMap());
     }
@@ -187,7 +187,7 @@ export class DashboardPage implements OnInit, AfterViewInit, OnDestroy, ViewWill
       this.setupMapMarkers();
     }
     if (hasSupermarkets && hasUserPosition) {
-      requestAnimationFrame(() => this.setupHorizontalScroll());
+      setTimeout(() => this.setupHorizontalScroll(), 500);
     }
   }
 
@@ -304,7 +304,7 @@ export class DashboardPage implements OnInit, AfterViewInit, OnDestroy, ViewWill
       this.isMapExpanded = false;
     }
     this.centerSelectedSupermarket(supermarket);
-    requestAnimationFrame(() => this.setupHorizontalScroll());
+    setTimeout(() => this.setupHorizontalScroll(), 300);
   }
 
   private centerSelectedSupermarket(selectedSupermarket: Supermarket) {
@@ -332,6 +332,7 @@ export class DashboardPage implements OnInit, AfterViewInit, OnDestroy, ViewWill
         }
         this.generateCategories();
         this.startProductAnimations();
+        setTimeout(() => this.setupHorizontalScroll(), 300);
         return { products, offerProducts };
       }
     );
@@ -397,7 +398,6 @@ export class DashboardPage implements OnInit, AfterViewInit, OnDestroy, ViewWill
     
     const scrollableContainers = '.supermarkets-container, .products-container, .offers-container, .categories-container';
     const allListeners = this.homeService.setupHorizontalScroll(scrollableContainers);
-    
     this.scrollListeners = allListeners;
   }
 

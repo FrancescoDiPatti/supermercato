@@ -30,95 +30,115 @@ export class UiService {
   // === SCROLL UTILITIES ===
   setupHorizontalScroll(containerSelector: string): Array<{ element: Element; listener: EventListener }> {
     const scrollListeners: Array<{ element: Element; listener: EventListener }> = [];
-
     const scrollContainers = document.querySelectorAll(containerSelector);
-    scrollContainers.forEach(container => {      
-      const wheelListener = (e: Event) => {
-        const wheelEvent = e as WheelEvent;
-        if (wheelEvent.deltaY !== 0) {
-          e.preventDefault();
-          container.scrollLeft += wheelEvent.deltaY * 8;
-        }
-      };
+    if (scrollContainers.length === 0) {
+      return scrollListeners;
+    }
+    scrollContainers.forEach(container => {
+      const element = container as HTMLElement;
+      if (!element.offsetParent || element.scrollWidth <= element.clientWidth) {
+        return;
+      }
+      const wheelListener = this.createWheelListener(container);
       container.addEventListener('wheel', wheelListener, { passive: false });
       scrollListeners.push({ element: container, listener: wheelListener });
-      let isDown = false;
-      let startX = 0;
-      let scrollLeft = 0;
-      let hasMoved = false;
-      const mouseDownListener = (e: Event) => {
-        const mouseEvent = e as MouseEvent;
-        isDown = true;
-        hasMoved = false;
-        container.classList.add('active');
-        startX = mouseEvent.pageX - (container as HTMLElement).offsetLeft;
-        scrollLeft = container.scrollLeft;
-        (container as HTMLElement).style.cursor = 'grabbing';
-        (container as HTMLElement).style.userSelect = 'none';
-        
-        e.preventDefault();
-      };
-
-      const mouseLeaveListener = (e: Event) => {
-        isDown = false;
-        container.classList.remove('active');
-        (container as HTMLElement).style.cursor = 'grab';
-        (container as HTMLElement).style.userSelect = '';
-        hasMoved = false;
-      };
-      //
-      const mouseUpListener = (e: Event) => {
-        isDown = false;
-        container.classList.remove('active');
-        (container as HTMLElement).style.cursor = 'grab';
-        (container as HTMLElement).style.userSelect = '';
-        if (hasMoved) {
-          const preventClickHandler = (clickEvent: Event) => {
-            clickEvent.preventDefault();
-            clickEvent.stopPropagation();
-            clickEvent.stopImmediatePropagation();
-          };
-          const clickableElements = container.querySelectorAll('*');
-          clickableElements.forEach(element => {
-            element.addEventListener('click', preventClickHandler, { capture: true, once: true });
-          });
-          container.addEventListener('click', preventClickHandler, { capture: true, once: true });
-          setTimeout(() => {
-            clickableElements.forEach(element => {
-              element.removeEventListener('click', preventClickHandler, { capture: true });
-            });
-            container.removeEventListener('click', preventClickHandler, { capture: true });
-          }, 100);
-        }
-        
-        hasMoved = false;
-      };
-
-      const mouseMoveListener = (e: Event) => {
-        if (!isDown) return;
-        e.preventDefault();
-        const mouseEvent = e as MouseEvent;
-        const x = mouseEvent.pageX - (container as HTMLElement).offsetLeft;
-        const walk = (x - startX);
-        if (Math.abs(walk) > 5) {
-          hasMoved = true;
-        }
-        
-        container.scrollLeft = scrollLeft - walk;
-      };
-      (container as HTMLElement).style.cursor = 'grab';
-
-      container.addEventListener('mousedown', mouseDownListener);
-      container.addEventListener('mouseleave', mouseLeaveListener);
-      container.addEventListener('mouseup', mouseUpListener);
-      container.addEventListener('mousemove', mouseMoveListener);
-      scrollListeners.push({ element: container, listener: mouseDownListener });
-      scrollListeners.push({ element: container, listener: mouseLeaveListener });
-      scrollListeners.push({ element: container, listener: mouseUpListener });
-      scrollListeners.push({ element: container, listener: mouseMoveListener });
+      const dragState = this.createDragState();
+      const mouseListeners = this.createMouseListeners(container, element, dragState);
+      element.style.cursor = 'grab';
+      container.addEventListener('mousedown', mouseListeners.mouseDown);
+      container.addEventListener('mouseleave', mouseListeners.mouseLeave);
+      container.addEventListener('mouseup', mouseListeners.mouseUp);
+      container.addEventListener('mousemove', mouseListeners.mouseMove);
+      scrollListeners.push(
+        { element: container, listener: mouseListeners.mouseDown },
+        { element: container, listener: mouseListeners.mouseLeave },
+        { element: container, listener: mouseListeners.mouseUp },
+        { element: container, listener: mouseListeners.mouseMove }
+      );
     });
-    
     return scrollListeners;
+  }
+
+  private createWheelListener(container: Element): EventListener {
+    return (e: Event) => {
+      const wheelEvent = e as WheelEvent;
+      if (wheelEvent.deltaY !== 0) {
+        e.preventDefault();
+        container.scrollLeft += wheelEvent.deltaY * 8;
+      }
+    };
+  }
+
+  private createDragState() {
+    return {
+      isDown: false,
+      startX: 0,
+      scrollLeft: 0,
+      hasMoved: false
+    };
+  }
+
+  private createMouseListeners(container: Element, element: HTMLElement, dragState: any) {
+    const mouseDown = (e: Event) => {
+      const mouseEvent = e as MouseEvent;
+      dragState.isDown = true;
+      dragState.hasMoved = false;
+      container.classList.add('active');
+      dragState.startX = mouseEvent.pageX - element.offsetLeft;
+      dragState.scrollLeft = container.scrollLeft;
+      element.style.cursor = 'grabbing';
+      element.style.userSelect = 'none';
+      e.preventDefault();
+    };
+    const mouseLeave = () => {
+      this.resetDragState(container, element, dragState);
+    };
+    const mouseUp = () => {
+      if (!dragState.isDown) return;
+      this.resetDragState(container, element, dragState);
+      if (dragState.hasMoved) {
+        this.preventClicksAfterDrag(container);
+      }
+      dragState.hasMoved = false;
+    };
+    const mouseMove = (e: Event) => {
+      if (!dragState.isDown) return;
+      e.preventDefault();
+      const mouseEvent = e as MouseEvent;
+      const x = mouseEvent.pageX - element.offsetLeft;
+      const walk = x - dragState.startX;
+      if (Math.abs(walk) > 5) {
+        dragState.hasMoved = true;
+      }
+      container.scrollLeft = dragState.scrollLeft - walk;
+    };
+    return { mouseDown, mouseLeave, mouseUp, mouseMove };
+  }
+
+  private resetDragState(container: Element, element: HTMLElement, dragState: any): void {
+    dragState.isDown = false;
+    container.classList.remove('active');
+    element.style.cursor = 'grab';
+    element.style.userSelect = '';
+  }
+
+  private preventClicksAfterDrag(container: Element): void {
+    const preventClickHandler = (clickEvent: Event) => {
+      clickEvent.preventDefault();
+      clickEvent.stopPropagation();
+      clickEvent.stopImmediatePropagation();
+    };
+    const clickableElements = container.querySelectorAll('*');
+    clickableElements.forEach(el => {
+      el.addEventListener('click', preventClickHandler, { capture: true, once: true });
+    });
+    container.addEventListener('click', preventClickHandler, { capture: true, once: true });
+    setTimeout(() => {
+      clickableElements.forEach(el => {
+        el.removeEventListener('click', preventClickHandler, { capture: true });
+      });
+      container.removeEventListener('click', preventClickHandler, { capture: true });
+    }, 100);
   }
 
   removeScrollListeners(scrollListeners: Array<{ element: Element; listener: EventListener }>): void {

@@ -195,19 +195,6 @@
   @include hide-scrollbar;
   padding-left: 12px;
   flex-wrap: nowrap;
- 
-  &.active {
-    scroll-behavior: auto;
-  }
-  
-  @media (min-width: 992px) {
-    cursor: grab;
-    
-    &:active {
-      cursor: grabbing;
-      user-select: none;
-    }
-  }
 }
 
 .supermarket-card {
