@@ -126,7 +126,7 @@ export class CreaProdottoPage implements OnInit, OnDestroy {
 
   // ===== NAVIGATION =====
   goBack(): void {
-    this.router.navigate(['/home/dashboard']);
+    this.router.navigate(['/home/gestione/aggiungi-prodotto']);
   }
   // ===== PRODUCT SEARCH =====
   onSearchInput(): void {

@@ -62,6 +62,41 @@ export class HomeService {  constructor(
     private userService: UserService,
     private carrelloService: CarrelloService
   ) { }
+
+  // === QUANTITY MANAGEMENT (delegated to UiService) ===
+  updateQuantity(
+    currentQuantities: { [barcode: string]: number }, 
+    barcode: string, 
+    amount: number,
+    availableQuantities?: { [barcode: string]: number }
+  ) {
+    return this.uiService.updateQuantity(currentQuantities, barcode, amount, availableQuantities);
+  }
+
+  startQuantityTimer(barcode: string, isIncrement: boolean, onUpdate: (barcode: string, amount: number) => void) {
+    this.uiService.startTimer(barcode, isIncrement, onUpdate);
+  }
+
+  clearQuantityTimer() {
+    this.uiService.clearTimer();
+  }
+
+  // === INVENTORY MANAGEMENT (delegated to UiService) ===
+  getAvailableQuantities(supermarketId: number) { return this.uiService.getAvailableQuantities(supermarketId); }
+  getAvailableQuantity(barcode: string, supermarketId: number) { return this.uiService.getAvailableQuantity(barcode, supermarketId); }
+  isQuantityAvailable(barcode: string, supermarketId: number, requestedQuantity: number) { 
+    return this.uiService.isQuantityAvailable(barcode, supermarketId, requestedQuantity); 
+  }
+  getMaxAddableQuantity(barcode: string, supermarketId: number, currentCartQuantity: number = 0) { 
+    return this.uiService.getMaxAddableQuantity(barcode, supermarketId, currentCartQuantity); 
+  }
+  updateInventoryFromProducts(products: any[], supermarketId: number) { 
+    return this.uiService.updateInventoryFromProducts(products, supermarketId); 
+  }
+  reduceInventoryQuantity(barcode: string, supermarketId: number, purchasedQuantity: number) { 
+    return this.uiService.reduceQuantity(barcode, supermarketId, purchasedQuantity); 
+  }
+
   getHome(): Observable<any> {
     return this.http.get(ApiConfig.ENDPOINTS.DASHBOARD, { withCredentials: true });
   }
@@ -84,7 +119,13 @@ export class HomeService {  constructor(
   getDisplayPrice(product: any) { return this.prodottiService.getDisplayPrice(product); }
   getOriginalPrice(product: any) { return this.prodottiService.getOriginalPrice(product); }
   filterProductsByCategory(products: any[], categoryName: string) { return this.prodottiService.filterProductsByCategory(products, categoryName); }
-  loadSupermarketProducts(supermarketId: number) { return this.prodottiService.loadSupermarketProducts(supermarketId); }
+  loadSupermarketProducts(supermarketId: number) { 
+    return this.prodottiService.loadSupermarketProducts(supermarketId).then(products => {
+      this.updateInventoryFromProducts(products, supermarketId);
+      return products;
+    });
+  }
+  generateOffers(supermarketId: number) { return this.prodottiService.generateOffers(supermarketId); }
   loadSupermarketOffers(supermarketId: number) { return this.prodottiService.loadSupermarketOffers(supermarketId); }
   loadSupermarketProductsWithoutImages(supermarketId: number) { return this.prodottiService.loadSupermarketProductsWithoutImages(supermarketId); }
   loadSupermarketOffersWithoutImages(supermarketId: number) { return this.prodottiService.loadSupermarketOffersWithoutImages(supermarketId); }
@@ -93,14 +134,23 @@ export class HomeService {  constructor(
   async loadSupermarketDataWithoutImages(supermarketId: number, dataState?: any, includeProducts: boolean = true, includeOffers: boolean = true) {
     const results: { products: any[], offerProducts: any[] } = { products: [], offerProducts: [] };
     
-    if (includeProducts) {
-      results.products = await this.prodottiService.loadSupermarketProductsWithoutImages(supermarketId);
-    }
-    
     if (includeOffers) {
       results.offerProducts = await this.prodottiService.loadSupermarketOffersWithoutImages(supermarketId);
     }
-    
+    if (includeProducts) {
+      const allProducts = await this.prodottiService.loadSupermarketProductsWithoutImages(supermarketId);
+      
+      // Aggiorna l'inventario con le quantità disponibili
+      this.updateInventoryFromProducts(allProducts, supermarketId);
+      
+      if (results.offerProducts && results.offerProducts.length > 0) {
+        const offerProductIds = new Set(results.offerProducts.map(offer => offer.id));
+        results.products = allProducts.filter(product => !offerProductIds.has(product.id));
+      } else {
+        results.products = allProducts;
+      }
+    }
+
     if (dataState) {
       if (includeProducts) {
         this.updateProducts(dataState, results.products);
@@ -118,7 +168,11 @@ export class HomeService {  constructor(
   loadSupermarketOffersOnly(supermarketId: number, dataState?: any) {
     return this.prodottiService.loadSupermarketOffersWithoutImages(supermarketId);
   }
-  
+
+  addProductsToSupermarket(supermarketId: number, products: any[]) {
+    return this.supermercatiService.addProductsToSupermarket(supermarketId, products);
+  }
+
   // Rate limiting and image loading utilities
   getRateLimitInfo() { return this.prodottiService.getRateLimitInfo(); }
   canLoadImages() { return this.prodottiService.canLoadImages(); }
@@ -201,10 +255,16 @@ export class HomeService {  constructor(
   isUserAdminOrManager() { return this.userService.isUserAdminOrManager(); }
   canCreateSupermarket() { return this.userService.canCreateSupermarket(); }
   // Delegate to CarrelloService
-  addToCart(product: any, supermarket: any) { return this.carrelloService.addToCart(product, supermarket); }
-  removeFromCart(productId: number, supermarketId: number) { return this.carrelloService.removeFromCart(productId, supermarketId); }
-  updateCartQuantity(productId: number, supermarketId: number, quantity: number) { 
-    return this.carrelloService.updateQuantity(productId, supermarketId, quantity); 
+  addToCart(product: any, supermarket: any) { 
+    return this.carrelloService.updateCartItem(product, supermarket, 1); 
+  }
+  
+  removeFromCart(productId: number, supermarketId: number) { 
+    return this.carrelloService.removeFromCart(productId, supermarketId); 
+  }
+  
+  updateCartQuantity(product: any, supermarket: any, quantity: number) { 
+    return this.carrelloService.updateCartItem(product, supermarket, quantity); 
   }
   getCartItems() { return this.carrelloService.getCartItems(); }
   getCartTotal() { return this.carrelloService.getCartTotal(); }

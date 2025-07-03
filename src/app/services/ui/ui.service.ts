@@ -1,4 +1,10 @@
 import { Injectable } from '@angular/core';
+import { BehaviorSubject, Observable } from 'rxjs';
+
+export interface MultiplierStep {
+  threshold: number;
+  multiplier: number;
+}
 
 export interface AnimationState {
   animatedProducts: Set<number>;
@@ -14,12 +20,228 @@ export interface SupermarketDataState {
   purchaseHistory: any[];
 }
 
+export interface InventoryItem {
+  barcode: string;
+  supermarketId: number;
+  availableQuantity: number;
+  productId: number;
+  productName: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
 export class UiService {
 
-  constructor() { }
+  private timer: any = null;
+  private activeBarcode: string | null = null;
+  private readonly interval = 100;
+  private readonly multiplierSteps: MultiplierStep[] = [
+    { threshold: 0, multiplier: 1 },
+    { threshold: 2000, multiplier: 2 },
+    { threshold: 4000, multiplier: 5 },
+    { threshold: 6000, multiplier: 10 },
+  ];
+
+  // === TIME MANAGEMENT ===
+  // Il server è indietro di 2 ore rispetto al client
+  private readonly SERVER_OFFSET_HOURS = 2;
+
+  // === INVENTORY MANAGEMENT ===
+  private readonly storageKey = 'inventoryData';
+  private inventoryData = new BehaviorSubject<InventoryItem[]>([]);
+  public inventoryData$ = this.inventoryData.asObservable();
+
+  constructor() { 
+    this.loadInventoryFromStorage();
+  }
+
+  // === INVENTORY METHODS ===
+  private loadInventoryFromStorage(): void {
+    const data = sessionStorage.getItem(this.storageKey);
+    if (data) {
+      try {
+        const inventory = JSON.parse(data);
+        this.inventoryData.next(inventory);
+      } catch (error) {
+        console.error('Error loading inventory from storage:', error);
+      }
+    }
+  }
+
+  private saveInventoryToStorage(): void {
+    sessionStorage.setItem(this.storageKey, JSON.stringify(this.inventoryData.value));
+  }
+
+  /**
+   * Aggiorna le quantità disponibili da una lista di prodotti
+   */
+  updateInventoryFromProducts(products: any[], supermarketId: number): void {
+    const currentInventory = [...this.inventoryData.value];
+    
+    // Rimuovi elementi esistenti per questo supermercato
+    const filteredInventory = currentInventory.filter(item => item.supermarketId !== supermarketId);
+    
+    // Aggiungi nuovi elementi
+    const newInventoryItems = products
+      .filter((product: any) => product.barcode && product.quantity !== undefined)
+      .map((product: any) => ({
+        barcode: product.barcode,
+        supermarketId: supermarketId,
+        availableQuantity: Math.max(0, product.quantity || 0),
+        productId: product.id,
+        productName: product.name
+      }));
+    
+    const updatedInventory = [...filteredInventory, ...newInventoryItems];
+    this.inventoryData.next(updatedInventory);
+    this.saveInventoryToStorage();
+  }
+
+  /**
+   * Ottiene le quantità disponibili per un supermercato specifico
+   */
+  getAvailableQuantities(supermarketId: number): { [barcode: string]: number } {
+    const inventory = this.inventoryData.value;
+    const quantities: { [barcode: string]: number } = {};
+    
+    inventory
+      .filter(item => item.supermarketId === supermarketId)
+      .forEach(item => {
+        quantities[item.barcode] = item.availableQuantity;
+      });
+    
+    return quantities;
+  }
+
+  /**
+   * Ottiene la quantità disponibile per un prodotto specifico
+   */
+  getAvailableQuantity(barcode: string, supermarketId: number): number {
+    const inventory = this.inventoryData.value;
+    const item = inventory.find(item => 
+      item.barcode === barcode && item.supermarketId === supermarketId
+    );
+    return item ? item.availableQuantity : 0;
+  }
+
+  /**
+   * Riduce la quantità disponibile dopo un acquisto
+   */
+  reduceQuantity(barcode: string, supermarketId: number, purchasedQuantity: number): void {
+    const currentInventory = [...this.inventoryData.value];
+    const itemIndex = currentInventory.findIndex(item => 
+      item.barcode === barcode && item.supermarketId === supermarketId
+    );
+    
+    if (itemIndex >= 0) {
+      const currentQty = currentInventory[itemIndex].availableQuantity;
+      currentInventory[itemIndex].availableQuantity = Math.max(0, currentQty - purchasedQuantity);
+      this.inventoryData.next(currentInventory);
+      this.saveInventoryToStorage();
+    }
+  }
+
+  /**
+   * Verifica se una quantità è disponibile
+   */
+  isQuantityAvailable(barcode: string, supermarketId: number, requestedQuantity: number): boolean {
+    const availableQty = this.getAvailableQuantity(barcode, supermarketId);
+    return requestedQuantity <= availableQty;
+  }
+
+  /**
+   * Ottiene la quantità massima che può essere aggiunta al carrello
+   */
+  getMaxAddableQuantity(barcode: string, supermarketId: number, currentCartQuantity: number = 0): number {
+    const availableQty = this.getAvailableQuantity(barcode, supermarketId);
+    return Math.max(0, availableQty - currentCartQuantity);
+  }
+
+  /**
+   * Resetta l'inventario (per testing o admin)
+   */
+  clearInventory(): void {
+    this.inventoryData.next([]);
+    sessionStorage.removeItem(this.storageKey);
+  }
+
+  /**
+   * Ottiene tutti gli elementi dell'inventario
+   */
+  getAllInventoryItems(): InventoryItem[] {
+    return this.inventoryData.value;
+  }
+
+  /**
+   * Aggiorna singolo item dell'inventario
+   */
+  updateInventoryItem(barcode: string, supermarketId: number, newQuantity: number): void {
+    const currentInventory = [...this.inventoryData.value];
+    const itemIndex = currentInventory.findIndex(item => 
+      item.barcode === barcode && item.supermarketId === supermarketId
+    );
+    
+    if (itemIndex >= 0) {
+      currentInventory[itemIndex].availableQuantity = Math.max(0, newQuantity);
+      this.inventoryData.next(currentInventory);
+      this.saveInventoryToStorage();
+    }
+  }
+
+  // === QUANTITY MANAGEMENT ===
+  private getMultiplier(elapsed: number): number {
+    let selectedStep = this.multiplierSteps[0];
+    for (let i = this.multiplierSteps.length - 1; i >= 0; i--) {
+      if (elapsed >= this.multiplierSteps[i].threshold) {
+        selectedStep = this.multiplierSteps[i];
+        break;
+      }
+    }
+    return selectedStep.multiplier;
+  }
+
+  updateQuantity(
+    currentQuantities: { [barcode: string]: number }, 
+    barcode: string, 
+    amount: number,
+    availableQuantities?: { [barcode: string]: number }
+  ): { newQuantity: number, quantities: { [barcode: string]: number }, limitReached?: boolean } {
+    const quantities = { ...currentQuantities };
+    const currentQty = quantities[barcode] || 0;
+    const maxQty = availableQuantities && availableQuantities[barcode] !== undefined 
+      ? availableQuantities[barcode] 
+      : 1000; // Default fallback limit
+    
+    const newQty = Math.max(0, Math.min(maxQty, currentQty + amount));
+    const limitReached = amount > 0 && newQty === maxQty && currentQty + amount > maxQty;
+    
+    if (newQty !== quantities[barcode]) {
+      quantities[barcode] = newQty;
+    }
+    return { newQuantity: newQty, quantities, limitReached };
+  }
+
+  startTimer(barcode: string, isIncrement: boolean, onUpdate: (barcode: string, amount: number) => void): void {
+    this.clearTimer();
+    this.activeBarcode = barcode;
+    const startTime = Date.now();
+
+    this.timer = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const multiplier = this.getMultiplier(elapsed);
+      const amount = (isIncrement ? 1 : -1) * multiplier;
+      onUpdate(barcode, amount);
+    }, this.interval);
+  }
+
+  clearTimer(): void {
+    if (this.timer) {
+      clearInterval(this.timer);
+      this.timer = null;
+      this.activeBarcode = null;
+    }
+  }
 
   // === SCREEN SIZE UTILITIES ===
   
@@ -393,5 +615,39 @@ export class UiService {
    */
   setSelectedCategory(state: SupermarketDataState, categoryName: string): void {
     state.selectedCategory = categoryName;
+  }
+
+  // === TIME UTILITIES ===
+
+  /**
+   * Converte una data dal server aggiungendo 2 ore per l'ora locale
+   */
+  adjustServerDate(serverDateString: string): Date {
+    const serverDate = new Date(serverDateString);
+    return new Date(serverDate.getTime() + (this.SERVER_OFFSET_HOURS * 60 * 60 * 1000));
+  }
+
+  /**
+   * Formatta una data del server in formato breve italiano (dd/mm/yyyy)
+   */
+  formatServerDateShort(serverDateString: string): string {
+    const adjustedDate = this.adjustServerDate(serverDateString);
+    return adjustedDate.toLocaleDateString('it-IT');
+  }
+
+  /**
+   * Formatta una data del server con ora completa
+   */
+  formatServerDate(serverDateString: string, options: Intl.DateTimeFormatOptions = {}): string {
+    const adjustedDate = this.adjustServerDate(serverDateString);
+    const defaultOptions: Intl.DateTimeFormatOptions = {
+      year: 'numeric',
+      month: 'long', 
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      ...options
+    };
+    return adjustedDate.toLocaleDateString('it-IT', defaultOptions);
   }
 }

@@ -26,6 +26,8 @@ export interface User {
 })
 export class SupermercatiService {
   private selectedSupermarketSubject = new BehaviorSubject<Supermarket | null>(null);
+  private readonly SELECTED_SUPERMARKET_KEY = 'selected_supermarket';
+  selectedSupermarket$ = this.selectedSupermarketSubject.asObservable();
 
   // Supermarket images mapping
   private readonly supermarketImages: { [key: string]: string } = {
@@ -43,7 +45,12 @@ export class SupermercatiService {
     famila: 'assets/supermercati/famila.webp',
     sisa: 'assets/supermercati/sisa.webp',
   };
-  constructor(private http: HttpClient, private authService: AuthService) {}
+
+  constructor(private http: HttpClient, private authService: AuthService) {
+    this.loadSelectedSupermarket();
+  }
+
+  // Supermarket CRUD Operations
   getSupermarkets(): Observable<{ supermarkets: Supermarket[] }> {
     return this.http.get<{ supermarkets: Supermarket[] }>(ApiConfig.ENDPOINTS.SUPERMARKETS.LIST);
   }
@@ -51,20 +58,42 @@ export class SupermercatiService {
   getSupermarketDetails(id: number): Observable<{ supermarket: Supermarket }> {
     return this.http.get<{ supermarket: Supermarket }>(ApiConfig.ENDPOINTS.SUPERMARKETS.BY_ID(id.toString()));
   }
-  setSelectedSupermarket(supermarket: Supermarket): void {
+
+  addSupermarket(supermarket: { name: string; address: string; latitude: string; longitude: string; manager_id?: string }): Promise<any> {
+    return this.http.post(ApiConfig.ENDPOINTS.SUPERMARKETS.ADD, supermarket).toPromise();
+  }
+
+  // Selected Supermarket Management
+  setSelectedSupermarket(supermarket: Supermarket | null): void {
+    if (supermarket) {
+      sessionStorage.setItem(this.SELECTED_SUPERMARKET_KEY, JSON.stringify(supermarket));
+    } else {
+      sessionStorage.removeItem(this.SELECTED_SUPERMARKET_KEY);
+    }
     this.selectedSupermarketSubject.next(supermarket);
   }
 
   getSelectedSupermarket(): Supermarket | null {
     return this.selectedSupermarketSubject.value;
   }
+
   clearSelectedSupermarket(): void {
+    sessionStorage.removeItem(this.SELECTED_SUPERMARKET_KEY);
     this.selectedSupermarketSubject.next(null);
   }
 
-  selectedSupermarket$ = this.selectedSupermarketSubject.asObservable();
-  addSupermarket(supermarket: { name: string; address: string; latitude: string; longitude: string; manager_id?: string; }): Promise<any> {
-    return this.http.post(ApiConfig.ENDPOINTS.SUPERMARKETS.ADD, supermarket).toPromise();
+  private loadSelectedSupermarket(): void {
+    try {
+      const supermarketStr = sessionStorage.getItem(this.SELECTED_SUPERMARKET_KEY);
+      if (supermarketStr) {
+        const supermarket = JSON.parse(supermarketStr) as Supermarket;
+        this.selectedSupermarketSubject.next(supermarket);
+      }
+    } catch (error) {
+      console.error('Error loading selected supermarket from session storage:', error);
+      sessionStorage.removeItem(this.SELECTED_SUPERMARKET_KEY);
+      this.selectedSupermarketSubject.next(null);
+    }
   }
 
   getManagers(): Observable<User[]> {
@@ -140,31 +169,63 @@ export class SupermercatiService {
     return name.trim();
   }
 
+  // User-specific supermarket getter
   async getSupermarketsForCurrentUser(): Promise<Supermarket[]> {
     const user = this.getCurrentUser();
-    
-    if (!user) {
-      return [];
-    }
+    if (!user) return [];
 
     try {
       const response = await this.getSupermarkets().toPromise();
       const supermarkets = response?.supermarkets || [];
 
-      if (user?.role === 'admin') {
-        return supermarkets;
-      } else if (user?.role === 'manager') {
-        return supermarkets.filter(sm => sm.manager_id === user.id);
-      } else {
-        return supermarkets;
+      if (user.role === 'manager') {
+        const managedSupermarkets = supermarkets.filter(sm => {
+          const managerId = sm.manager_id?.toString();
+          const userId = user.id?.toString();
+          return managerId === userId;
+        });
+        return managedSupermarkets;
       }
+      
+      return supermarkets;
     } catch (error) {
       console.error('Error loading supermarkets:', error);
       return [];
     }
   }
-  private getCurrentUser(): any {
+  private getCurrentUser(): User | null {
     return this.authService.getUser();
+  }
+  async addProductsToSupermarket(supermarketId: number, products: any[]): Promise<{ success: boolean; responses: any[] }> {
+    try {
+      const formattedProducts = products.map(product => ({
+        product_id: product.id,
+        price: product.price,
+        quantity: product.quantity
+      }));
+
+      const responses = await Promise.all(
+        formattedProducts.map(product =>
+          this.http.post(
+            ApiConfig.ENDPOINTS.SUPERMARKETS.ADD_PRODUCTS_TO_SUPERMARKET(supermarketId.toString()),
+            product,
+            { 
+              withCredentials: true,
+              headers: { 'Content-Type': 'application/json' }
+            }
+          ).toPromise()
+        )
+      );
+
+      const allSuccessful = responses.every(
+        (response: any) => response?.message === 'Prodotto aggiunto con successo'
+      );
+
+      return { success: allSuccessful, responses };
+    } catch (error: any) {
+      console.error('Error adding products to supermarket:', error);
+      throw error;
+    }
   }
 
   async loadAndSetupSupermarkets(

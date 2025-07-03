@@ -155,7 +155,6 @@ $breakpoint-small-mobile: 480px;
   .category-icon {
     width: 32px;
     height: 32px;
-    margin-bottom: 8px;
     @include flex-center;
 
     ion-img {
@@ -249,7 +248,7 @@ $breakpoint-small-mobile: 480px;
 }
 
 @mixin section-spacing {
-  margin-bottom: 32px;
+  margin-bottom: 0px;
   
   @include mobile-responsive {
     margin-bottom: 20px;
@@ -266,26 +265,23 @@ $breakpoint-small-mobile: 480px;
 
 // === SCROLL MIXINS ===
 @mixin custom-scrollbar {
-  scrollbar-width: thin;
-  scrollbar-color: var(--ion-color-medium) transparent;
-  
+  -webkit-overflow-scrolling: touch;
+  will-change: scroll-position;
   &::-webkit-scrollbar {
-    height: 8px;
     width: 8px;
-    display: block;
   }
   
   &::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.05);
-    border-radius: $border-radius-xs;
+    background: var(--ion-color-step-50);
+    border-radius: 4px;
+    margin: 8px 0;
   }
-  
-  &::-webkit-scrollbar-thumb {
-    background: var(--ion-color-medium);
-    border-radius: $border-radius-xs;
+    &::-webkit-scrollbar-thumb {
+    background: var(--ion-color-primary);
+    border-radius: 4px;
     
     &:hover {
-      background: var(--ion-color-medium-shade);
+      background: var(--ion-color-primary-shade);
     }
   }
 }
@@ -335,7 +331,6 @@ $breakpoint-small-mobile: 480px;
   scroll-behavior: smooth;
   scroll-padding: 20px;
   
-  @include custom-scrollbar;
 
   &.active {
     scroll-behavior: auto;
@@ -448,8 +443,14 @@ $breakpoint-small-mobile: 480px;
 
 // CREATE
 @mixin input{
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 4px;
+  margin: 8px 0;
+  
   ion-input{
-    border-radius:8px;
+    border-radius: 8px;
     --color: var(--ion-color-dark);
     border: 2px solid var(--ion-color-primary);
     --placeholder-color: var(--ion-color-medium);
@@ -858,7 +859,7 @@ $breakpoint-small-mobile: 480px;
       }
       
       &:hover:not([disabled]) {
-        --box-shadow: 0 6px 16px rgba(var(--ion-color-primary-rgb), 0.4);
+        --box-shadow: 0 0px 10px rgba(var(--ion-color-primary-rgb), 0.4);
         transform: translateY(-1px);
       }
       
@@ -996,6 +997,45 @@ $breakpoint-small-mobile: 480px;
 
   .ion-padding-bottom {
     --padding-bottom: 40px;
+  }
+}
+
+// === QUANTITY BLOCK ===
+@mixin quantity-block {
+  .quantity-block{
+    position: absolute;
+    right: 0;
+    left: 0;
+    bottom: 0;
+    padding: 8px 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    .quantity-button {
+      --background: var(--ion-color-primary);
+      --color: white;
+      box-shadow: none;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      @include button-hover-scale;
+      ion-icon {
+        font-size: 10px;
+      }
+    }
+    .quantity-label {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 50px;
+      height: 30px;
+      margin: 0 4px;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--ion-color-primary);
+      background: transparent;
+    }
   }
 }
 

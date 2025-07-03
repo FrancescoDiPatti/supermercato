@@ -1,13 +1,178 @@
-<ion-header [translucent]="true">
-  <ion-toolbar>
-    <ion-title>carrello</ion-title>
-  </ion-toolbar>
-</ion-header>
+<ion-content [fullscreen]="true" class="carrello-content">
+  <div class="carrello-container">
+    <!-- Cart Items by Supermarket -->
+    <div class="cart-sections" *ngIf="cartItems.length > 0">
+      <div class="supermarket-section" *ngFor="let group of groupedItems; trackBy: trackByGroup">
+        <div class="supermarket-header">
+          <div class="header-content">
+            <div class="store-info">
+              <h3 class="store-name">{{ group.name }}</h3>
+            </div>
+            <div class="supermarket-total">
+              <span class="total-amount">€{{ getSupermercatoTotal(group.value).toFixed(2) }}</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="cart-items">
+          <ion-item-sliding *ngFor="let item of group.value; trackBy: trackByItem" class="cart-item">
+            <ion-item>
+              <div class="item-content">
+                <div class="item-image">
+                  <ion-img [src]="getProductImage(item.barcode)" [alt]="item.name" (ionError)="handleImageError($event, item.name)"></ion-img>
+                </div>
+                
+                <div class="item-details">
+                  <div class="product-info">
+                    <h4 class="product-name">{{ item.name }}</h4>
+                    <p class="item-description">{{ item.description || 'Prodotto selezionato per la tua spesa' }}</p>
+                  </div>
+                  
+                  <div class="item-price">
+                    <div class="price-info">
+                      <div class="unit-price-container">
+                        <span class="unit-price">€{{ item.price.toFixed(2) }} cad.</span>
+                        <span *ngIf="item.onOffer && item.originalPrice" class="original-price">€{{ item.originalPrice.toFixed(2) }}</span>
+                        <ion-badge *ngIf="item.onOffer && item.originalPrice" color="danger" class="offer-badge">
+                          OFFERTA
+                        </ion-badge>
+                      </div>
+                      <span class="total-price">€{{ (item.price * item.quantity).toFixed(2) }}</span>
+                    </div>
+                  </div>
+                </div>
+                  <div class="quantity-block">
+                    <ng-container *ngIf="quantities[item.barcode] > 0">
+                      <ion-fab-button
+                        type="button"
+                        class="quantity-button"
+                        (mousedown)="onDecrementPress(item.barcode); $event.preventDefault()"
+                        (touchstart)="onDecrementPress(item.barcode); $event.preventDefault()"
+                        (mouseup)="onButtonRelease()"
+                        (mouseleave)="onButtonRelease()"
+                        (touchend)="onButtonRelease()"
+                        (touchcancel)="onButtonRelease()"
+                        (click)="decrementQuantity(item.barcode)">
+                        <ion-icon name="remove"></ion-icon>
+                      </ion-fab-button>
+                      <span class="quantity-label">
+                        {{ quantities[item.barcode] }}
+                      </span>
+                    </ng-container>
+                    <ion-fab-button
+                      type="button"
+                      class="quantity-button"
+                      [disabled]="quantities[item.barcode] >= availableQuantities[item.barcode]"
+                      (mousedown)="onIncrementPress(item.barcode); $event.preventDefault()"
+                      (touchstart)="onIncrementPress(item.barcode); $event.preventDefault()"
+                      (mouseup)="onButtonRelease()"
+                      (mouseleave)="onButtonRelease()"
+                      (touchend)="onButtonRelease()"
+                      (touchcancel)="onButtonRelease()"
+                      (click)="incrementQuantity(item.barcode)">
+                      <ion-icon name="add"></ion-icon>
+                    </ion-fab-button>
+                  </div>
+              </div>
+            </ion-item>
+            
+            <ion-item-options side="end">
+              <ion-item-option color="danger" (click)="removeItem(item.barcode)" class="remove-option">
+                <div class="remove-content">
+                  <ion-icon name="trash-outline"></ion-icon>
+                  <span>Rimuovi</span>
+                </div>
+              </ion-item-option>
+            </ion-item-options>
+          </ion-item-sliding>
+        </div>
+      </div>
+    </div>
 
-<ion-content [fullscreen]="true">
-  <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">carrello</ion-title>
-    </ion-toolbar>
-  </ion-header>
+    <!-- Empty Cart Message -->
+    <div *ngIf="cartItems.length === 0" class="empty-cart">
+      <div class="empty-illustration">
+        <ion-icon name="basket-outline" class="empty-icon"></ion-icon>
+      </div>
+      <div class="empty-content">
+        <h3 class="empty-title">Il tuo carrello è vuoto</h3>
+        <p class="empty-subtitle">Scopri i nostri prodotti freschi e le offerte del giorno</p>
+        <ion-button fill="solid" (click)="continueShopping()" class="start-shopping-btn">
+          <ion-icon slot="start" name="storefront-outline"></ion-icon>
+          Inizia a fare la spesa
+        </ion-button>
+      </div>
+    </div>
+
+    <!-- Cart Summary -->
+    <div *ngIf="cartItems.length > 0" class="cart-summary">
+      <div class="summary-header">
+        <div class="summary-title">
+          <ion-icon name="receipt-outline" class="summary-icon"></ion-icon>
+          <h3>Riepilogo dell'Ordine</h3>
+        </div>
+      </div>
+      <div class="summary-details">
+        <div *ngIf="getTotalSavings() > 0" class="summary-row savings-row">
+          <span class="row-label savings-label">
+            <ion-icon name="pricetag-outline" class="row-icon"></ion-icon>
+            Risparmi con le offerte
+          </span>
+          <span class="row-value savings-value">
+            -€{{ getTotalSavings().toFixed(2) }}
+          </span>
+        </div>
+        <div class="summary-row total-row">
+          <span class="row-label total-label">
+            <ion-icon name="card-outline" class="row-icon"></ion-icon>
+            <strong>Totale da pagare</strong>
+          </span>
+          <span class="row-value total-value">
+            <strong>€{{ getCartTotal().toFixed(2) }}</strong>
+          </span>
+        </div>
+      </div>
+      <div class="summary-actions">
+        <ion-button expand="block" fill="outline" (click)="continueShopping()" class="continue-btn">
+          <ion-icon slot="start" name="add-circle-outline"></ion-icon>
+          Aggiungi altri prodotti
+        </ion-button>
+        <ion-button expand="block" fill="solid" (click)="proceedToCheckout()" class="checkout-btn" [disabled]="isProcessingPayment">
+          <ion-icon slot="start" name="card-outline" *ngIf="!isProcessingPayment"></ion-icon>
+          <div class="loading-spinner" *ngIf="isProcessingPayment">
+            <div class="spinner"></div>
+          </div>
+          <span *ngIf="!isProcessingPayment">Procedi al pagamento</span>
+          <span *ngIf="isProcessingPayment">Elaborazione...</span>
+        </ion-button>
+      </div>
+    </div>
+
+      <!-- Custom Alert for Offer Generation -->
+  <div class="custom-alert-backdrop" [class.show]="showCustomAlert" (click)="closeAlert()">
+    <div class="custom-alert" [class.show]="showCustomAlert" [class.success]="alertType === 'success'" [class.error]="alertType === 'error'" (click)="$event.stopPropagation()">
+      <div class="alert-header">
+        <div class="alert-icon-container">
+          <ion-icon [name]="alertIcon" [color]="alertType === 'success' ? 'success' : 'danger'"></ion-icon>
+        </div>
+        <ion-button fill="clear" size="small" class="close-btn" (click)="closeAlert()">
+          <ion-icon name="close"></ion-icon>
+        </ion-button>
+      </div>
+      <div class="alert-content">
+        <h3 class="alert-title">{{ alertTitle }}</h3>
+        <p class="alert-message">{{ alertMessageCustom }}</p>
+      </div>
+      <div class="alert-actions">
+        <ion-button 
+          expand="block" 
+          [color]="alertType === 'success' ? 'primary' : 'danger'"
+          (click)="closeAlert()">
+          OK
+        </ion-button>
+      </div>
+    </div>
+  </div>
+
+  </div>
 </ion-content>

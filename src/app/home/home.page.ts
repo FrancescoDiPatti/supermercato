@@ -17,11 +17,13 @@ import {
   IonSearchbar,
   IonList,
   IonItem,
+  IonBadge,
   MenuController
 } from '@ionic/angular/standalone';
 import { HomeService } from './home.service';
 import { SearchResult, RecentSearch } from '../services/search/search.service';
 import { AuthService } from '../auth/auth.service';
+import { CarrelloService } from '../services/carrello/carrello.service';
 import { addIcons } from 'ionicons';
 import {
   storefrontOutline,
@@ -62,7 +64,8 @@ import { debounceTime, Subject, Subscription } from 'rxjs';
     IonSplitPane,
     IonSearchbar,
     IonList,
-    IonItem
+    IonItem,
+    IonBadge
   ]
 })
 export class HomePage implements OnInit, OnDestroy {
@@ -79,22 +82,25 @@ export class HomePage implements OnInit, OnDestroy {
   isSearchActive: boolean = false;
   currentPlaceholder: string = 'Ricerca...';
   selectedSupermarket: any = null;
+  
+  // Cart functionality
+  cartItemCount: number = 0;
+  
   private searchSubject = new Subject<string>();  
   private subscription: Subscription = new Subscription();
   private readonly RECENT_SEARCHES_KEY = 'recentSearches';
   private readonly MAX_RECENT_SEARCHES = 5;  private readonly SEARCH_CONFIG = {
     '/prodotti': { placeholder: 'Cerca prodotti', type: 'products' },
     '/offerte': { placeholder: 'Cerca offerte', type: 'offers' },
-    '/ordini': { placeholder: 'Cerca ordini', type: 'orders' },
-    '/dashboard': { placeholder: 'Cerca supermercati', type: 'supermarkets' },
-    '/carrello': { placeholder: '', type: 'general' }
+    '/dashboard': { placeholder: 'Cerca supermercati', type: 'supermarkets' }
   } as const;
   constructor(
     private homeService: HomeService,
     private authService: AuthService,
     private router: Router,
     private elementRef: ElementRef,
-    private menuController: MenuController
+    private menuController: MenuController,
+    private carrelloService: CarrelloService
   ) {    addIcons({ 
       storefrontOutline, 
       cubeOutline, 
@@ -122,6 +128,7 @@ export class HomePage implements OnInit, OnDestroy {
     this.setupSearch();
     this.loadRecent();
     this.setupUserListener();
+    this.setupCartListener();
     
     // Subscribe to selected supermarket changes
     this.subscription.add(
@@ -129,6 +136,9 @@ export class HomePage implements OnInit, OnDestroy {
         this.selectedSupermarket = supermarket;
       })
     );
+    
+    // Initialize cart count
+    this.updateCartCount();
   }  ngOnDestroy() {
     this.subscription.unsubscribe();
   }
@@ -167,6 +177,12 @@ export class HomePage implements OnInit, OnDestroy {
         }
       })
     );
+  }  private setupCartListener() {    
+    this.subscription.add(
+      this.carrelloService.cartItems$.subscribe(items => {
+        this.updateCartCount();
+      })
+    );
   }
 
   // Set placehoalder
@@ -178,6 +194,11 @@ export class HomePage implements OnInit, OnDestroy {
   }  
   // Manage search input
   onInput(event: any) {
+    // Don't process search if no search functionality is available
+    if (!this.currentPlaceholder) {
+      return;
+    }
+    
     const query = event.target.value;
     this.searchTerm = query;
     
@@ -225,11 +246,9 @@ export class HomePage implements OnInit, OnDestroy {
     
     switch (currentType) {
       case 'products':
-        // TODO: Implement products search
-        return [];
+        return this.searchProducts(query);
       case 'offers':
-        // TODO: Implement offers search
-        return [];
+        return this.searchOffers(query);
       case 'supermarkets':
         return this.searchSupermarkets(query);
       default:
@@ -257,6 +276,93 @@ export class HomePage implements OnInit, OnDestroy {
       return [];
     }
   }
+
+  // Search products in current supermarket
+  private async searchProducts(query: string): Promise<SearchResult[]> {
+    if (!this.selectedSupermarket) {
+      return [];
+    }
+
+    try {
+      // Get products from current supermarket through home service
+      const result = await this.homeService.loadSupermarketDataWithoutImages(
+        this.selectedSupermarket.id, 
+        this.homeService.createDataState(), 
+        true, // load products
+        true  // load offers
+      );
+      
+      const allProducts = [...result.products, ...result.offerProducts];
+      
+      if (allProducts.length === 0) {
+        return [];
+      }
+
+      const searchResults = this.filterProductsByQuery(allProducts, query);
+      return searchResults.map((product: any) => ({
+        id: product.barcode || product.id.toString(),
+        label: product.name,
+        sublabel: product.description || `€${(product.offer_price || product.price || 0).toFixed(2)}`,
+        type: 'search' as const,
+        icon: 'cube-outline',
+        data: product
+      }));
+    } catch (error) {
+      console.error('Error searching products:', error);
+      return [];
+    }
+  }
+
+  // Search offers in current supermarket
+  private async searchOffers(query: string): Promise<SearchResult[]> {
+    if (!this.selectedSupermarket) {
+      return [];
+    }
+
+    try {
+      // Get offers from current supermarket through home service
+      const result = await this.homeService.loadSupermarketDataWithoutImages(
+        this.selectedSupermarket.id, 
+        this.homeService.createDataState(), 
+        false, // don't load regular products
+        true   // load offers
+      );
+      
+      const offers = result.offerProducts;
+      
+      if (offers.length === 0) {
+        return [];
+      }
+
+      const searchResults = this.filterProductsByQuery(offers, query);
+      return searchResults.map((product: any) => ({
+        id: product.barcode || product.id.toString(),
+        label: product.name,
+        sublabel: `Offerta: €${(product.offer_price || product.price || 0).toFixed(2)}`,
+        type: 'search' as const,
+        icon: 'pricetag-outline',
+        data: product
+      }));
+    } catch (error) {
+      console.error('Error searching offers:', error);
+      return [];
+    }
+  }
+
+  // Filter products by search query
+  private filterProductsByQuery(products: any[], query: string): any[] {
+    const lowerQuery = query.toLowerCase();
+    
+    return products.filter(product => {
+      const nameMatch = product.name?.toLowerCase().includes(lowerQuery);
+      const descriptionMatch = product.description?.toLowerCase().includes(lowerQuery);
+      const categoryMatch = product.category?.toLowerCase().includes(lowerQuery);
+      const barcodeMatch = product.barcode?.includes(query);
+      
+      return nameMatch || descriptionMatch || categoryMatch || barcodeMatch;
+    }).slice(0, 8); // Limit results
+  }
+
   // Manage result selection
   selectResult(result: SearchResult) {
     this.searchTerm = result.label;
@@ -307,7 +413,15 @@ export class HomePage implements OnInit, OnDestroy {
       }
     }
     
-    // Products and offers here (TODO)
+    // Handle product selection from search
+    if (currentType === 'products' && result.data) {
+      this.selectProductFromSearch(result.data);
+    }
+    
+    // Handle offer selection from search
+    if (currentType === 'offers' && result.data) {
+      this.selectOfferFromSearch(result.data);
+    }
   }
 
   // Select and center supermarket
@@ -317,7 +431,26 @@ export class HomePage implements OnInit, OnDestroy {
       detail: { supermarket }
     }));
   }
+  // Select and highlight product from search
+  private selectProductFromSearch(product: any): void {
+    window.dispatchEvent(new CustomEvent('productSelectedFromSearch', {
+      detail: { product }
+    }));
+  }
+
+  // Select and highlight offer from search
+  private selectOfferFromSearch(product: any): void {
+    window.dispatchEvent(new CustomEvent('offerSelectedFromSearch', {
+      detail: { product }
+    }));
+  }
+
   onFocus() {
+    // Don't activate search if no search functionality is available
+    if (!this.currentPlaceholder) {
+      return;
+    }
+    
     this.showOverlay = true;
     this.isSearchActive = true;
     
@@ -338,14 +471,22 @@ export class HomePage implements OnInit, OnDestroy {
     this.searchTerm = '';
     this.isSearching = false;
     this.resetSearch();
-      if (this.isSearchActive) {
+    
+    // Only show recent searches if search functionality is available
+    if (this.isSearchActive && this.currentPlaceholder) {
       this.showRecentSearches = true;
       this.showOverlay = true;
       this.searchResults = this.combineResults([], true);
       this.showResults = this.searchResults.length > 0;
     }
   }  
+  
   onCancel() {
+    // Don't process if no search functionality is available
+    if (!this.currentPlaceholder) {
+      return;
+    }
+    
     this.isSearching = false;
     this.clearSearch();
     const activeElement = document.activeElement as HTMLElement;
@@ -356,6 +497,11 @@ export class HomePage implements OnInit, OnDestroy {
 
   // Enter key search
   onEnter(event: any) {
+    // Don't process if no search functionality is available
+    if (!this.currentPlaceholder) {
+      return;
+    }
+    
     event.preventDefault();
     if (this.searchResults && this.searchResults.length > 0) {
       this.selectResult(this.searchResults[0]);
@@ -500,5 +646,20 @@ export class HomePage implements OnInit, OnDestroy {
     if (window.innerWidth < 992) {
       this.menuController.close();
     }
+  }
+
+  // Cart icon visibility
+  shouldShowCartIcon(): boolean {
+    return this.isCustomer && !this.activeUrl.includes('/carrello') && !this.activeUrl.includes('/ordini');
+  }
+
+  // Navigate to cart
+  goToCart(): void {
+    this.router.navigate(['/home/carrello']);
+  }
+
+  // Update cart count
+  private updateCartCount(): void {
+    this.cartItemCount = this.carrelloService.getCartItemsCount();
   }
 }

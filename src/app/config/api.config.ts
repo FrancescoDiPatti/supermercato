@@ -18,13 +18,15 @@ export class ApiConfig {
       LIST: `${this.PRIMARY_API_URL}/supermarkets`,
       BY_ID: (id: string) => `${this.PRIMARY_API_URL}/supermarkets/${id}`,
       ADD: `${this.PRIMARY_API_URL}/add_supermarket`,
-      PRODUCTS: (id: string) => `${this.PRIMARY_API_URL}/supermarkets/${id}/products`
+      PRODUCTS: (id: string) => `${this.PRIMARY_API_URL}/supermarkets/${id}/products`,
+      ADD_PRODUCTS_TO_SUPERMARKET: (id: string) => `${this.PRIMARY_BASE_URL}/add_product_to_supermarket/${id}`
     },
     PRODUCTS: {
       ADD: `${this.PRIMARY_API_URL}/add_product`
     },
     OFFERS: (supermarketId: string) => `${this.PRIMARY_BASE_URL}/offers/${supermarketId}`,
     PURCHASES: `${this.PRIMARY_API_URL}/purchases`,
+    PURCHASE: (supermarketId: string, productId: string) => `${this.PRIMARY_BASE_URL}/purchase/${supermarketId}/${productId}`,
     DASHBOARD: `${this.PRIMARY_BASE_URL}/dashboard`
   };
 

@@ -1,13 +1,150 @@
-<ion-header [translucent]="true">
-  <ion-toolbar>
-    <ion-title>ordini</ion-title>
-  </ion-toolbar>
-</ion-header>
+<ion-content class="ordini-content">
+  <div class="ordini-container">
+    <!-- Filters Section -->
+    <div class="filters-section" *ngIf="!isLoading">
+      <div class="filter-group">
+        <h4>Periodo</h4>
+        <div class="filter-buttons">
+          <ion-button 
+            fill="clear" 
+            size="small" 
+            [color]="selectedPeriod === 'today' ? 'primary' : 'medium'"
+            (click)="filterByPeriod('today')">
+            Oggi
+          </ion-button>
+          <ion-button 
+            fill="clear" 
+            size="small" 
+            [color]="selectedPeriod === 'week' ? 'primary' : 'medium'"
+            (click)="filterByPeriod('week')">
+            Settimana
+          </ion-button>
+          <ion-button 
+            fill="clear" 
+            size="small" 
+            [color]="selectedPeriod === 'month' ? 'primary' : 'medium'"
+            (click)="filterByPeriod('month')">
+            Mese
+          </ion-button>
+          <ion-button 
+            fill="clear" 
+            size="small" 
+            [color]="selectedPeriod === 'all' ? 'primary' : 'medium'"
+            (click)="filterByPeriod('all')">
+            Tutto
+          </ion-button>
+        </div>
+      </div>
+      
+      <div class="filter-group" *ngIf="availableSupermarkets.length > 1">
+        <h4>Supermercato</h4>
+        <div class="filter-buttons">
+          <ion-button 
+            fill="clear" 
+            size="small" 
+            [color]="selectedSupermarket === 'all' ? 'primary' : 'medium'"
+            (click)="filterBySupermarket('all')">
+            Tutti
+          </ion-button>
+          <ion-button 
+            *ngFor="let supermarket of availableSupermarkets" 
+            fill="clear" 
+            size="small" 
+            [color]="selectedSupermarket === supermarket ? 'primary' : 'medium'"
+            (click)="filterBySupermarket(supermarket)">
+            {{ supermarket }}
+          </ion-button>
+        </div>
+      </div>
+    </div>
+    <!-- Loading Spinner -->
+    <div *ngIf="isLoading" class="loading-container">
+      <ion-spinner name="circular"></ion-spinner>
+      <p>Caricamento ordini...</p>
+    </div>
 
-<ion-content [fullscreen]="true">
-  <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">ordini</ion-title>
-    </ion-toolbar>
-  </ion-header>
+    <!-- Orders by Date and Supermarket -->
+    <div class="orders-sections" *ngIf="!isLoading && groupedOrders.length > 0">
+      <!-- Summary Header -->
+      <div class="orders-summary">
+        <div class="summary-stats">
+          <div class="stat-item">
+            <ion-icon name="receipt-outline" class="stat-icon"></ion-icon>
+            <div class="stat-info">
+              <span class="stat-value">{{ getTotalOrdersCount() }}</span>
+              <span class="stat-label">Prodotti ordinati</span>
+            </div>
+          </div>
+          <div class="stat-item">
+            <ion-icon name="card-outline" class="stat-icon"></ion-icon>
+            <div class="stat-info">
+              <span class="stat-value">€{{ getTotalSpent().toFixed(2) }}</span>
+              <span class="stat-label">Totale speso</span>
+            </div>
+          </div>
+        </div>
+        <div *ngIf="hasActiveFilters()" class="filter-summary">
+          <ion-badge color="primary">
+            {{ getFilterDescription() }}
+          </ion-badge>
+        </div>
+      </div>
+
+      <div class="order-group" *ngFor="let group of groupedOrders; trackBy: trackByGroup">
+        <div class="order-group-header">
+          <div class="header-content">
+            <div class="order-info">
+              <h3 class="order-date">{{ getOrderDateShort(group.date) }}</h3>
+              <p class="store-name">{{ group.name }}</p>
+            </div>
+            <div class="order-total">
+              <span class="total-amount">€{{ group.total.toFixed(2) }}</span>
+              <span class="items-count">{{ group.value.length }} prodotto{{ group.value.length > 1 ? 'i' : '' }}</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="order-items">
+          <div *ngFor="let order of group.value; trackBy: trackByOrder" class="order-item">
+            <div class="item-content">
+              <div class="item-details">
+                <div class="product-info">
+                  <h4 class="product-name">{{ order.product_name }}</h4>
+                  <p class="order-details">
+                    Quantità: {{ order.quantity }}
+                  </p>
+                  <p class="order-timestamp">{{ getOrderDate(order.purchase_date) }}</p>
+                </div>
+                
+                <div class="item-price">
+                  <div class="price-info">
+                    <span class="unit-price">€{{ order.price_per_unit.toFixed(2) }} cad.</span>
+                    <ion-badge *ngIf="order.on_offer" color="danger" class="offer-badge">
+                      OFFERTA
+                    </ion-badge>
+                    <span class="total-price">€{{ order.total_price.toFixed(2) }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Empty Orders Message -->
+    <div *ngIf="!isLoading && groupedOrders.length === 0" class="empty-orders">
+      <div class="empty-illustration">
+        <ion-icon name="basket-outline" class="empty-icon"></ion-icon>
+      </div>
+      <div class="empty-content">
+        <h3 class="empty-title">Nessun ordine trovato</h3>
+        <p class="empty-subtitle">Non hai ancora effettuato alcun acquisto. Inizia a fare la spesa per vedere qui i tuoi ordini!</p>
+        <ion-button fill="solid" (click)="continueShopping()" class="start-shopping-btn">
+          <ion-icon slot="start" name="storefront-outline"></ion-icon>
+          Inizia a fare la spesa
+        </ion-button>
+      </div>
+    </div>
+  </div>
 </ion-content>

@@ -1,13 +1,123 @@
-<ion-header [translucent]="true">
-  <ion-toolbar>
-    <ion-title>prodotti</ion-title>
-  </ion-toolbar>
-</ion-header>
 
 <ion-content [fullscreen]="true">
-  <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">prodotti</ion-title>
-    </ion-toolbar>
-  </ion-header>
+  <div class="main-container">
+    <!-- Categories Section -->
+    <div class="section categories-section" *ngIf="displayProducts.length > 0 || displayOfferProducts.length > 0">
+      <h3>Categorie</h3>
+      <div class="categories-container">
+        <!-- "All Categories" Item -->
+        <div class="category-item" [class.selected]="selectedCategory === ''" (click)="onCategorySelect('')">
+          <div class="category-icon">
+            <ion-img src="assets/categories/grocery-cart.png" alt="Tutti" (ionError)="handleImageError($event, 'tutti')">
+            </ion-img>
+          </div>
+          <div class="category-name">Tutti</div>
+        </div>
+        <!-- Category Items -->
+        <div *ngFor="let category of categories" class="category-item" [class.selected]="selectedCategory === category.name" (click)="onCategorySelect(category.name)">
+          <div class="category-icon">
+            <ion-img [src]="category.icon" [alt]="category.name" (ionError)="handleImageError($event, category.name)">
+            </ion-img>
+          </div>
+          <div class="category-name">{{category.name}}</div>
+          <ion-badge class="category-count">{{category.count}}</ion-badge>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Products Section -->
+    <div class="section products-section">
+      <div *ngIf="selectedSupermarket">
+        <h3>Prodotti</h3>
+      </div>
+      <div class="products-container" *ngIf="displayProducts.length > 0 || (canCreateContent && selectedSupermarket)">
+        <div *ngFor="let product of displayProducts" 
+             class="product-card"
+             [class.highlighted]="isProductHighlighted(product)"
+             [id]="'product-' + (product.barcode || product.id)">
+          <div class="product-image-container">
+            <div class="image-wrapper">
+              <ion-img [src]="product.image_url" [alt]="product.name"></ion-img>
+            </div>
+          </div>
+          <div class="product-info">
+            <h4>{{product.name}}</h4>
+            <p class="create-description">{{product.description}}</p>
+          </div>
+          <div class="bottom-controls">
+            <div class="price-container">
+              <span class="current-price">€{{getDisplayPrice(product).toFixed(2)}}</span>
+              <span *ngIf="getOriginalPrice(product)" class="original-price">
+                €{{getOriginalPrice(product)!.toFixed(2)}}
+              </span>
+            </div>
+            <ng-container *ngIf="!canCreateContent">
+              <div class="quantity-block">
+                <ng-container *ngIf="quantities[product.barcode] > 0">
+                  <ion-fab-button
+                    type="button"
+                    class="quantity-button"
+                    (mousedown)="onDecrementPress(product.barcode); $event.preventDefault()"
+                    (touchstart)="onDecrementPress(product.barcode); $event.preventDefault()"
+                    (mouseup)="onButtonRelease()"
+                    (mouseleave)="onButtonRelease()"
+                    (touchend)="onButtonRelease()"
+                    (touchcancel)="onButtonRelease()"
+                    (click)="decrementQuantity(product.barcode)">
+                    <ion-icon name="remove"></ion-icon>
+                  </ion-fab-button>
+                  <span class="quantity-label">
+                    {{ quantities[product.barcode] }}
+                  </span>
+                </ng-container>
+                <ion-fab-button
+                  type="button"
+                  class="quantity-button"
+                  [disabled]="quantities[product.barcode] >= availableQuantities[product.barcode]"
+                  (mousedown)="onIncrementPress(product.barcode); $event.preventDefault()"
+                  (touchstart)="onIncrementPress(product.barcode); $event.preventDefault()"
+                  (mouseup)="onButtonRelease()"
+                  (mouseleave)="onButtonRelease()"
+                  (touchend)="onButtonRelease()"
+                  (touchcancel)="onButtonRelease()"
+                  (click)="incrementQuantity(product.barcode)">
+                  <ion-icon name="add"></ion-icon>
+                </ion-fab-button>
+              </div>
+            </ng-container>
+          </div>
+        </div>
+        <div *ngIf="canCreateContent && selectedSupermarket" class="product-card create-product-card" (click)="onCreateProduct()">
+          <div class="product-image-container">
+            <div class="image-wrapper create-product-image">
+              <ion-icon name="add"></ion-icon>
+            </div>
+          </div>
+          <div class="product-info">
+            <h4>Aggiungi Prodotto</h4>
+            <p class="create-description">o creane uno nuovo</p>
+          </div>
+        </div>
+      </div>
+      
+      <!-- EMPTY PRODUCTS -->
+      <div *ngIf="displayProducts.length === 0 && selectedSupermarket" class="empty-state">
+        <ion-icon name="cube" class="empty-icon"></ion-icon>
+        <h4>Nessun prodotto disponibile</h4>
+        <p>Questo supermercato non ha ancora prodotti nel suo catalogo.</p>
+      </div>
+
+      <!-- EMPTY SUPERMARKET -->
+      <div *ngIf="!selectedSupermarket" class="empty-state">
+        <ion-icon name="storefront" class="empty-icon"></ion-icon>
+        <h4>Nessun supermercato selezionato</h4>
+        <p>Seleziona un supermercato per visualizzare i prodotti disponibili.</p>
+        <ion-button [routerLink]="['/home/dashboard']" class="see-more-button">
+          Vai alla Dashboard
+          <ion-icon slot="end" name="arrow-forward"></ion-icon>
+        </ion-button>
+      </div>
+      
+    </div>
+  </div>
 </ion-content>

@@ -21,6 +21,10 @@ export class ProdottiService {
   ) {
     this.loadImageCache();
   }
+  
+  generateOffers(supermarketId: number) {
+    return this.http.post(`${ApiConfig.PRIMARY_BASE_URL}/generate_offers/${supermarketId}`, {});
+  }
 
   // === PRODUCT IMAGE CACHING UTILITIES ===
   
@@ -57,6 +61,15 @@ export class ProdottiService {
       }
     }
     this.saveImageCache();
+  }
+  private calculateDiscountPercentage(originalPrice: number | string, offerPrice: number | string): number {
+    const original = typeof originalPrice === 'string' ? parseFloat(originalPrice) || 0 : originalPrice || 0;
+    const offer = typeof offerPrice === 'string' ? parseFloat(offerPrice) || 0 : offerPrice || 0;
+    if (original <= 0 || offer >= original) {
+      return 0;
+    }
+    const discount = ((original - offer) / original) * 100;
+    return Math.round(discount * 10) / 10;
   }
   private rateLimitDelay(): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, 650)); // ~90 requests per minute
@@ -398,17 +411,32 @@ export class ProdottiService {
 
   generateCategories(products: any[]): Array<{ name: string; icon: string; count: number }> {
     const categoryMap = new Map<string, number>();
-    
     products.forEach(product => {
-      const category = product.category || 'Altro';
+      let category = 'Altro';
+      if (product.category) {
+        category = product.category;
+      } 
+      else if (product.product_category) {
+        category = product.product_category;
+      }
+      else if (product.offers && Array.isArray(product.offers)) {
+        product.offers.forEach((offer: any) => {
+          const offerCategory = offer.product_category || 'Altro';
+          categoryMap.set(offerCategory, (categoryMap.get(offerCategory) || 0) + 1);
+        });
+        return;
+      }
       categoryMap.set(category, (categoryMap.get(category) || 0) + 1);
     });
 
-    return Array.from(categoryMap.entries()).map(([name, count]) => ({
-      name,
-      count,
-      icon: this.getCategoryIcon(name)
-    }));
+    const result = Array.from(categoryMap.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([name, count]) => ({
+        name,
+        count,
+        icon: this.getCategoryIcon(name)
+      }));
+    return result;
   }
 
   // === PRODUCT UTILITIES ===
@@ -422,15 +450,47 @@ export class ProdottiService {
   }
 
   filterProductsByCategory(products: any[], categoryName: string): any[] {
-    if (categoryName === '') {
+    if (!categoryName || categoryName === '') {
       return [...products];
-    } else {
-      return products.filter(p => {
-        const productCategory = p.category || 'Altro';
-        return productCategory === categoryName;
-      });
     }
+    return products.filter(product => {
+      let productCategory = 'Altro';
+      if (product.category) {
+        productCategory = product.category;
+      } 
+      else if (product.product_category) {
+        productCategory = product.product_category;
+      }
+      else if (product.offers && Array.isArray(product.offers)) {
+        return product.offers.some((offer: any) => {
+          const offerCategory = offer.product_category || 'Altro';
+          return offerCategory === categoryName;
+        });
+      }
+      return productCategory === categoryName;
+    });
   }
+
+  async loadDashboardProducts(): Promise<any[]> {
+  try {
+    const response = await this.http.get<any>(
+      ApiConfig.ENDPOINTS.DASHBOARD,
+      { withCredentials: true }
+    ).toPromise();
+
+    const products = response?.data?.products || [];
+
+    if (products.length > 0) {
+      this.cleanAndValidateBarcodes(products);
+      await this.loadProductImagesInBatches(products);
+      this.assignDefaultImages(products);
+    }
+
+    return products;
+  } catch (error) {
+    return [];
+  }
+}
 
   // === PRODUCT CREATION ===
   
@@ -478,23 +538,21 @@ export class ProdottiService {
       
       if (response?.data?.offers) {
         const offerProducts = response.data.offers.map((offer: any) => ({
+          ...offer,
           id: offer.product_id,
           name: offer.product_name,
-          description: offer.product_description,
-          category: '',
+          description: offer.product_description || '',
+          category: offer.category || '',
           price: offer.original_price,
           offer_price: offer.offer_price,
           on_offer: true,
           quantity: 1,
-          barcode: offer.product_barcode // Include barcode if available from server
-        }));        if (offerProducts.length > 0) {
-          // Pulisce e valida i barcode prima di caricare le immagini
-          this.cleanAndValidateBarcodes(offerProducts);
-          
+          barcode: offer.product_barcode
+        }));
 
-          // Usa il sistema di batch per caricare le immagini delle offerte
+        if (offerProducts.length > 0) {
+          this.cleanAndValidateBarcodes(offerProducts);
           await this.loadProductImagesInBatches(offerProducts);
-          // Assegna immagini di fallback basate sulla categoria  
           this.assignDefaultImages(offerProducts);
         }
         
@@ -526,9 +584,7 @@ export class ProdottiService {
       const products = response?.products || [];
       
       if (products.length > 0) {
-        // Pulisce e valida i barcode ma NON carica le immagini
         this.cleanAndValidateBarcodes(products);
-
       }
       
       return products;    } catch (error) {
@@ -543,28 +599,57 @@ export class ProdottiService {
         { withCredentials: true }
       ).toPromise();
       
-      if (response?.data?.offers) {
-        const offerProducts = response.data.offers.map((offer: any) => ({
-          id: offer.product_id,
-          name: offer.product_name,
-          description: offer.product_description,
-          category: '',
-          price: offer.original_price,
-          offer_price: offer.offer_price,
-          on_offer: true,
-          quantity: 1,
-          barcode: offer.product_barcode // Include barcode if available from server
-        }));
-
-        if (offerProducts.length > 0) {
-          // Pulisce e valida i barcode ma NON carica le immagini
-          this.cleanAndValidateBarcodes(offerProducts);
-
-        }
-        
-        return offerProducts;
+      if (!response?.data?.offers?.length) {
+        return [];
       }
-      return [];    } catch (error) {
+      const allOffers = response.data.offers.map((offer: any) => ({
+        id: offer.product_id,
+        name: offer.product_name,
+        description: offer.product_description || '',
+        category: offer.product_category || 'Altro',
+        price: parseFloat(offer.original_price) || 0,
+        offer_price: parseFloat(offer.offer_price) || 0,
+        discount_percentage: this.calculateDiscountPercentage(offer.original_price, offer.offer_price),
+        on_offer: true,
+        quantity: 1,
+        barcode: offer.product_barcode,
+        original_offer: offer,
+        end_date: offer.end_date
+      }));
+      
+      if (allOffers.length === 0) {
+        return [];
+      }
+      this.cleanAndValidateBarcodes(allOffers);
+      const offersByProduct = new Map<number, any[]>();
+      allOffers.forEach((offer: any) => {
+        if (!offersByProduct.has(offer.id)) {
+          offersByProduct.set(offer.id, []);
+        }
+        offersByProduct.get(offer.id)?.push(offer);
+      });
+      const bestOffers: any[] = [];
+      for (const [productId, offers] of offersByProduct.entries()) {
+        if (offers.length === 1) {
+          bestOffers.push(offers[0]);
+        } else {
+          const bestOffer = offers.reduce((best, current) => {
+            if (current.discount_percentage > best.discount_percentage) {
+              return current;
+            } else if (current.discount_percentage === best.discount_percentage) {
+              if (current.end_date && best.end_date) {
+                return new Date(current.end_date) < new Date(best.end_date) ? current : best;
+              }
+              return best;
+            }
+            return best;
+          }, offers[0]);
+          bestOffers.push(bestOffer);
+        }
+      }
+      return bestOffers;
+    } catch (error) {
+      console.error('Error loading offers:', error);
       return [];
     }
   }

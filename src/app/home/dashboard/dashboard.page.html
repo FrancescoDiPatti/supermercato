@@ -3,31 +3,20 @@
     
     <!-- MAP SECTION -->
     <div class="map-section" [class.expanded]="isMapExpanded" [class.auto-collapsed]="selectedSupermarket && !isMapExpanded">
-
-      <!-- Map Header -->
-      <div class="map-header" (click)="toggleMap()" (keydown.enter)="toggleMap()" (keydown.space)="toggleMap()" tabindex="0" role="button" [attr.aria-expanded]="isMapExpanded">
-        <div class="map-header-content">
-          <ion-icon name="map" class="map-icon"></ion-icon>
-          <div class="map-header-text">
-            <h3>{{ isMapExpanded ? 'Nascondi Mappa' : 'Mostra Mappa' }}</h3>
-          </div>
-        </div>
-        <ion-icon [name]="isMapExpanded ? 'chevron-up' : 'chevron-down'" class="toggle-icon">
-        </ion-icon>
+      <div class="header" (click)="toggleMap()" (keydown.enter)="toggleMap()" (keydown.space)="toggleMap()" tabindex="0" role="button" [attr.aria-expanded]="isMapExpanded">
+        <ion-icon name="map"></ion-icon>
+        <h3>{{ isMapExpanded ? 'Nascondi Mappa' : 'Mostra Mappa' }}</h3>
+        <ion-icon [name]="isMapExpanded ? 'chevron-up' : 'chevron-down'" class="toggle"></ion-icon>
       </div>
-      
-      <!-- Map Content -->
-      <div class="map-content" [class.visible]="isMapExpanded">
-        <div class="map-container" [style.display]="isMapExpanded ? 'block' : 'none'">
-          <!-- Map Loading -->
+      <div class="content" [class.visible]="isMapExpanded">
+        <div class="map" [style.display]="isMapExpanded ? 'block' : 'none'">
           <div *ngIf="!map" class="loading-container">
             <ion-spinner name="crescent"></ion-spinner>
             <ion-text>Caricamento mappa...</ion-text>
           </div>
-          <div #mapContainer id="supermarket-map"></div>
-          <!-- Geo Button -->
-          <div class="geolocation-button-container" *ngIf="map">
-            <ion-button fill="solid" size="small" color="primary" class="geolocation-btn" (click)="enableLocationAndCenter()">
+          <div #mapContainer id="map"></div>
+          <div class="geo-btn" *ngIf="map">
+            <ion-button fill="solid" size="small" color="primary" (click)="enableLocationAndCenter()">
               <ion-icon name="location" slot="icon-only"></ion-icon>
             </ion-button>
           </div>
@@ -64,7 +53,7 @@
           <!-- Supermarket Info -->
           <div class="supermarket-info">
             <h4>{{supermarket.name}}</h4>
-            <p class="supermarket-address">{{supermarket.address}}</p>
+            <p>{{supermarket.address}}</p>
             <div>
               <span *ngIf="getDistanceFromUser(supermarket)" class="distance">
                 <ion-icon name="location"></ion-icon>
@@ -92,16 +81,18 @@
           </div>
         </div>
       </div>
-    </div>    
+    </div>
+
     <!-- LOADING SPINNER -->
     <div *ngIf="isLoading" class="loading-container animate-fade-in">
       <ion-spinner name="crescent"></ion-spinner>
       <ion-text>Caricamento...</ion-text>
     </div>
+    
     <!-- MAIN CONTENT -->
-    <div *ngIf="selectedSupermarket && !isLoading && (displayProducts.length > 0 || displayOfferProducts.length > 0 || canCreateContent)" class="main-content">
+    <div class="main-content" *ngIf="selectedSupermarket && !isLoading">
       <!-- Categories Section -->
-      <div class="section categories-section" *ngIf="displayProducts.length > 0">
+      <div class="section categories-section" *ngIf="displayProducts.length > 0 || displayOfferProducts.length > 0">
         <h3>Categorie</h3>
         <div class="categories-container">
           <!-- "All Categories" Item -->
@@ -124,138 +115,288 @@
         </div>
       </div>
 
-
-      <!-- SHARED TEMPLATES -->
-       <!-- Offers Section -->
-      <ng-template #offersSection>
-        <div class="section offers-section" *ngIf="displayOfferProducts.length > 0">
+      <!-- Offers Section -->
+      <div class="section offers-section" *ngIf="displayOfferProducts.length > 0 || canCreateContent">
+        <div class="section-header">
           <h3>Prodotti in Offerta</h3>
-          <div class="products-container offers-container">
-            <ng-container *ngTemplateOutlet="offerProductCard; context: { products: displayOfferProducts }"></ng-container>
+          <a *ngIf="displayOfferProducts.length > 0" href="javascript:void(0)" (click)="navigateToOffers()" class="see-more">
+            Vedi altro
+          </a>
+        </div>
+        <div class="products-container offers-container">
+          <!-- Offer products -->
+          <ng-container *ngIf="displayOfferProducts.length > 0">
+            <div *ngFor="let product of displayOfferProducts" class="product-card offer-card">
+              <div class="product-image-container">
+                <div class="image-wrapper">
+                  <ion-img [src]="product.image_url" [alt]="product.name"></ion-img>
+                </div>
+                <ion-badge class="discount-badge" color="danger">
+                  {{((product.price - product.offer_price!) / product.price * 100).toFixed(0)}}%
+                </ion-badge>
+              </div>
+              <div class="product-info">
+                <h4>{{product.name}}</h4>
+                <p class="create-description">{{product.description}}</p>
+              </div>
+              <div class="bottom-controls">
+                <div class="price-container">
+                  <span class="current-price">€{{getDisplayPrice(product).toFixed(2)}}</span>
+                  <span *ngIf="getOriginalPrice(product)" class="original-price">
+                    €{{getOriginalPrice(product)!.toFixed(2)}}
+                  </span>
+                </div>
+                <ng-container *ngIf="!canCreateContent">
+                  <div class="quantity-block">
+                    <ng-container *ngIf="quantities[product.barcode] > 0">
+                      <ion-fab-button
+                        type="button"
+                        class="quantity-button"
+                        (mousedown)="onDecrementPress(product.barcode); $event.preventDefault()"
+                        (touchstart)="onDecrementPress(product.barcode); $event.preventDefault()"
+                        (mouseup)="onButtonRelease()"
+                        (mouseleave)="onButtonRelease()"
+                        (touchend)="onButtonRelease()"
+                        (touchcancel)="onButtonRelease()"
+                        (click)="decrementQuantity(product.barcode)">
+                        <ion-icon name="remove"></ion-icon>
+                      </ion-fab-button>
+                      <span class="quantity-label">
+                        {{ quantities[product.barcode] }}
+                      </span>
+                    </ng-container>
+                    <ion-fab-button
+                      type="button"
+                      class="quantity-button"
+                      [disabled]="quantities[product.barcode] >= availableQuantities[product.barcode]"
+                      (mousedown)="onIncrementPress(product.barcode); $event.preventDefault()"
+                      (touchstart)="onIncrementPress(product.barcode); $event.preventDefault()"
+                      (mouseup)="onButtonRelease()"
+                      (mouseleave)="onButtonRelease()"
+                      (touchend)="onButtonRelease()"
+                      (touchcancel)="onButtonRelease()"
+                      (click)="incrementQuantity(product.barcode)">
+                      <ion-icon name="add"></ion-icon>
+                    </ion-fab-button>
+                  </div>
+                </ng-container>
+              </div>
+            </div>
+          </ng-container>
+          
+          <!-- Generate Offer Button (for admin/manager) -->
+          <div *ngIf="canCreateContent && selectedSupermarket" class="product-card create-product-card" (click)="onGenerateOffer()">
+            <div class="product-image-container">
+              <div class="image-wrapper create-product-image">
+                <ion-icon name="add"></ion-icon>
+              </div>
+            </div>
+            <div class="product-info">
+              <h4>Genera Offerta</h4>
+              <p class="create-description">casuale tra 10% e 30%</p>
+            </div>
           </div>
         </div>
-      </ng-template>
-      <!-- Products Section -->
-      <ng-template #productsSection>
-        <div class="section products-section" *ngIf="displayProducts.length > 0 || canCreateContent">
-          <h3>Prodotti</h3>
-          <div class="products-container">
-            <ng-container *ngTemplateOutlet="productCard; context: { products: displayProducts }"></ng-container>
-            <ng-container *ngTemplateOutlet="addProductCard"></ng-container>
-          </div>
-        </div>
-      </ng-template>
-      <!-- Offer Product Card -->
-      <ng-template #offerProductCard let-products="products">
-        <div *ngFor="let product of products" class="product-card offer-card">
-          <div class="product-image-container">
-            <div class="image-wrapper">
-              <ion-img [src]="product.image_url" [alt]="product.name"></ion-img>
-            </div>
-            <ion-badge class="discount-badge" color="danger">
-              {{((product.price - product.offer_price!) / product.price * 100).toFixed(0)}}%
-            </ion-badge>
-          </div>
-          <div class="product-info">
-            <h4>{{product.name}}</h4>
-            <p class="create-description">{{product.description}}</p>
-            <div class="price-container">
-              <span class="current-price">€{{getDisplayPrice(product).toFixed(2)}}</span>
-              <span *ngIf="getOriginalPrice(product)" class="original-price">
-                €{{getOriginalPrice(product)!.toFixed(2)}}
-              </span>
-            </div>
-          </div>
-          <ion-fab-button size="small" class="add-button" (click)="addToCart(product)">
-            <ion-icon name="add"></ion-icon>
-          </ion-fab-button>
-        </div>
-      </ng-template>
-      <!-- Product Card -->
-      <ng-template #productCard let-products="products">
-        <div *ngFor="let product of products" class="product-card">
-          <div class="product-image-container">
-            <div class="image-wrapper">
-              <ion-img [src]="product.image_url" [alt]="product.name"></ion-img>
-            </div>
-            <ion-badge *ngIf="product.on_offer" class="discount-badge" color="danger">
-              Offerta
-            </ion-badge>
-          </div>
-          <div class="product-info">
-            <h4>{{product.name}}</h4>
-            <p class="create-description">{{product.description}}</p>
-            <div class="price-container">
-              <span class="current-price">€{{getDisplayPrice(product).toFixed(2)}}</span>
-              <span *ngIf="getOriginalPrice(product)" class="original-price">
-                €{{getOriginalPrice(product)!.toFixed(2)}}
-              </span>
-            </div>
-          </div>
-          <ion-fab-button size="small" class="add-button" (click)="addToCart(product)">
-            <ion-icon name="add"></ion-icon>
-          </ion-fab-button>
-        </div>
-      </ng-template>
-
-      <!-- Add Product Card -->
-      <ng-template #addProductCard>
-        <div *ngIf="canCreateContent && selectedSupermarket" class="product-card create-product-card" (click)="onCreateProduct()">
-          <div class="product-image-container">
-            <div class="image-wrapper create-product-image">
-              <ion-icon name="add"></ion-icon>
-            </div>
-          </div>
-          <div class="product-info">
-            <h4>Aggiungi Prodotto</h4>
-            <p class="create-description">o creane uno nuovo</p>
-          </div>
-        </div>
-      </ng-template>
-
-      <!-- DESKTOP LAYOUT -->
-      <ion-grid class="desktop-layout">
-        <ion-row>
-          <!-- LEFT -->
-          <ion-col [size]="!canCreateContent ? '8' : '12'">
-            <ng-container *ngTemplateOutlet="offersSection"></ng-container>
-            <ng-container *ngTemplateOutlet="productsSection"></ng-container>
-          </ion-col>     
-
-          <!-- RIGHT -->
-          <ion-col size="4" *ngIf="!canCreateContent">
-            <div class="section history-section">
-              <h3>Ordini Precedenti</h3>
-              <!-- Purchase History -->
-              <ion-list *ngIf="purchaseHistory.length > 0; else noHistory">
-                <ion-item *ngFor="let purchase of purchaseHistory" class="history-item">
-                  <ion-label>
-                    <h4>{{purchase.product_name}}</h4>
-                    <p>{{purchase.supermarket_name}}</p>
-                    <p class="purchase-details">
-                      Quantità: {{purchase.quantity}} - €{{purchase.total_price.toFixed(2)}}
-                    </p>
-                    <p class="purchase-date">{{purchase.purchase_date | date:'dd/MM/yyyy'}}</p>
-                  </ion-label>
-                </ion-item>
-              </ion-list>
-              
-              <!-- No History -->
-              <ng-template #noHistory>
-                <ion-text class="no-history">
-                  <p>Nessun ordine precedente</p>
-                </ion-text>
-              </ng-template>
-            </div>
-          </ion-col>
-        </ion-row>
-      </ion-grid>
-      
-      <!-- MOBILE LAYOUT -->
-      <div class="mobile-layout">
-        <ng-container *ngTemplateOutlet="offersSection"></ng-container>
-        <ng-container *ngTemplateOutlet="productsSection"></ng-container>
       </div>
+
+      <!-- Products and History Sections -->
+      <div class="products-history-container">
+        <!-- Products Section -->
+        <div class="section products-section" *ngIf="displayProducts.length > 0 || canCreateContent">
+          <div class="section-header">
+            <h3>Prodotti</h3>
+            <a href="javascript:void(0)" (click)="navigateToProducts()" class="see-more">
+              Vedi altro
+            </a>
+          </div>
+          <div class="products-container">
+            <div *ngFor="let product of displayProducts" class="product-card">
+              <div class="product-image-container">
+                <div class="image-wrapper">
+                  <ion-img [src]="product.image_url" [alt]="product.name"></ion-img>
+                </div>
+              </div>
+              <div class="product-info">
+                <h4>{{product.name}}</h4>
+                <p class="create-description">{{product.description}}</p>
+              </div>
+              <div class="bottom-controls">
+                <div class="price-container">
+                  <span class="current-price">€{{getDisplayPrice(product).toFixed(2)}}</span>
+                  <span *ngIf="getOriginalPrice(product)" class="original-price">
+                    €{{getOriginalPrice(product)!.toFixed(2)}}
+                  </span>
+                </div>
+                <ng-container *ngIf="!canCreateContent">
+                  <div class="quantity-block">
+                    <ng-container *ngIf="quantities[product.barcode] > 0">
+                      <ion-fab-button
+                        type="button"
+                        class="quantity-button"
+                        (mousedown)="onDecrementPress(product.barcode); $event.preventDefault()"
+                        (touchstart)="onDecrementPress(product.barcode); $event.preventDefault()"
+                        (mouseup)="onButtonRelease()"
+                        (mouseleave)="onButtonRelease()"
+                        (touchend)="onButtonRelease()"
+                        (touchcancel)="onButtonRelease()"
+                        (click)="decrementQuantity(product.barcode)">
+                        <ion-icon name="remove"></ion-icon>
+                      </ion-fab-button>
+                      <span class="quantity-label">
+                        {{ quantities[product.barcode] }}
+                      </span>
+                    </ng-container>
+                    <ion-fab-button
+                      type="button"
+                      class="quantity-button"
+                      [disabled]="quantities[product.barcode] >= availableQuantities[product.barcode]"
+                      (mousedown)="onIncrementPress(product.barcode); $event.preventDefault()"
+                      (touchstart)="onIncrementPress(product.barcode); $event.preventDefault()"
+                      (mouseup)="onButtonRelease()"
+                      (mouseleave)="onButtonRelease()"
+                      (touchend)="onButtonRelease()"
+                      (touchcancel)="onButtonRelease()"
+                      (click)="incrementQuantity(product.barcode)">
+                      <ion-icon name="add"></ion-icon>
+                    </ion-fab-button>
+                  </div>
+                </ng-container>
+              </div>
+            </div>
+            <div *ngIf="canCreateContent && selectedSupermarket" class="product-card create-product-card" (click)="onCreateProduct()">
+              <div class="product-image-container">
+                <div class="image-wrapper create-product-image">
+                  <ion-icon name="add"></ion-icon>
+                </div>
+              </div>
+              <div class="product-info">
+                <h4>Aggiungi Prodotto</h4>
+                <p class="create-description">o creane uno nuovo</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- History Section -->
+        <div class="section history-section" *ngIf="!canCreateContent && ((products && products.length > 0) || (offerProducts && offerProducts.length > 0))">
+          <div class="history-header">
+            <div class="header-content">
+              <h3 *ngIf="isHistoryView">Ordini Precedenti</h3>
+              <h3 *ngIf="!isHistoryView">Il tuo Carrello</h3>
+            </div>
+            <div>
+              <ion-button fill="clear" size="small" (click)="toggleHistoryView()">
+                <ion-icon name="receipt-outline"></ion-icon>
+              </ion-button>
+              <ion-button fill="clear" size="small" (click)="toggleCartView()">
+                <ion-icon name="cart-outline"></ion-icon>
+              </ion-button>
+            </div>
+          </div>
+          <!-- History/Cart Content -->
+          <div class="history-list-container">
+            <div class="history-list" *ngIf="viewContent.length > 0; else noContent">
+              <div *ngFor="let item of viewContent" class="history-item" [class.unavailable]="isHistoryView && !isProductAvailable(item)">
+                <div class="product-image-container">
+                  <div class="image-wrapper">
+                    <ion-img [src]="getProductImage(item.product_barcode || item.barcode)" [alt]="item.product_name || item.name" (ionError)="handleImageError($event, item.product_name || item.name)">
+                    </ion-img>
+                  </div>
+                </div>
+                <div class="product-info">
+                  <h4>{{isHistoryView ? item.product_name : item.name}}</h4>
+                  <p *ngIf="isHistoryView">Quantità: {{item.quantity}}</p>
+                  <p *ngIf="!isHistoryView" class="product-description">{{item.description || 'Nessuna descrizione disponibile'}}</p>
+                </div>
+                <div class="price-quantity-container">
+                  <div class="price-container">
+                    <span class="current-price">€{{isHistoryView ? item.total_price.toFixed(2) : (item.price * item.quantity).toFixed(2)}}</span>
+                    <p *ngIf="isHistoryView" class="purchase-date">{{ formatPurchaseDate(item.purchase_date) }}</p>
+                  </div>
+                  <ng-container *ngIf="!isHistoryView || isProductAvailable(item)">
+                    <ng-container *ngIf="(quantities[item.product_barcode || item.barcode] || 0) > 0; else addButton">
+                      <div class="quantity-block">
+                        <ion-fab-button
+                          type="button"
+                          class="quantity-button"
+                          (mousedown)="onDecrementPress(item.product_barcode || item.barcode); $event.preventDefault()"
+                          (touchstart)="onDecrementPress(item.product_barcode || item.barcode); $event.preventDefault()"
+                          (mouseup)="onButtonRelease()"
+                          (mouseleave)="onButtonRelease()"
+                          (touchend)="onButtonRelease()"
+                          (touchcancel)="onButtonRelease()"
+                          (click)="decrementQuantity(item.product_barcode || item.barcode); $event.stopPropagation()">
+                          <ion-icon name="remove"></ion-icon>
+                        </ion-fab-button>
+                        <span class="quantity-label">
+                          {{ quantities[item.product_barcode || item.barcode] || 0 }}
+                        </span>
+                        <ion-fab-button
+                          type="button"
+                          class="quantity-button"
+                          [disabled]="quantities[item.product_barcode || item.barcode] >= availableQuantities[item.product_barcode || item.barcode]"
+                          (mousedown)="onIncrementPress(item.product_barcode || item.barcode); $event.preventDefault()"
+                          (touchstart)="onIncrementPress(item.product_barcode || item.barcode); $event.preventDefault()"
+                          (mouseup)="onButtonRelease()"
+                          (mouseleave)="onButtonRelease()"
+                          (touchend)="onButtonRelease()"
+                          (touchcancel)="onButtonRelease()"
+                          (click)="incrementQuantity(item.product_barcode || item.barcode); $event.stopPropagation()">
+                          <ion-icon name="add"></ion-icon>
+                        </ion-fab-button>
+                      </div>
+                    </ng-container>
+                    <ng-template #addButton>
+                      <ion-button 
+                        fill="solid" 
+                        [color]="isHistoryView && !isProductAvailable(item) ? 'medium' : 'primary'" 
+                        size="small"
+                        [disabled]="isHistoryView && !isProductAvailable(item)"
+                        (mousedown)="$event.preventDefault()"
+                        (touchstart)="$event.preventDefault(); onButtonRelease()"
+                        (click)="onButtonRelease(); incrementQuantity(item.product_barcode || item.barcode); $event.stopPropagation()">
+                        {{ isHistoryView && !isProductAvailable(item) ? 'Non disponibile' : 'Aggiungi' }}
+                      </ion-button>
+                    </ng-template>
+                  </ng-container>
+                  <div *ngIf="isHistoryView && !isProductAvailable(item) && (quantities[item.product_barcode || item.barcode] || 0) === 0">
+                    <ion-text color="medium">Non disponibile</ion-text>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Summary Row -->
+              <div class="summary-row" *ngIf="viewContent.length > 0">
+                <ion-button *ngIf="isHistoryView" fill="clear" [routerLink]="['/home/ordini']" class="see-more-button">
+                  Vedi tutti gli ordini
+                  <ion-icon slot="end" name="arrow-forward"></ion-icon>
+                </ion-button>
+                
+                <div *ngIf="!isHistoryView" class="cart-summary">
+                  <ion-button fill="solid" [routerLink]="['/home/carrello']" class="cart-button">
+                    Vai al Carrello
+                    <ion-icon slot="end" name="cart"></ion-icon>
+                  </ion-button>
+                  <div class="total-price">
+                    <span>Totale:</span>
+                    <strong>€{{getCartTotal() | number:'1.2-2'}}</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- No Content -->
+            <ng-template #noContent>
+              <ion-text class="no-history">
+                <p *ngIf="isHistoryView">Nessun ordine precedente</p>
+                <p *ngIf="!isHistoryView">Il tuo carrello è vuoto</p>
+              </ion-text>
+            </ng-template>
+          </div>
+        </div>
+      </div>
+      
+
     </div>
     <!-- EMPTY -->
     <div *ngIf="!selectedSupermarket && !isLoading" class="empty-state">
@@ -269,6 +410,31 @@
       <h3>Nessun prodotto presente</h3>
       <p>Questo supermercato non ha prodotti disponibili</p>
     </div>
-    
+  </div>
+  
+  <!-- Custom Alert for Offer Generation -->
+  <div class="custom-alert-backdrop" [class.show]="showCustomAlert" (click)="closeAlert()">
+    <div class="custom-alert" [class.show]="showCustomAlert" [class.success]="alertType === 'success'" [class.error]="alertType === 'error'" (click)="$event.stopPropagation()">
+      <div class="alert-header">
+        <div class="alert-icon-container">
+          <ion-icon [name]="alertIcon" [color]="alertType === 'success' ? 'success' : 'danger'"></ion-icon>
+        </div>
+        <ion-button fill="clear" size="small" class="close-btn" (click)="closeAlert()">
+          <ion-icon name="close"></ion-icon>
+        </ion-button>
+      </div>
+      <div class="alert-content">
+        <h3 class="alert-title">{{ alertTitle }}</h3>
+        <p class="alert-message">{{ alertMessage }}</p>
+      </div>
+      <div class="alert-actions">
+        <ion-button 
+          expand="block" 
+          [color]="alertType === 'success' ? 'primary' : 'danger'"
+          (click)="closeAlert()">
+          OK
+        </ion-button>
+      </div>
+    </div>
   </div>
 </ion-content>
