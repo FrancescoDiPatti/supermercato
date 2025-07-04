@@ -20,10 +20,9 @@ import {
   IonBadge,
   MenuController
 } from '@ionic/angular/standalone';
-import { HomeService } from './home.service';
-import { SearchResult, RecentSearch } from '../services/search/search.service';
+import { SearchService } from '../services/search/search.service';
+import { HomeService, Supermarket, SearchResult, RecentSearch } from '../services/home/home.service';
 import { AuthService } from '../auth/auth.service';
-import { CarrelloService } from '../services/carrello/carrello.service';
 import { addIcons } from 'ionicons';
 import {
   storefrontOutline,
@@ -100,7 +99,7 @@ export class HomePage implements OnInit, OnDestroy {
     private router: Router,
     private elementRef: ElementRef,
     private menuController: MenuController,
-    private carrelloService: CarrelloService
+    private searchService: SearchService
   ) {    addIcons({ 
       storefrontOutline, 
       cubeOutline, 
@@ -132,7 +131,7 @@ export class HomePage implements OnInit, OnDestroy {
     
     // Subscribe to selected supermarket changes
     this.subscription.add(
-      this.homeService.selectedSupermarket$.subscribe(supermarket => {
+      this.homeService.supermarkets.selectedSupermarket$.subscribe((supermarket: Supermarket | null) => {
         this.selectedSupermarket = supermarket;
       })
     );
@@ -144,11 +143,11 @@ export class HomePage implements OnInit, OnDestroy {
   }
 
   getSupermarketImage(name: string): string {
-    return this.homeService.getStoreImage(name);
+    return this.homeService.supermarkets.getStoreImage(name);
   }
 
   clearSelectedSupermarket(): void {
-    this.homeService.clearSelectedSupermarket();
+    this.homeService.supermarkets.clearSelectedSupermarket();
   }
 
   // Debounce search
@@ -170,7 +169,7 @@ export class HomePage implements OnInit, OnDestroy {
           this.loadRecent();
           this.menuController.close();
         } else {
-          this.homeService.clearSelectedSupermarket();
+          this.homeService.supermarkets.clearSelectedSupermarket();
           this.resetSearch();
           this.recentSearches = [];
           this.menuController.close();
@@ -179,8 +178,8 @@ export class HomePage implements OnInit, OnDestroy {
     );
   }  private setupCartListener() {    
     this.subscription.add(
-      this.carrelloService.cartItems$.subscribe(items => {
-        this.updateCartCount();
+      this.homeService.cart.cartItems$.subscribe((items: any) => {
+        this.cartItemCount = items.length;
       })
     );
   }
@@ -258,15 +257,15 @@ export class HomePage implements OnInit, OnDestroy {
   // Search supermarkets using the search service (priority near)
   private async searchSupermarkets(query: string): Promise<SearchResult[]> {
     try {
-      const supermarkets = await this.homeService.getSupermarketsForCurrentUser();
+      const supermarkets = await this.homeService.supermarkets.getSupermarketsForCurrentUser();
       if (supermarkets.length === 0) {
         return [];
       }
       let userPosition: { lat: number; lng: number } | null = null;
       try {
-        userPosition = await this.homeService.getCurrentPosition();
+        userPosition = await this.homeService.position.getCurrentPosition();
       } catch (e) {}
-      const searchResults = this.homeService.search(query, supermarkets, userPosition || undefined);
+      const searchResults = this.searchService.search(query, supermarkets, userPosition || undefined);
       return searchResults.map((result: SearchResult) => ({
         ...result,
         icon: 'storefront-outline'
@@ -287,7 +286,7 @@ export class HomePage implements OnInit, OnDestroy {
       // Get products from current supermarket through home service
       const result = await this.homeService.loadSupermarketDataWithoutImages(
         this.selectedSupermarket.id, 
-        this.homeService.createDataState(), 
+        this.homeService.ui.createDataState(), 
         true, // load products
         true  // load offers
       );
@@ -323,7 +322,7 @@ export class HomePage implements OnInit, OnDestroy {
       // Get offers from current supermarket through home service
       const result = await this.homeService.loadSupermarketDataWithoutImages(
         this.selectedSupermarket.id, 
-        this.homeService.createDataState(), 
+        this.homeService.ui.createDataState(), 
         false, // don't load regular products
         true   // load offers
       );
@@ -426,7 +425,7 @@ export class HomePage implements OnInit, OnDestroy {
 
   // Select and center supermarket
   private selectSupermarketFromSearch(supermarket: any): void {
-    this.homeService.setSelectedSupermarket(supermarket);
+    this.homeService.supermarkets.setSelectedSupermarket(supermarket);
     window.dispatchEvent(new CustomEvent('supermarketSelectedFromSearch', {
       detail: { supermarket }
     }));
@@ -513,7 +512,6 @@ export class HomePage implements OnInit, OnDestroy {
   private loadHome() {
     this.homeData = null;
     this.errorMsg = '';
-    this.authService.clearHomeData();    
     this.homeService.getHome().subscribe({
       next: (res) => {
         this.homeData = res.data;
@@ -605,19 +603,19 @@ export class HomePage implements OnInit, OnDestroy {
   // User role management
   public get isAdmin(): boolean {
     const user = this.authService.getUser();
-    return HomeService.isAdmin(user);
+    return this.homeService.isUserAdmin(user);
   }
   public get isManager(): boolean {
     const user = this.authService.getUser();
-    return HomeService.isManager(user);
+    return this.homeService.isUserManager(user);
   }  public get isCustomer(): boolean {
     const user = this.authService.getUser();
-    return HomeService.isCustomer(user);
+    return this.homeService.isUserCustomer(user);
   }
 
   public get isAdminOrManager(): boolean {
     const user = this.authService.getUser();
-    return HomeService.isAdmin(user) || HomeService.isManager(user);
+    return this.homeService.isUserAdminOrManager(user);
   }
 
   // Selected supermarket visibility
@@ -634,7 +632,7 @@ export class HomePage implements OnInit, OnDestroy {
   logout() {
     this.clearSearch();
     this.recentSearches = [];
-    this.homeService.clearSelectedSupermarket();
+    this.homeService.supermarkets.clearSelectedSupermarket();
     this.menuController.close();
     this.authService.logout();
     this.router.navigate(['/login']);
@@ -660,6 +658,6 @@ export class HomePage implements OnInit, OnDestroy {
 
   // Update cart count
   private updateCartCount(): void {
-    this.cartItemCount = this.carrelloService.getCartItemsCount();
+    this.cartItemCount = this.homeService.cart.getCartItemsCount();
   }
 }

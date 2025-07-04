@@ -9,7 +9,7 @@ import {
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { storefront, save, arrowBack, person, checkmarkCircle, closeCircle, close } from 'ionicons/icons';
-import { HomeService, User } from '../../home.service';
+import { HomeService, User } from '../../../services/home/home.service';
 import { AuthService } from '../../../auth/auth.service';
 import { debounceTime, Subject, takeUntil } from 'rxjs';
 
@@ -111,7 +111,7 @@ export class CreaSupermercatoPage implements OnInit, OnDestroy {
     if (!this.isAdmin) return;
     
     this.loadingManagers = true;
-    this.homeService.getManagers()
+    this.homeService.supermarkets.getManagers()
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (managers: User[]) => {
@@ -190,7 +190,7 @@ export class CreaSupermercatoPage implements OnInit, OnDestroy {
     this.isSearching = true;
     this.showAddressResults = true;
     try {
-      this.addressSuggestions = await this.homeService.fetchAddressSuggestions(address);
+      this.addressSuggestions = await this.homeService.position.fetchAddressSuggestions(address);
     } catch (error) {
       console.error('Errore ricerca indirizzi:', error);
       this.clearAddressSuggestions();
@@ -200,7 +200,7 @@ export class CreaSupermercatoPage implements OnInit, OnDestroy {
   }
 
   selectSuggestion(suggestion: any): void {
-    this.supermarket.address = this.homeService.formatAddress(suggestion, this.supermarket.address);
+    this.supermarket.address = this.homeService.position.formatAddress(suggestion, this.supermarket.address);
     this.selectedLat = suggestion.lat;
     this.selectedLon = suggestion.lon;
     this.isAddressSelected = true;
@@ -274,7 +274,7 @@ export class CreaSupermercatoPage implements OnInit, OnDestroy {
   }
 
   private async submitSupermarket(): Promise<any> {
-    return await this.homeService.addSupermarket({
+    return await this.homeService.supermarkets.addSupermarket({
       name: this.supermarket.name,
       address: this.supermarket.address,
       latitude: this.selectedLat,

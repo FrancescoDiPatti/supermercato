@@ -14,9 +14,7 @@ import {
   IonItemOption,
   IonBadge
 } from '@ionic/angular/standalone';
-import { UserService } from '../../services/user/user.service';
-import { CarrelloService, CartItem, PurchaseResponse } from '../../services/carrello/carrello.service';
-import { HomeService } from '../home.service';
+import { HomeService } from '../../services/home/home.service';
 import { environment } from '../../../environments/environment';
 import { Subscription } from 'rxjs';
 import { addIcons } from 'ionicons';
@@ -64,8 +62,8 @@ import {
   ]
 })
 export class CarrelloPage implements OnInit, OnDestroy {
-  cartItems: CartItem[] = [];
-  groupedItems: Array<{key: string, value: CartItem[], name: string, id: number}> = [];
+  cartItems: any[] = [];
+  groupedItems: Array<{key: string, value: any[], name: string, id: number}> = [];
   quantities: { [barcode: string]: number } = {};
   availableQuantities: { [barcode: string]: number } = {};
   private cartSubscription?: Subscription;
@@ -86,8 +84,6 @@ export class CarrelloPage implements OnInit, OnDestroy {
   private imageCache: {[key: string]: string} = {};
 
   constructor(
-    private userService: UserService,
-    private carrelloService: CarrelloService,
     private homeService: HomeService,
     private router: Router
   ) {
@@ -116,22 +112,22 @@ export class CarrelloPage implements OnInit, OnDestroy {
   }
 
   public get isAdmin(): boolean {
-    return this.userService.isUserAdmin();
+    return this.homeService.isUserAdmin();
   }
 
   public get isManager(): boolean {
-    return this.userService.isUserManager();
+    return this.homeService.isUserManager();
   }
 
   public get isCustomer(): boolean {
-    const user = this.userService.getCurrentUser();
+    const user = this.homeService.getCurrentUser();
     return user?.role === 'customer';
   }
 
   ngOnInit() {
     // Non è più necessario inizializzare i dati di test - ora gestito da UiService
     
-    this.cartSubscription = this.carrelloService.cartItems$.subscribe(items => {
+    this.cartSubscription = this.homeService.cart.cartItems$.subscribe(items => {
       this.cartItems = items || [];
       this.loadQuantitiesFromCart();
       this.loadAvailableQuantities();
@@ -154,7 +150,7 @@ export class CarrelloPage implements OnInit, OnDestroy {
     const supermarketIds = [...new Set(this.cartItems.map(item => item.supermarketId))];
     
     supermarketIds.forEach(supermarketId => {
-      const supermarketQuantities = this.homeService.getAvailableQuantities(supermarketId);
+      const supermarketQuantities = this.homeService.ui.getAvailableQuantities(supermarketId);
       Object.assign(this.availableQuantities, supermarketQuantities);
     });
   }
@@ -165,7 +161,7 @@ export class CarrelloPage implements OnInit, OnDestroy {
       return;
     }
     
-    const grouped: { [key: string]: CartItem[] } = {};
+    const grouped: { [key: string]: any[] } = {};
     this.cartItems.forEach(item => {
       if (item && item.supermarketId && item.supermarketName) {
         const key = `${item.supermarketId}-${item.supermarketName}`;
@@ -187,7 +183,7 @@ export class CarrelloPage implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     // Pulisce i timer attivi prima di distruggere il componente
-    this.homeService.clearQuantityTimer();
+    this.homeService.ui.clearTimer();
     
     if (this.cartSubscription) {
       this.cartSubscription.unsubscribe();
@@ -204,20 +200,20 @@ export class CarrelloPage implements OnInit, OnDestroy {
   decrementQuantity(barcode: string) { this.updateQuantity(barcode, -1); }
   
   onIncrementPress(barcode: string) { 
-    this.homeService.startQuantityTimer(barcode, true, this.updateQuantity.bind(this));
+    this.homeService.ui.startTimer(barcode, true, this.updateQuantity.bind(this));
   }
   
   onDecrementPress(barcode: string) { 
-    this.homeService.startQuantityTimer(barcode, false, this.updateQuantity.bind(this));
+    this.homeService.ui.startTimer(barcode, false, this.updateQuantity.bind(this));
   }
   
   onButtonRelease() { 
-    this.homeService.clearQuantityTimer();
+    this.homeService.ui.clearTimer();
   }
 
   private updateQuantity(barcode: string, amount: number) {
     // Usa il sistema avanzato di gestione quantità con moltiplicatori e controllo disponibilità
-    const result = this.homeService.updateQuantity(this.quantities, barcode, amount, this.availableQuantities);
+    const result = this.homeService.ui.updateQuantity(this.quantities, barcode, amount, this.availableQuantities);
     this.quantities = result.quantities;
     
     // Non mostrare più alert quando si raggiunge il limite - il pulsante è disabilitato
@@ -241,11 +237,11 @@ export class CarrelloPage implements OnInit, OnDestroy {
       
       // Aggiorna il carrello con la nuova quantità
       const newQuantity = result.quantities[barcode] || 0;
-      this.carrelloService.updateCartItem(product, supermarket, newQuantity);
+      this.homeService.cart.updateCartItem(product, supermarket, newQuantity);
     }
   }
   
-  private findCartItemByBarcode(barcode: string): CartItem | undefined {
+  private findCartItemByBarcode(barcode: string): any | undefined {
     return this.cartItems.find(item => item.barcode === barcode);
   }
 
@@ -263,7 +259,7 @@ export class CarrelloPage implements OnInit, OnDestroy {
         text: 'Rimuovi',
         role: 'destructive',
         handler: () => {
-          this.carrelloService.removeFromCart(item.id, item.supermarketId);
+          this.homeService.cart.removeFromCart(item.id, item.supermarketId);
           this.showToast('Articolo rimosso dal carrello');
         }
       }
@@ -284,7 +280,7 @@ export class CarrelloPage implements OnInit, OnDestroy {
         text: 'Svuota',
         role: 'destructive',
         handler: () => {
-          this.carrelloService.clearCart();
+          this.homeService.cart.clearCart();
           this.showToast('Carrello svuotato');
         }
       }
@@ -293,11 +289,11 @@ export class CarrelloPage implements OnInit, OnDestroy {
   }
 
   getCartTotal(): number {
-    return this.carrelloService.getCartTotal();
+    return this.homeService.cart.getCartTotal();
   }
 
   getCartItemsCount(): number {
-    return this.carrelloService.getCartItemsCount();
+    return this.homeService.cart.getCartItemsCount();
   }
 
   getTotalSavings(): number {
@@ -331,8 +327,8 @@ export class CarrelloPage implements OnInit, OnDestroy {
     this.showAlert('success', 'Elaborazione in corso...', 'Sto processando il tuo ordine, attendere...');
 
     // Effettua gli acquisti
-    this.carrelloService.purchaseCart(itemsWithQuantity, this.quantities).subscribe({
-      next: (responses: PurchaseResponse[]) => {
+    this.homeService.cart.purchaseCart(itemsWithQuantity, this.quantities).subscribe({
+      next: (responses: any[]) => {
         this.isProcessingPayment = false;
         this.handlePurchaseSuccess(responses);
       },
@@ -343,7 +339,7 @@ export class CarrelloPage implements OnInit, OnDestroy {
     });
   }
 
-  private handlePurchaseSuccess(responses: PurchaseResponse[]): void {
+  private handlePurchaseSuccess(responses: any[]): void {
     const totalQuantity = responses.reduce((sum, response) => sum + response.data.quantity, 0);
     const totalAmount = responses.reduce((sum, response) => sum + response.data.total_price, 0);
 
@@ -351,14 +347,14 @@ export class CarrelloPage implements OnInit, OnDestroy {
     responses.forEach(response => {
       const purchasedItem = this.cartItems.find(item => item.id === response.data.product_id);
       if (purchasedItem) {
-        this.homeService.reduceInventoryQuantity(
+        this.homeService.ui.reduceQuantity(
           purchasedItem.barcode, 
           purchasedItem.supermarketId, 
           response.data.quantity
         );
       }
     });
-    this.carrelloService.clearCart();
+    this.homeService.cart.clearCart();
     this.showAlert(
       'success', 
       'Acquisto completato!', 
@@ -406,15 +402,15 @@ export class CarrelloPage implements OnInit, OnDestroy {
     this.isToastOpen = true;
   }
 
-  trackByGroup(index: number, group: {key: string, value: CartItem[], name: string, id: number}): string {
+  trackByGroup(index: number, group: {key: string, value: any[], name: string, id: number}): string {
     return group ? group.key : index.toString();
   }
 
-  trackByItem(index: number, item: CartItem): string {
+  trackByItem(index: number, item: any): string {
     return item ? `${item.id}-${item.supermarketId}` : index.toString();
   }
 
-  getSupermercatoTotal(items: CartItem[]): number {
+  getSupermercatoTotal(items: any[]): number {
     if (!items || items.length === 0) {
       return 0;
     }

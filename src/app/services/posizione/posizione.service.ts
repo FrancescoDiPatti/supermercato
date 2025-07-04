@@ -1,5 +1,38 @@
 import { Injectable } from '@angular/core';
 
+// Exported interfaces
+
+export interface Position {
+  lat: number;
+  lng: number;
+}
+
+export interface AddressDetails {
+  road?: string;
+  house_number?: string;
+  county?: string;
+  state_code?: string;
+  state?: string;
+  country_code?: string;
+  display_name?: string;
+}
+
+export interface AddressSuggestion {
+  lat: string;
+  lon: string;
+  display_name: string;
+  address?: AddressDetails;
+}
+
+// Constants
+
+const EARTH_RADIUS_KM = 6371;
+const MIN_ADDRESS_LENGTH = 3;
+const GEOLOCATION_TIMEOUT = 10000;
+const GEOLOCATION_MAX_AGE = 300000;
+const NOMINATIM_LIMIT = 5;
+const NOMINATIM_BASE_URL = 'https://nominatim.openstreetmap.org/search';
+
 @Injectable({
   providedIn: 'root'
 })
@@ -7,11 +40,10 @@ export class PosizioneService {
 
   constructor() { }
 
-  // === GEOGRAPHIC UTILITIES ===
-  
-  // Haversine formula for distance calculation
+  // PUBLIC METHODS
+
+  // Calculate distance (Haversine formula)
   calcDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-    const R = 6371;
     const dLat = this.deg2rad(lat2 - lat1);
     const dLon = this.deg2rad(lon2 - lon1);
     const a = 
@@ -19,15 +51,10 @@ export class PosizioneService {
       Math.cos(this.deg2rad(lat1)) * Math.cos(this.deg2rad(lat2)) * 
       Math.sin(dLon/2) * Math.sin(dLon/2); 
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
-    return R * c;
+    return EARTH_RADIUS_KM * c;
   }
 
-  // Convert degrees to radians
-  deg2rad(deg: number): number {
-    return deg * (Math.PI/180);
-  }
-
-  // Format meters or kilometers
+  // Format distance
   formatDistance(distance: number): string {
     if (distance < 1) {
       return `${Math.round(distance * 1000)} m`;
@@ -35,9 +62,8 @@ export class PosizioneService {
     return `${distance.toFixed(1)} km`;
   }
 
-  // === DISTANCE UTILITIES (ENHANCED) ===
-  
-  getDistanceFromUser(userPosition: { lat: number; lng: number } | null, latitude: number, longitude: number): string | null {
+  // Calculate distance from user
+  getDistanceFromUser(userPosition: Position | null, latitude: number, longitude: number): string | null {
     if (!userPosition) return null;
     
     const distance = this.calcDistance(
@@ -50,96 +76,150 @@ export class PosizioneService {
     return this.formatDistance(distance);
   }
 
-  // === GEOLOCATION UTILITIES ===
-  
-  async getCurrentPosition(): Promise<{ lat: number; lng: number } | null> {
-    try {
-      if ('geolocation' in navigator) {
-        return new Promise((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(
-            (position) => {
-              resolve({
-                lat: position.coords.latitude,
-                lng: position.coords.longitude
-              });
-            },
-            (error) => {
-              console.warn('Could not get location:', error);
-              resolve(null);
-            },
-            {
-              enableHighAccuracy: true,
-              timeout: 10000,
-              maximumAge: 300000 // 5 minutes cache
-            }
-          );
-        });
-      }
+  // Get current user position
+  async getCurrentPosition(): Promise<Position | null> {
+    if (!this.isGeolocationSupported()) {
+      console.warn('Geolocation not supported');
       return null;
+    }
+
+    try {
+      return await this.requestGeolocation();
     } catch (error) {
-      console.warn('Geolocation not supported:', error);
+      console.warn('Could not get location:', error);
       return null;
     }
   }
 
-  // === ADDRESS FORMATTING UTILITIES ===
-  
-  formatAddress(suggestion: any, inputAddress: string): string {
-    let formatted = '';
+  // Format address
+  formatAddress(suggestion: AddressSuggestion, inputAddress: string): string {
     const address = suggestion.address || {};
-    const isItaly = address.country_code && address.country_code.toUpperCase() === 'IT';
-    
-    if (!isItaly && address.country_code) {
-      formatted += `(${address.country_code.toUpperCase()}) `;
+    let formatted = '';
+
+    if (this.shouldAddCountryPrefix(address)) {
+      formatted += `(${address.country_code!.toUpperCase()}) `;
     }
-    
+
     if (address.road) {
       formatted += address.road;
     }
-    
-    let houseNumber = address.house_number;
-    if (!houseNumber) {
-      const match = inputAddress.match(/\b(\d{1,5}[a-zA-Z]?)\b(?!.*\b\d{1,5}[a-zA-Z]?\b)/);
-      if (match) {
-        houseNumber = match[1];
-      }
-    }
-    
+
+    const houseNumber = this.extractHouseNumber(address, inputAddress);
     if (houseNumber) {
-      formatted += ', ' + houseNumber;
+      formatted += `, ${houseNumber}`;
     }
-    
-    let prov = '';
-    if (address.county) {
-      prov = address.county.substring(0,2).toUpperCase();
-    } else if (address.state_code) {
-      prov = address.state_code.substring(0,2).toUpperCase();
-    } else if (address.state) {
-      prov = address.state.substring(0,2).toUpperCase();
-    } else if (address.display_name) {
-      const match = address.display_name.match(/\((\w{2})\)/);
-      if (match) prov = match[1].toUpperCase();
-    }
-    
-    if (prov) {
-      formatted += ` (${prov})`;
+
+    const province = this.extractProvince(address);
+    if (province) {
+      formatted += ` (${province})`;
     }
     
     return formatted.trim();
   }
 
-  async fetchAddressSuggestions(address: string): Promise<any[]> {
-    if (!address || address.length < 3) {
+  // Fetch address suggestions
+  async fetchAddressSuggestions(address: string): Promise<AddressSuggestion[]> {
+    if (!address || address.length < MIN_ADDRESS_LENGTH) {
       return [];
+    }
+
+    try {
+      const url = this.buildNominatimUrl(address);
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching address suggestions:', error);
+      return [];
+    }
+  }
+
+  // PRIVATE METHODS
+
+  // Convert degrees to radiants
+  private deg2rad(deg: number): number {
+    return deg * (Math.PI/180);
+  }
+
+  // Check if geolocation is supported
+  private isGeolocationSupported(): boolean {
+    return 'geolocation' in navigator;
+  }
+
+  // Request position from browser
+  private requestGeolocation(): Promise<Position> {
+    return new Promise((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          resolve({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          });
+        },
+        (error) => {
+          reject(error);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: GEOLOCATION_TIMEOUT,
+          maximumAge: GEOLOCATION_MAX_AGE
+        }
+      );
+    });
+  }
+
+  // Check if country prefix
+  private shouldAddCountryPrefix(address: AddressDetails): boolean {
+    return !!(address.country_code && address.country_code.toUpperCase() !== 'IT');
+  }
+
+  // Extract house number from addewss
+  private extractHouseNumber(address: AddressDetails, inputAddress: string): string | null {
+    if (address.house_number) {
+      return address.house_number;
+    }
+
+    const match = inputAddress.match(/\b(\d{1,5}[a-zA-Z]?)\b(?!.*\b\d{1,5}[a-zA-Z]?\b)/);
+    return match ? match[1] : null;
+  }
+
+  // Extract province from address
+  private extractProvince(address: AddressDetails): string {
+    if (address.county) {
+      return address.county.substring(0, 2).toUpperCase();
     }
     
-    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&addressdetails=1&limit=5`;
-    try {
-      const res = await fetch(url);
-      const data = await res.json();
-      return data;
-    } catch (e) {
-      return [];
+    if (address.state_code) {
+      return address.state_code.substring(0, 2).toUpperCase();
     }
+    
+    if (address.state) {
+      return address.state.substring(0, 2).toUpperCase();
+    }
+
+    if (address.display_name) {
+      const match = address.display_name.match(/\((\w{2})\)/);
+      if (match) {
+        return match[1].toUpperCase();
+      }
+    }
+    
+    return '';
+  }
+
+  // Nonminatim URL builder
+  private buildNominatimUrl(address: string): string {
+    const params = new URLSearchParams({
+      format: 'json',
+      q: address,
+      addressdetails: '1',
+      limit: NOMINATIM_LIMIT.toString()
+    });
+    
+    return `${NOMINATIM_BASE_URL}?${params.toString()}`;
   }
 }

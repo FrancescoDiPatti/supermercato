@@ -3,7 +3,7 @@
   <div class="main-container">
     <!-- Categories Section -->
     <div class="section categories-section" *ngIf="displayOfferProducts.length > 0">
-      <h3>🏷️ Categorie Offerte</h3>
+      <h3>Categorie</h3>
       <div class="categories-container">
         <!-- "All Categories" Item -->
         <div class="category-item" [class.selected]="selectedCategory === ''" (click)="onCategorySelect('')">
@@ -28,7 +28,7 @@
     <!-- Offers Section -->
     <div class="section offers-section">
       <div *ngIf="selectedSupermarket">
-        <h3>🔥 Offerte Speciali</h3>
+        <h3>Prodotti in Offerta</h3>
       </div>
       
       <div class="products-container" *ngIf="displayOfferProducts.length > 0 || (canCreateContent && selectedSupermarket)">

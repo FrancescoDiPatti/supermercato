@@ -169,11 +169,4 @@ export class CarrelloService {
 
     return forkJoin(purchaseRequests);
   }
-
-  /**
-   * Ottiene la cronologia degli acquisti
-   */
-  getPurchaseHistory(): Observable<any> {
-    return this.http.get(ApiConfig.ENDPOINTS.PURCHASES, this.httpOptions);
-  }
 }

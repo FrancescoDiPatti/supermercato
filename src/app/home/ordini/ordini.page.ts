@@ -10,10 +10,7 @@ import {
   IonSpinner
 } from '@ionic/angular/standalone';
 import { AuthService } from '../../auth/auth.service';
-import { HomeService } from '../home.service';
-import { CarrelloService } from '../../services/carrello/carrello.service';
-import { ProdottiService } from '../../services/prodotti/prodotti.service';
-import { UiService } from '../../services/ui/ui.service';
+import { HomeService } from '../../services/home/home.service';
 import { Subscription } from 'rxjs';
 import { addIcons } from 'ionicons';
 import { 
@@ -70,9 +67,6 @@ export class OrdiniPage implements OnInit, OnDestroy {
   constructor(
     private authService: AuthService,
     private homeService: HomeService,
-    private carrelloService: CarrelloService,
-    private prodottiService: ProdottiService,
-    private uiService: UiService,
     private router: Router
   ) {
     addIcons({ 
@@ -89,17 +83,17 @@ export class OrdiniPage implements OnInit, OnDestroy {
 
   public get isAdmin(): boolean {
     const user = this.authService.getUser();
-    return HomeService.isAdmin(user);
+    return this.homeService.isUserAdmin(user);
   }
 
   public get isManager(): boolean {
     const user = this.authService.getUser();
-    return HomeService.isManager(user);
+    return this.homeService.isUserManager(user);
   }
 
   public get isCustomer(): boolean {
     const user = this.authService.getUser();
-    return HomeService.isCustomer(user);
+    return this.homeService.isUserCustomer(user);
   }
 
   ngOnInit() {
@@ -119,7 +113,7 @@ export class OrdiniPage implements OnInit, OnDestroy {
   async loadOrders() {
     this.isLoading = true;
     try {
-      const purchaseHistory = await this.prodottiService.loadPurchaseHistory(50);
+      const purchaseHistory = await this.homeService.products.loadPurchaseHistory(50);
       this.orders = purchaseHistory || [];
       this.extractAvailableSupermarkets();
       this.applyFilters();
@@ -183,8 +177,8 @@ export class OrdiniPage implements OnInit, OnDestroy {
     const grouped: { [key: string]: PurchaseHistory[] } = {};
     this.filteredOrders.forEach(order => {
       if (order && order.purchase_date && order.supermarket_name) {
-        // Usa UiService per correggere la data
-        const adjustedDate = this.uiService.adjustServerDate(order.purchase_date);
+        // Usa HomeService per correggere la data
+        const adjustedDate = this.homeService.ui.adjustServerDate(order.purchase_date);
         const date = adjustedDate.toDateString();
         const key = `${date}-${order.supermarket_name}`;
         if (!grouped[key]) {
@@ -208,44 +202,28 @@ export class OrdiniPage implements OnInit, OnDestroy {
         };
       })
       .sort((a, b) => {
-        // Usa UiService per correggere le date nel sorting
-        const dateA = this.uiService.adjustServerDate(a.date);
-        const dateB = this.uiService.adjustServerDate(b.date);
+        // Usa HomeService per correggere le date nel sorting
+        const dateA = this.homeService.ui.adjustServerDate(a.date);
+        const dateB = this.homeService.ui.adjustServerDate(b.date);
         return dateB.getTime() - dateA.getTime();
       });
   }
 
-  // Filter methods
-  filterByPeriod(period: 'today' | 'week' | 'month' | 'all'): void {
-    this.selectedPeriod = period;
-    this.applyFilters();
-  }
-
-  filterBySupermarket(supermarket: string): void {
-    this.selectedSupermarket = supermarket;
-    this.applyFilters();
-  }
-
-  trackByGroup(index: number, group: any): any {
-    return group.key;
-  }
-
-  trackByOrder(index: number, order: PurchaseHistory): any {
-    return order.id;
-  }
-
   getOrderDate(dateString: string): string {
-    return this.uiService.formatServerDate(dateString, {
+    const adjustedDate = this.homeService.ui.adjustServerDate(dateString);
+    const defaultOptions: Intl.DateTimeFormatOptions = {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
-    });
+    };
+    return adjustedDate.toLocaleDateString('it-IT', defaultOptions);
   }
 
   getOrderDateShort(dateString: string): string {
-    return this.uiService.formatServerDateShort(dateString);
+    const adjusted = this.homeService.ui.adjustServerDate(dateString);
+    return adjusted.toLocaleDateString('it-IT');
   }
 
   continueShopping() {
@@ -286,6 +264,24 @@ export class OrdiniPage implements OnInit, OnDestroy {
     }
     
     return filters.join(' • ');
+  }
+
+  filterByPeriod(period: 'today' | 'week' | 'month' | 'all'): void {
+    this.selectedPeriod = period;
+    this.applyFilters();
+  }
+
+  filterBySupermarket(supermarket: string): void {
+    this.selectedSupermarket = supermarket;
+    this.applyFilters();
+  }
+
+  trackByGroup(index: number, group: any): any {
+    return group.key;
+  }
+
+  trackByOrder(index: number, order: PurchaseHistory): any {
+    return order.id;
   }
 
 }

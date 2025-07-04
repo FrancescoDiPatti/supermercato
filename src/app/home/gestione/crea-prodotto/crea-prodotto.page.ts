@@ -11,12 +11,11 @@ import {
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { 
-  arrowBack, save, search, cube, 
+  arrowBack, save, search, cube, warning,
   checkmarkCircle, closeCircle, close, image 
 } from 'ionicons/icons';
-import { HomeService, Category } from '../../home.service';
+import { HomeService, Category } from '../../../services/home/home.service';
 import { AuthService } from '../../../auth/auth.service';
-import { OpenFoodFactsService, OpenFoodFactsProduct } from '../../../services/openfoodfacts.service';
 import { Subject, takeUntil } from 'rxjs';
 
 @Component({
@@ -57,10 +56,10 @@ export class CreaProdottoPage implements OnInit, OnDestroy {
 
   // OpenFoodFacts integration
   searchQuery = '';
-  searchResults: OpenFoodFactsProduct[] = [];
+  searchResults: any[] = [];
   isSearching = false;
   showSearchResults = false;
-  selectedOpenFoodProduct: OpenFoodFactsProduct | null = null;
+  selectedOpenFoodProduct: any | null = null;
   lastSearchType: 'barcode' | 'name' | null = null;
     // Rate limiting alerts
   showRateLimitAlert = false;
@@ -99,10 +98,9 @@ export class CreaProdottoPage implements OnInit, OnDestroy {
   private readonly destroy$ = new Subject<void>();  constructor(
     private homeService: HomeService,
     private authService: AuthService,
-    public openFoodFactsService: OpenFoodFactsService,
     private router: Router
   ) {addIcons({ 
-      arrowBack, save, search, cube, 
+      arrowBack, save, search, cube, warning,
       checkmarkCircle, closeCircle, close, image 
     });
   }
@@ -147,18 +145,18 @@ export class CreaProdottoPage implements OnInit, OnDestroy {
     // Determina il tipo di ricerca e verifica i limiti
     const isBarcode = this.isLikelyBarcode(query);
     
-    if (isBarcode && !this.openFoodFactsService.canSearchByBarcode()) {
+    if (isBarcode && !this.homeService.openFoodFacts.canSearchByBarcode()) {
       this.showRateLimit('Limite ricerche prodotto raggiunto (100 al minuto). Riprova tra qualche secondo.');
       return;
     }
     
-    if (!isBarcode && !this.openFoodFactsService.canSearchByName()) {
+    if (!isBarcode && !this.homeService.openFoodFacts.canSearchByName()) {
       this.showRateLimit('Limite ricerche raggiunto (10 al minuto). Riprova tra qualche secondo.');
       return;
     }
 
     this.isSearching = true;
-    this.openFoodFactsService.smartSearch(query)
+    this.homeService.openFoodFacts.smartSearch(query)
       .pipe(takeUntil(this.destroy$))
       .subscribe({        next: (response: any) => {
           this.searchResults = response.results;
@@ -188,11 +186,11 @@ export class CreaProdottoPage implements OnInit, OnDestroy {
     const hasValidLength = cleanQuery.length >= 8 && cleanQuery.length <= 14;
     
     return isNumericOnly && hasValidLength;
-  }  selectProduct(product: OpenFoodFactsProduct): void {
+  }  selectProduct(product: any): void {
     this.selectedOpenFoodProduct = product;
-    this.product.name = this.openFoodFactsService.getBestProductName(product);
+    this.product.name = this.homeService.openFoodFacts.getBestProductName(product);
     this.product.barcode = product.code;
-    const categories = this.openFoodFactsService.getMainCategories(product);
+    const categories = this.homeService.openFoodFacts.getCategories(product);
     let categoryMapped = false;
     
     for (const category of categories) {
@@ -449,7 +447,7 @@ export class CreaProdottoPage implements OnInit, OnDestroy {
     this.isLoading = true;
 
     try {
-      const response = await this.homeService.createProduct(this.product);
+      const response = await this.homeService.products.createProduct(this.product);
 
       if (response) {
         this.showAlert('success', 'Successo', 'Prodotto creato con successo!', 'checkmark-circle');
@@ -535,12 +533,12 @@ export class CreaProdottoPage implements OnInit, OnDestroy {
     }
   }
 
-  getBestProductName(product: OpenFoodFactsProduct): string {
-    return this.openFoodFactsService.getBestProductName(product);
+  getBestProductName(product: any): string {
+    return this.homeService.openFoodFacts.getBestProductName(product);
   }
 
-  getProductImageUrl(product: OpenFoodFactsProduct): string | null {
-    return this.openFoodFactsService.getBestImageUrl(product);
+  getProductImageUrl(product: any): string | null {
+    return this.homeService.openFoodFacts.getBestImageUrl(product);
   }
 
   // ===== RATE LIMITING ALERTS =====

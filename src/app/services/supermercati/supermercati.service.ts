@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { ApiConfig } from '../../config/api.config';
 import { AuthService } from '../../auth/auth.service';
+import { PosizioneService } from '../posizione/posizione.service';
 
 export interface Supermarket {
   id: number;
@@ -25,11 +26,14 @@ export interface User {
   providedIn: 'root'
 })
 export class SupermercatiService {
-  private selectedSupermarketSubject = new BehaviorSubject<Supermarket | null>(null);
+  // Constants
   private readonly SELECTED_SUPERMARKET_KEY = 'selected_supermarket';
+
+  // Subjects
+  private selectedSupermarketSubject = new BehaviorSubject<Supermarket | null>(null);
   selectedSupermarket$ = this.selectedSupermarketSubject.asObservable();
 
-  // Supermarket images mapping
+  // Images
   private readonly supermarketImages: { [key: string]: string } = {
     lidl: 'assets/supermercati/lidl.webp',
     conad: 'assets/supermercati/conad.webp',
@@ -46,24 +50,25 @@ export class SupermercatiService {
     sisa: 'assets/supermercati/sisa.webp',
   };
 
-  constructor(private http: HttpClient, private authService: AuthService) {
+  constructor(private http: HttpClient, private authService: AuthService, private posizioneService: PosizioneService) {
     this.loadSelectedSupermarket();
   }
 
-  // Supermarket CRUD Operations
+  // API METHODS
+
+  // Get list of supermarkets
   getSupermarkets(): Observable<{ supermarkets: Supermarket[] }> {
     return this.http.get<{ supermarkets: Supermarket[] }>(ApiConfig.ENDPOINTS.SUPERMARKETS.LIST);
   }
 
-  getSupermarketDetails(id: number): Observable<{ supermarket: Supermarket }> {
-    return this.http.get<{ supermarket: Supermarket }>(ApiConfig.ENDPOINTS.SUPERMARKETS.BY_ID(id.toString()));
-  }
-
+  // Adds new supermarket
   addSupermarket(supermarket: { name: string; address: string; latitude: string; longitude: string; manager_id?: string }): Promise<any> {
     return this.http.post(ApiConfig.ENDPOINTS.SUPERMARKETS.ADD, supermarket).toPromise();
   }
 
-  // Selected Supermarket Management
+  // SUPERMARKET SELECTION
+
+  // Store selected supermarket in session storage
   setSelectedSupermarket(supermarket: Supermarket | null): void {
     if (supermarket) {
       sessionStorage.setItem(this.SELECTED_SUPERMARKET_KEY, JSON.stringify(supermarket));
@@ -73,15 +78,18 @@ export class SupermercatiService {
     this.selectedSupermarketSubject.next(supermarket);
   }
 
+  // Get selected supermarket
   getSelectedSupermarket(): Supermarket | null {
     return this.selectedSupermarketSubject.value;
   }
 
+  // Clear selected supermarket from session storage
   clearSelectedSupermarket(): void {
     sessionStorage.removeItem(this.SELECTED_SUPERMARKET_KEY);
     this.selectedSupermarketSubject.next(null);
   }
 
+  // Load selected supermarket from session storage
   private loadSelectedSupermarket(): void {
     try {
       const supermarketStr = sessionStorage.getItem(this.SELECTED_SUPERMARKET_KEY);
@@ -96,6 +104,9 @@ export class SupermercatiService {
     }
   }
 
+  // MANAGER LIST
+
+  // Get list of managers
   getManagers(): Observable<User[]> {
     return new Observable(observer => {
       this.http.get(ApiConfig.ENDPOINTS.DASHBOARD, { withCredentials: true }).subscribe({
@@ -105,7 +116,7 @@ export class SupermercatiService {
             observer.next(managers);
             observer.complete();
           } else {
-            observer.error('Unable to fetch managers');
+            observer.error('Unable to get managers');
           }
         },
         error: (error: any) => observer.error(error)
@@ -113,67 +124,81 @@ export class SupermercatiService {
     });
   }
 
-  // Find similar string for logo
+  // IMAGE UTILITIES
+
+  // Finds closest matching image for supermarket
   private findImageKey(name: string, imageKeys: string[], maxDistance: number = 4): string | null {
     const normalized = name.trim().toLowerCase();
     let minDistance = Infinity;
     let closestKey: string | null = null;
     
-    // Simple distance calculation for string matching
-    const distance = (a: string, b: string): number => {
-      const matrix = Array.from({ length: a.length + 1 }, () => new Array(b.length + 1).fill(0));
-      
-      for (let i = 0; i <= a.length; i++) matrix[i][0] = i;
-      for (let j = 0; j <= b.length; j++) matrix[0][j] = j;
-      
-      for (let i = 1; i <= a.length; i++) {
-        for (let j = 1; j <= b.length; j++) {
-          if (a[i - 1] === b[j - 1]) {
-            matrix[i][j] = matrix[i - 1][j - 1];
-          } else {
-            matrix[i][j] = Math.min(
-              matrix[i - 1][j] + 1,
-              matrix[i][j - 1] + 1,
-              matrix[i - 1][j - 1] + 1
-            );
-          }
-        }
-      }
-      
-      return matrix[a.length][b.length];
-    };
-    
     for (const key of imageKeys) {
-      const dist = distance(normalized, key);
+      const dist = this.calculateLevenshteinDistance(normalized, key);
       if (dist < minDistance) {
         minDistance = dist;
         closestKey = key;
       }
     }
-    
     return minDistance <= maxDistance ? closestKey : null;
   }
-  
-  // Get supermarket image by name match
+
+  // Levenshtein distance calculation
+  private calculateLevenshteinDistance(a: string, b: string): number {
+    const matrix = Array.from({ length: a.length + 1 }, () => new Array(b.length + 1).fill(0));
+    for (let i = 0; i <= a.length; i++) matrix[i][0] = i;
+    for (let j = 0; j <= b.length; j++) matrix[0][j] = j;
+    for (let i = 1; i <= a.length; i++) {
+      for (let j = 1; j <= b.length; j++) {
+        if (a[i - 1] === b[j - 1]) {
+          matrix[i][j] = matrix[i - 1][j - 1];
+        } else {
+          matrix[i][j] = Math.min(
+            matrix[i - 1][j] + 1,
+            matrix[i][j - 1] + 1,
+            matrix[i - 1][j - 1] + 1
+          );
+        }
+      }
+    }
+    return matrix[a.length][b.length];
+  }
+
+  // Get image URL for supermarket by name
   getStoreImage(name: string): string {
     const brandName = this.extractBrandName(name);
     const key = this.findImageKey(brandName, Object.keys(this.supermarketImages), 4);
     return key ? this.supermarketImages[key] : 'assets/supermercati/def_sm.webp';
   }
+
+  // Extract supermarket name
   private extractBrandName(name: string): string {
     if (!name) return '';
     const separators = [' - ', ' – ', ' — ', ' (', '('];
     for (const separator of separators) {
-      if (name.includes(separator)) {return name.split(separator)[0].trim();}
+      if (name.includes(separator)) {
+        return name.split(separator)[0].trim();
+      }
     }
     return name.trim();
   }
 
-  // User-specific supermarket getter
-  async getSupermarketsForCurrentUser(): Promise<Supermarket[]> {
-    const user = this.getCurrentUser();
-    if (!user) return [];
+  // DISTANCE UTILITIES
 
+  // Sort supermarkets by distance
+  sortByDistance(supermarkets: Supermarket[], userLat: number, userLng: number): Supermarket[] {
+    return supermarkets.sort((a, b) => {
+      const distA = this.posizioneService.calcDistance(userLat, userLng, a.latitude, a.longitude);
+      const distB = this.posizioneService.calcDistance(userLat, userLng, b.latitude, b.longitude);
+      return distA - distB;
+    });
+  }
+
+  // ROLE FILTER
+
+  // Get supermarkets for user by role
+  async getSupermarketsForCurrentUser(): Promise<Supermarket[]> {
+    const user = this.authService.getUser();
+    if (!user) return [];
     try {
       const response = await this.getSupermarkets().toPromise();
       const supermarkets = response?.supermarkets || [];
@@ -186,16 +211,15 @@ export class SupermercatiService {
         });
         return managedSupermarkets;
       }
-      
+
       return supermarkets;
     } catch (error) {
       console.error('Error loading supermarkets:', error);
       return [];
     }
   }
-  private getCurrentUser(): User | null {
-    return this.authService.getUser();
-  }
+
+  // Adds products to supermarket
   async addProductsToSupermarket(supermarketId: number, products: any[]): Promise<{ success: boolean; responses: any[] }> {
     try {
       const formattedProducts = products.map(product => ({
@@ -203,24 +227,21 @@ export class SupermercatiService {
         price: product.price,
         quantity: product.quantity
       }));
-
       const responses = await Promise.all(
         formattedProducts.map(product =>
           this.http.post(
             ApiConfig.ENDPOINTS.SUPERMARKETS.ADD_PRODUCTS_TO_SUPERMARKET(supermarketId.toString()),
             product,
-            { 
+            {
               withCredentials: true,
               headers: { 'Content-Type': 'application/json' }
             }
           ).toPromise()
         )
       );
-
       const allSuccessful = responses.every(
         (response: any) => response?.message === 'Prodotto aggiunto con successo'
       );
-
       return { success: allSuccessful, responses };
     } catch (error: any) {
       console.error('Error adding products to supermarket:', error);
@@ -228,6 +249,7 @@ export class SupermercatiService {
     }
   }
 
+  // Loads supermarkets
   async loadAndSetupSupermarkets(
     userPosition?: { lat: number; lng: number }
   ): Promise<Supermarket[]> {
@@ -241,29 +263,5 @@ export class SupermercatiService {
       console.error('Error loading supermarkets:', error);
       return [];
     }
-  }
-
-  private sortByDistance(supermarkets: Supermarket[], userLat: number, userLng: number): Supermarket[] {
-    const calcDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
-      const R = 6371;
-      const dLat = this.deg2rad(lat2 - lat1);
-      const dLon = this.deg2rad(lon2 - lon1);
-      const a = 
-        Math.sin(dLat/2) * Math.sin(dLat/2) +
-        Math.cos(this.deg2rad(lat1)) * Math.cos(this.deg2rad(lat2)) * 
-        Math.sin(dLon/2) * Math.sin(dLon/2); 
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
-      return R * c;
-    };
-
-    return supermarkets.sort((a, b) => {
-      const distA = calcDistance(userLat, userLng, a.latitude, a.longitude);
-      const distB = calcDistance(userLat, userLng, b.latitude, b.longitude);
-      return distA - distB;
-    });
-  }
-
-  private deg2rad(deg: number): number {
-    return deg * (Math.PI/180);
   }
 }

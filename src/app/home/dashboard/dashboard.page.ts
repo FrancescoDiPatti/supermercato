@@ -9,14 +9,9 @@ import {
 import { ViewWillEnter } from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import { add, remove, storefront, location, checkmarkCircle, chevronForwardOutline, map, chevronUp, chevronDown, cart } from 'ionicons/icons';
-import { HomeService, Product, Category, PurchaseHistory } from '../home.service';
-import { lastValueFrom } from 'rxjs';
-import { Supermarket } from '../../services/supermercati/supermercati.service';
-import { SupermarketDataState, AnimationState } from '../../services/ui/ui.service';
+import { HomeService, Product, Category, PurchaseHistory, Supermarket, SupermarketDataState, AnimationState } from '../../services/home/home.service';
 import { AuthService } from '../../auth/auth.service';
-import { CarrelloService, CartItem } from '../../services/carrello/carrello.service';
-import { ProdottiService } from '../../services/prodotti/prodotti.service';
-import { UiService } from '../../services/ui/ui.service';
+import { lastValueFrom } from 'rxjs';
 import * as L from 'leaflet';
 
 @Component({
@@ -38,7 +33,7 @@ export class DashboardPage implements OnInit, AfterViewInit, OnDestroy, ViewWill
   // Supermarket Data
   supermarkets: Supermarket[] = [];
   selectedSupermarket: Supermarket | null = null;
-  private dataState: SupermarketDataState = this.homeService.createDataState();
+  private dataState: SupermarketDataState = this.homeService.ui.createDataState();
   
   // Loading States
   isLoading = false;
@@ -56,7 +51,7 @@ export class DashboardPage implements OnInit, AfterViewInit, OnDestroy, ViewWill
   private userMarker: L.CircleMarker | undefined;
   
   // UI States
-  private animationState = this.homeService.createAnimationState();
+  private animationState = this.homeService.ui.createAnimationState();
   private scrollListeners: Array<{ element: Element; listener: EventListener }> = [];
   private searchListener = (event: any) => {
     if (event.detail?.supermarket) {
@@ -81,10 +76,10 @@ export class DashboardPage implements OnInit, AfterViewInit, OnDestroy, ViewWill
   get categories() { return this.dataState.categories; }
   get selectedCategory() { return this.dataState.selectedCategory; }
   get filteredProducts() { 
-    return this.homeService.filterProductsByCategory(this.products, this.selectedCategory);
+    return this.homeService.products.filterProductsByCategory(this.products, this.selectedCategory);
   }
   get filteredOfferProducts() {
-    return this.homeService.filterProductsByCategory(this.offerProducts, this.selectedCategory);
+    return this.homeService.products.filterProductsByCategory(this.offerProducts, this.selectedCategory);
   }
   get purchaseHistory() { return this.dataState.purchaseHistory; }
   get displayProducts() { return this.filteredProducts.slice(0, 8); }
@@ -126,15 +121,18 @@ export class DashboardPage implements OnInit, AfterViewInit, OnDestroy, ViewWill
     try {
       this.isLoading = true;
       const response = await lastValueFrom(
-        this.homeService.generateOffers(this.selectedSupermarket.id)
+        this.homeService.products.generateOffers(this.selectedSupermarket.id)
       );
       console.log('Offerte generate con successo:', response);
       const [products, offerProducts] = await Promise.all([
-        this.prodottiService.loadSupermarketProducts(this.selectedSupermarket.id),
-        this.prodottiService.loadSupermarketOffers(this.selectedSupermarket.id)
+        this.homeService.products.loadSupermarketProducts(this.selectedSupermarket.id).then(products => {
+          this.homeService.ui.updateInventoryFromProducts(products, this.selectedSupermarket!.id);
+          return products;
+        }),
+        this.homeService.products.loadSupermarketOffers(this.selectedSupermarket.id)
       ]);
-      this.homeService.updateProducts(this.dataState, products);
-      this.homeService.updateOfferProducts(this.dataState, offerProducts);
+      this.homeService.ui.updateProducts(this.dataState, products);
+      this.homeService.ui.updateOfferProducts(this.dataState, offerProducts);
       await this.loadSupermarkets();
       this.generateCategories();
       this.startProductAnimations();
@@ -150,10 +148,7 @@ export class DashboardPage implements OnInit, AfterViewInit, OnDestroy, ViewWill
   constructor(
     private homeService: HomeService,
     private authService: AuthService,
-    private router: Router,
-    private carrelloService: CarrelloService,
-    private prodottiService: ProdottiService,
-    private uiService: UiService
+    private router: Router
   ) {
     addIcons({ add, remove, storefront, location, checkmarkCircle, chevronForwardOutline, map, chevronUp, chevronDown, cart });
   }
@@ -185,13 +180,6 @@ export class DashboardPage implements OnInit, AfterViewInit, OnDestroy, ViewWill
     const productExists = this.products.some(p => p.barcode === barcode);
     const offerExists = this.offerProducts.some(p => p.barcode === barcode);
     return productExists || offerExists;
-  }
-
-  removeFromCart(item: CartItem) {
-    this.carrelloService.removeFromCart(item.id, item.supermarketId);
-    if (this.quantities[item.barcode]) {
-      this.quantities[item.barcode] = 0;
-    }
   }
 
   // Filter history items to only show available products
@@ -238,7 +226,7 @@ export class DashboardPage implements OnInit, AfterViewInit, OnDestroy, ViewWill
   }
 
   get viewContent() {
-    return this.isHistoryView ? this.purchaseHistory : this.carrelloService.getCartItems();
+    return this.isHistoryView ? this.purchaseHistory : this.homeService.cart.getCartItems();
   }
 
   @HostListener('window:resize', ['$event'])
@@ -260,7 +248,7 @@ export class DashboardPage implements OnInit, AfterViewInit, OnDestroy, ViewWill
   }
 
   ngOnDestroy() {
-    this.homeService.clearQuantityTimer();
+    this.homeService.ui.clearTimer();
     this.cleanup();
     window.removeEventListener('listenSMSelectionSearch', this.searchListener as EventListener);
   }
@@ -284,7 +272,7 @@ export class DashboardPage implements OnInit, AfterViewInit, OnDestroy, ViewWill
   }
 
   private listenSMSelection() {
-    this.homeService.selectedSupermarket$.subscribe(this.handleSupermarketSelection.bind(this));
+    this.homeService.supermarkets.selectedSupermarket$.subscribe(this.handleSupermarketSelection.bind(this));
   }  
   
 
@@ -294,14 +282,15 @@ export class DashboardPage implements OnInit, AfterViewInit, OnDestroy, ViewWill
   }
 
   private async loadPurchaseHistory(): Promise<void> {
-    const purchaseHistory = this.canCreateContent ? [] : await this.homeService.loadPurchaseHistory(5);
-    this.homeService.updatePurchaseHistory(this.dataState, purchaseHistory);
+    const purchaseHistory = this.canCreateContent ? [] : await this.homeService.products.loadPurchaseHistory(5);
+    // Set purchase history directly instead of via UiService
+    this.dataState.purchaseHistory = purchaseHistory;
   }
 
   //Location Management
   private async initializeUserLocation(): Promise<void> {
     try {
-      const position = await this.homeService.getCurrentPosition();
+      const position = await this.homeService.position.getCurrentPosition();
       if (position) {
         this.userPosition = position;
         this.locationEnabled = true;
@@ -316,17 +305,17 @@ export class DashboardPage implements OnInit, AfterViewInit, OnDestroy, ViewWill
     try {
       if (this.locationEnabled && this.userPosition) {
         if (this.map) {
-          this.homeService.centerOnUserPosition(this.map, this.userPosition, 15);
+          this.homeService.map.centerOnUserPosition(this.map, this.userPosition, 15);
         }
         return;
       }
-      const position = await this.homeService.getCurrentPosition();
+      const position = await this.homeService.position.getCurrentPosition();
       if (position) {
         this.userPosition = position;
         this.locationEnabled = true;
         this.updateMapWithUserLocation();
         if (this.map) {
-          this.homeService.centerOnUserPosition(this.map, position, 15);
+          this.homeService.map.centerOnUserPosition(this.map, position, 15);
         }
       }
     } catch (error) {
@@ -345,7 +334,7 @@ export class DashboardPage implements OnInit, AfterViewInit, OnDestroy, ViewWill
     }
     if (hasMap) {
       if (hasUserPosition) {
-        this.homeService.centerOnUserPosition(this.map!, this.userPosition!, 13);
+        this.homeService.map.centerOnUserPosition(this.map!, this.userPosition!, 13);
       }
       this.setupMapMarkers();
     }
@@ -357,7 +346,7 @@ export class DashboardPage implements OnInit, AfterViewInit, OnDestroy, ViewWill
   private sortSupermarketsByDistance(): void {
     if (!this.userPosition) return;
     
-    this.supermarkets = this.homeService.sortByDistance(
+    this.supermarkets = this.homeService.supermarkets.sortByDistance(
       this.supermarkets, 
       this.userPosition.lat, 
       this.userPosition.lng
@@ -373,7 +362,7 @@ export class DashboardPage implements OnInit, AfterViewInit, OnDestroy, ViewWill
         : [41.9028, 12.4964];
       const mapZoom = this.userPosition ? 13 : 6;
       
-      this.map = this.homeService.initializeMap(this.mapContainer.nativeElement, {
+      this.map = this.homeService.map.initializeMap(this.mapContainer.nativeElement, {
         center: mapCenter,
         zoom: mapZoom,
         zoomControl: false,
@@ -385,20 +374,20 @@ export class DashboardPage implements OnInit, AfterViewInit, OnDestroy, ViewWill
       if (this.map) {
         this.setupMapMarkers();
         if (this.userPosition) {
-          this.homeService.centerOnUserPosition(this.map, this.userPosition, 13);
+          this.homeService.map.centerOnUserPosition(this.map, this.userPosition, 13);
         }
       }
     } catch (error) {}
   }
 
   private setupMapMarkers(): void {
-    this.homeService.completeMapSetup(
+    this.homeService.map.completeMapSetup(
       this.map!,
       this.userPosition || undefined,
       this.supermarkets,
-      (supermarket) => this.selectSupermarket(supermarket),
-      (userMarker) => this.userMarker = userMarker,
-      (markers) => this.markers = markers
+      (supermarket: Supermarket) => this.selectSupermarket(supermarket),
+      (userMarker: any) => this.userMarker = userMarker,
+      (markers: any[]) => this.markers = markers
     );
   }
 
@@ -425,10 +414,10 @@ export class DashboardPage implements OnInit, AfterViewInit, OnDestroy, ViewWill
 
   // Supermarket Management
   private async loadSupermarkets() {
-    await this.homeService.executeWithLoading(
-      (loading) => this.isLoading = loading,
+    await this.homeService.ui.executeWithLoading(
+      (loading: boolean) => this.isLoading = loading,
       async () => {        
-        this.supermarkets = await this.homeService.loadAndSetupSupermarkets(this.userPosition || undefined);
+        this.supermarkets = await this.homeService.supermarkets.loadAndSetupSupermarkets(this.userPosition || undefined);
         if (this.userPosition) {
           this.sortSupermarketsByDistance();
         }
@@ -462,10 +451,10 @@ export class DashboardPage implements OnInit, AfterViewInit, OnDestroy, ViewWill
 
   selectSupermarket(supermarket: Supermarket) {
     this.quantities = {}; 
-    this.carrelloService.clearCart();
+    this.homeService.cart.clearCart();
 
-    this.homeService.setSelectedSupermarket(supermarket);
-    this.homeService.selectSupermarketOnMap(supermarket, this.map, this.markers, false, 14);
+    this.homeService.supermarkets.setSelectedSupermarket(supermarket);
+    this.homeService.map.selectSupermarketOnMap(supermarket, this.map, this.markers, false, 14);
     if (this.isMapExpanded && !this.userExpandedMap) {
       this.isMapExpanded = false;
     }
@@ -475,33 +464,33 @@ export class DashboardPage implements OnInit, AfterViewInit, OnDestroy, ViewWill
   }
 
   private centerSelectedSupermarket(selectedSupermarket: Supermarket) {
-    this.homeService.centerSelectedItem(
+    this.homeService.ui.centerSelectedItem(
       this.supermarkets,
       selectedSupermarket, 
       this.supermarketsContainer
     );
     if (this.map) {
-      this.homeService.selectSupermarketOnMap(selectedSupermarket, this.map, this.markers, false, 16, 0.5);
+      this.homeService.map.selectSupermarketOnMap(selectedSupermarket, this.map, this.markers, false, 16, 0.5);
     }
   }
 
   async onSupermarketChange() {
     if (!this.selectedSupermarket) {
-      this.homeService.clearSupermarketData(this.dataState);
+      this.homeService.ui.clearSupermarketData(this.dataState);
       this.resetAnimations();
       return;
     }
     if (this.dataState.selectedCategory) {
       this.dataState.selectedCategory = '';
     }
-    await this.homeService.executeWithLoading(
-      (loading) => this.isLoading = loading,
+    await this.homeService.ui.executeWithLoading(
+      (loading: boolean) => this.isLoading = loading,
       async () => {
         this.resetAnimations();
         const { products, offerProducts } = await this.loadSupermarketData();
         const allProducts = [...products, ...offerProducts];
         if (allProducts.length > 0) {
-          await this.homeService.loadImagesForLoadedProducts(allProducts);
+          await this.homeService.products.loadImagesForLoadedProducts(allProducts);
         }
         this.generateCategories();
         this.startProductAnimations();
@@ -523,11 +512,11 @@ export class DashboardPage implements OnInit, AfterViewInit, OnDestroy, ViewWill
 
   private loadAvailableQuantities(): void {
     if (!this.selectedSupermarket) return;
-    this.availableQuantities = this.homeService.getAvailableQuantities(this.selectedSupermarket.id);
+    this.availableQuantities = this.homeService.ui.getAvailableQuantities(this.selectedSupermarket.id);
   }
 
   private reloadSM() {
-    const selectedSupermarket = this.homeService.getSelectedSupermarket();
+    const selectedSupermarket = this.homeService.supermarkets.getSelectedSupermarket();
     if (selectedSupermarket && this.supermarkets.length > 0) {
       const supermarketExists = this.supermarkets.find(sm => sm.id === selectedSupermarket.id); 
       if (supermarketExists) {
@@ -535,12 +524,12 @@ export class DashboardPage implements OnInit, AfterViewInit, OnDestroy, ViewWill
         requestAnimationFrame(() => {
           this.centerSelectedSupermarket(supermarketExists);
           if (this.map) {
-            this.homeService.selectSupermarketOnMap(supermarketExists, this.map, this.markers, false, 14);
+            this.homeService.map.selectSupermarketOnMap(supermarketExists, this.map, this.markers, false, 14);
           }
         });
         this.onSupermarketChange();
       } else {
-        this.homeService.clearSelectedSupermarket();
+        this.homeService.supermarkets.clearSelectedSupermarket();
       }
     }
   }
@@ -548,13 +537,13 @@ export class DashboardPage implements OnInit, AfterViewInit, OnDestroy, ViewWill
   // Product Management
   private generateCategories() {
     const allProducts = [...this.products, ...this.offerProducts];
-    const categories = this.homeService.generateCategories(allProducts);
-    this.homeService.updateCategories(this.dataState, categories);
+    const categories = this.homeService.products.generateCategories(allProducts);
+    this.homeService.ui.updateCategories(this.dataState, categories);
   }
 
   onCategorySelect(categoryName: string) {
-    this.homeService.setSelectedCategory(this.dataState, categoryName);
-    this.homeService.startCategoryAnimation(this.displayProducts, this.animationState);
+    this.homeService.ui.setSelectedCategory(this.dataState, categoryName);
+    this.homeService.ui.showCategoryProducts(this.displayProducts, this.animationState);
   }
 
   // Gestione quantità
@@ -567,19 +556,19 @@ export class DashboardPage implements OnInit, AfterViewInit, OnDestroy, ViewWill
   decrementQuantity(barcode: string) { this.updateQuantity(barcode, -1); }
   
   onIncrementPress(barcode: string) { 
-    this.homeService.startQuantityTimer(barcode, true, this.updateQuantity.bind(this));
+    this.homeService.ui.startTimer(barcode, true, this.updateQuantity.bind(this));
   }
   
   onDecrementPress(barcode: string) { 
-    this.homeService.startQuantityTimer(barcode, false, this.updateQuantity.bind(this));
+    this.homeService.ui.startTimer(barcode, false, this.updateQuantity.bind(this));
   }
   
   onButtonRelease() { 
-    this.homeService.clearQuantityTimer();
+    this.homeService.ui.clearTimer();
   }
 
   private updateQuantity(barcode: string, amount: number) {
-    const result = this.homeService.updateQuantity(this.quantities, barcode, amount, this.availableQuantities);
+    const result = this.homeService.ui.updateQuantity(this.quantities, barcode, amount, this.availableQuantities);
     this.quantities = result.quantities;
     
     // Non mostrare più alert quando si raggiunge il limite - il pulsante è disabilitato
@@ -587,7 +576,7 @@ export class DashboardPage implements OnInit, AfterViewInit, OnDestroy, ViewWill
     const product = this.findProductByBarcode(barcode);
     if (product && this.selectedSupermarket) {
       const quantity = this.quantities[barcode] || 0;
-      this.carrelloService.updateCartItem(product, this.selectedSupermarket, quantity);
+      this.homeService.cart.updateCartItem(product, this.selectedSupermarket, quantity);
     }
   }
 
@@ -602,8 +591,8 @@ export class DashboardPage implements OnInit, AfterViewInit, OnDestroy, ViewWill
   private loadQuantitiesFromCart(): void {
     this.quantities = {};
     if (!this.selectedSupermarket) return;
-    const cartItems = this.carrelloService.getCartItems();
-    cartItems.forEach(item => {
+    const cartItems = this.homeService.cart.getCartItems();
+    cartItems.forEach((item: any) => {
       if (item.supermarketId === this.selectedSupermarket?.id) {
         this.quantities[item.barcode] = item.quantity;
       }
@@ -618,32 +607,32 @@ export class DashboardPage implements OnInit, AfterViewInit, OnDestroy, ViewWill
         price: purchase.total_price / purchase.quantity,
         image_url: purchase.product_image_url
       };
-      this.homeService.addToCart(product, this.selectedSupermarket);
+      this.homeService.cart.updateCartItem(product, this.selectedSupermarket, 1);
     }
   }
 
   // Animation Management
   private resetAnimations() {
-    this.homeService.resetAnimations(this.animationState);
+    this.homeService.ui.resetAnimations(this.animationState);
   }
 
   private startProductAnimations() {
-    this.homeService.startAllProductAnimations(this.displayProducts, this.displayOfferProducts, this.animationState);
+    this.homeService.ui.showAllProducts(this.displayProducts, this.displayOfferProducts, this.animationState);
   }
 
   //UI Management
   private setupHorizontalScroll(): void {
-    this.homeService.removeScrollListeners(this.scrollListeners);
+    this.homeService.ui.removeScrollListeners(this.scrollListeners);
     this.scrollListeners = [];
     
     const scrollableContainers = '.supermarkets-container, .products-container, .offers-container, .categories-container';
-    const allListeners = this.homeService.setupHorizontalScroll(scrollableContainers);
+    const allListeners = this.homeService.ui.setupHorizontalScroll(scrollableContainers);
     this.scrollListeners = allListeners;
   }
 
   // Cleanup Management
   private cleanup() {
-    this.homeService.removeScrollListeners(this.scrollListeners);
+    this.homeService.ui.removeScrollListeners(this.scrollListeners);
     this.scrollListeners = [];
     window.removeEventListener('listenSMSelectionSearch', this.searchListener as EventListener);
     if (this.map) {
@@ -677,23 +666,23 @@ export class DashboardPage implements OnInit, AfterViewInit, OnDestroy, ViewWill
 
   //Utility Methods
   getSupermarketImage(name: string): string {
-    return this.homeService.getStoreImage(name);
+    return this.homeService.supermarkets.getStoreImage(name);
   }
 
   getDistanceFromUser(supermarket: Supermarket): string | null {
-    return this.homeService.getDistanceFromUser(this.userPosition, supermarket.latitude, supermarket.longitude);
+    return this.homeService.position.getDistanceFromUser(this.userPosition, supermarket.latitude, supermarket.longitude);
   }
 
   getCategoryIcon(category: string): string {
-    return this.homeService.getCategoryIcon(category);
+    return this.homeService.products.getCategoryIcon(category);
   }
 
   getDisplayPrice(product: Product): number {
-    return this.homeService.getDisplayPrice(product);
+    return this.homeService.products.getDisplayPrice(product);
   }
 
   getOriginalPrice(product: Product): number | null {
-    return this.homeService.getOriginalPrice(product);
+    return this.homeService.products.getOriginalPrice(product);
   }
 
   handleImageError(event: any, category: string): void {
@@ -704,6 +693,7 @@ export class DashboardPage implements OnInit, AfterViewInit, OnDestroy, ViewWill
   }
 
   formatPurchaseDate(dateString: string): string {
-    return this.uiService.formatServerDateShort(dateString);
+    const adjusted = this.homeService.ui.adjustServerDate(dateString);
+    return adjusted.toLocaleDateString('it-IT');
   }
 }

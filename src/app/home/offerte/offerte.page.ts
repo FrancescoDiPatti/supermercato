@@ -7,11 +7,7 @@ import { lastValueFrom } from 'rxjs';
 import { 
   IonContent, IonIcon, IonImg, IonFabButton, IonButton, IonBadge
 } from '@ionic/angular/standalone';
-import { HomeService, Product, Category, PurchaseHistory } from '../home.service';
-import { Supermarket } from '../../services/supermercati/supermercati.service';
-import { SupermarketDataState, AnimationState } from '../../services/ui/ui.service';
-import { CarrelloService } from '../../services/carrello/carrello.service';
-import { ProdottiService } from '../../services/prodotti/prodotti.service';
+import { HomeService, Product, Category, PurchaseHistory, Supermarket } from '../../services/home/home.service';
 import { addIcons } from 'ionicons';
 import { add, remove, storefront, checkmarkCircle, flash, pricetag, arrowForward, cube, dice, alertCircle, close } from 'ionicons/icons';
 
@@ -27,8 +23,8 @@ export class OffertePage implements OnInit, OnDestroy {
   private isLoading = false;
 
   // Data state
-  private dataState: SupermarketDataState = this.homeService.createDataState();
-  private animationState: AnimationState = this.homeService.createAnimationState();
+  private dataState = this.homeService.ui.createDataState();
+  private animationState = this.homeService.ui.createAnimationState();
   
   // Supermarket data
   selectedSupermarket: Supermarket | null = null;
@@ -50,8 +46,6 @@ export class OffertePage implements OnInit, OnDestroy {
 
   constructor(
     private homeService: HomeService,
-    private carrelloService: CarrelloService,
-    private prodottiService: ProdottiService,
     private router: Router,
   ) { 
     addIcons({ add, remove, storefront, checkmarkCircle, flash, pricetag, arrowForward, cube, dice, alertCircle, close });
@@ -65,7 +59,7 @@ export class OffertePage implements OnInit, OnDestroy {
   async ionViewWillEnter() {
     if (this.isLoading) return;
     // Refresh data when entering the page
-    const currentSupermarket = this.homeService.getSelectedSupermarket();
+    const currentSupermarket = this.homeService.supermarkets.getSelectedSupermarket();
     if (currentSupermarket && currentSupermarket !== this.selectedSupermarket) {
       this.selectedSupermarket = currentSupermarket;
       await this.loadSupermarketData();
@@ -75,18 +69,18 @@ export class OffertePage implements OnInit, OnDestroy {
 
   private async initializeComponent() {
     // Subscribe to selected supermarket changes
-    this.homeService.selectedSupermarket$.subscribe(async supermarket => {
+    this.homeService.supermarkets.selectedSupermarket$.subscribe(async (supermarket: Supermarket | null) => {
       this.selectedSupermarket = supermarket;
       if (supermarket) {
         await this.loadSupermarketData();
       } else {
-        this.homeService.clearSupermarketData(this.dataState);
+        this.homeService.ui.clearSupermarketData(this.dataState);
       }
       this.loadQuantitiesFromCart();
     });
 
     // Load initial data if a supermarket is already selected
-    const currentSupermarket = this.homeService.getSelectedSupermarket();
+    const currentSupermarket = this.homeService.supermarkets.getSelectedSupermarket();
     if (currentSupermarket) {
       this.selectedSupermarket = currentSupermarket;
       await this.loadSupermarketData();
@@ -101,7 +95,7 @@ export class OffertePage implements OnInit, OnDestroy {
     
     try {
       // Pulisci lo stato esistente per evitare duplicati
-      this.homeService.clearSupermarketData(this.dataState);
+      this.homeService.ui.clearSupermarketData(this.dataState);
       
       const result = await this.homeService.loadSupermarketDataWithoutImages(
         this.selectedSupermarket.id, 
@@ -115,29 +109,29 @@ export class OffertePage implements OnInit, OnDestroy {
       
       // Focus only on offer products
       if (result.offerProducts && result.offerProducts.length > 0) {
-        await this.homeService.loadImagesForLoadedProducts(result.offerProducts);
+        await this.homeService.products.loadImagesForLoadedProducts(result.offerProducts);
         // Update categories based only on offer products
         this.updateCategories(result.offerProducts);
       } else {
         // Clear categories if no offers
-        this.homeService.updateCategories(this.dataState, []);
+        this.homeService.ui.updateCategories(this.dataState, []);
       }
     } catch (error) {
       // In case of error, clear the data state
-      this.homeService.clearSupermarketData(this.dataState);
+      this.homeService.ui.clearSupermarketData(this.dataState);
     } finally {
       this.isLoading = false;
     }
   }
   
   private updateCategories(offerProducts: Product[]): void {
-    const categories = this.homeService.generateCategories(offerProducts);
-    this.homeService.updateCategories(this.dataState, categories);
+    const categories = this.homeService.products.generateCategories(offerProducts);
+    this.homeService.ui.updateCategories(this.dataState, categories);
   }
 
   private loadAvailableQuantities(): void {
     if (!this.selectedSupermarket) return;
-    this.availableQuantities = this.homeService.getAvailableQuantities(this.selectedSupermarket.id);
+    this.availableQuantities = this.homeService.ui.getAvailableQuantities(this.selectedSupermarket.id);
   }
 
   // Getters - Focus on offers
@@ -152,14 +146,14 @@ export class OffertePage implements OnInit, OnDestroy {
   availableQuantities: { [barcode: string]: number } = {};
   get displayOfferProducts() { return this.filteredOfferProducts.slice(0, 12); } // Show more offers
   get filteredOfferProducts() {
-    return this.homeService.filterProductsByCategory(this.offerProducts, this.selectedCategory);
+    return this.homeService.products.filterProductsByCategory(this.offerProducts, this.selectedCategory);
   }
   get canCreateContent() { return this.homeService.isUserAdmin() || this.homeService.isUserManager(); }
   getDisplayPrice(product: Product): number {
-    return this.homeService.getDisplayPrice(product); 
+    return this.homeService.products.getDisplayPrice(product); 
   }
   getOriginalPrice(product: Product): number | null {
-    return this.homeService.getOriginalPrice(product);
+    return this.homeService.products.getOriginalPrice(product);
   }
 
   // Calculate discount percentage for offers
@@ -175,7 +169,7 @@ export class OffertePage implements OnInit, OnDestroy {
   }
 
   private updateQuantity(barcode: string, amount: number) {
-    const result = this.homeService.updateQuantity(this.quantities, barcode, amount, this.availableQuantities);
+    const result = this.homeService.ui.updateQuantity(this.quantities, barcode, amount, this.availableQuantities);
     this.quantities = result.quantities;
     
     // Non mostrare più alert quando si raggiunge il limite - il pulsante è disabilitato
@@ -183,7 +177,7 @@ export class OffertePage implements OnInit, OnDestroy {
     const product = this.findProductByBarcode(barcode);
     if (product && this.selectedSupermarket) {
       const quantity = this.quantities[barcode] || 0;
-      this.carrelloService.updateCartItem(product, this.selectedSupermarket, quantity);
+      this.homeService.cart.updateCartItem(product, this.selectedSupermarket, quantity);
     }
   }
 
@@ -196,10 +190,10 @@ export class OffertePage implements OnInit, OnDestroy {
     this.quantities = {};
     if (!this.selectedSupermarket) return;
 
-    const cartItems = this.carrelloService.getCartItems();
+    const cartItems = this.homeService.cart.getCartItems();
     cartItems
-      .filter(item => item.supermarketId === this.selectedSupermarket!.id)
-      .forEach(item => {
+      .filter((item: any) => item.supermarketId === this.selectedSupermarket!.id)
+      .forEach((item: any) => {
         this.quantities[item.barcode] = item.quantity;
       });
   }
@@ -235,21 +229,21 @@ export class OffertePage implements OnInit, OnDestroy {
     try {
       this.isLoading = true;
       const response = await lastValueFrom(
-        this.homeService.generateOffers(this.selectedSupermarket.id)
+        this.homeService.products.generateOffers(this.selectedSupermarket.id)
       );
 
-      this.homeService.clearSupermarketData(this.dataState);
+      this.homeService.ui.clearSupermarketData(this.dataState);
 
-      let offerProducts = await this.prodottiService.loadSupermarketOffers(this.selectedSupermarket.id);
+      let offerProducts = await this.homeService.products.loadSupermarketOffers(this.selectedSupermarket.id);
       offerProducts = this.deduplicateOffers(offerProducts); // Applica la deduplica
-      this.homeService.updateOfferProducts(this.dataState, offerProducts);
+      this.homeService.ui.updateOfferProducts(this.dataState, offerProducts);
 
       if (offerProducts && offerProducts.length > 0) {
-        await this.homeService.loadImagesForLoadedProducts(offerProducts);
+        await this.homeService.products.loadImagesForLoadedProducts(offerProducts);
         this.updateCategories(offerProducts);
         this.startOfferAnimations();
       } else {
-        this.homeService.updateCategories(this.dataState, []);
+        this.homeService.ui.updateCategories(this.dataState, []);
       }
 
       this.loadQuantitiesFromCart();
@@ -281,24 +275,24 @@ export class OffertePage implements OnInit, OnDestroy {
   decrementQuantity(barcode: string) { this.updateQuantity(barcode, -1); }
   
   onIncrementPress(barcode: string) { 
-    this.homeService.startQuantityTimer(barcode, true, this.updateQuantity.bind(this));
+    this.homeService.ui.startTimer(barcode, true, this.updateQuantity.bind(this));
   }
   
   onDecrementPress(barcode: string) { 
-    this.homeService.startQuantityTimer(barcode, false, this.updateQuantity.bind(this));
+    this.homeService.ui.startTimer(barcode, false, this.updateQuantity.bind(this));
   }
   
   onButtonRelease() { 
-    this.homeService.clearQuantityTimer();
+    this.homeService.ui.clearTimer();
   }
   
   onCategorySelect(categoryName: string) {
-    this.homeService.setSelectedCategory(this.dataState, categoryName);
-    this.homeService.startCategoryAnimation(this.displayOfferProducts, this.animationState);
+    this.homeService.ui.setSelectedCategory(this.dataState, categoryName);
+    this.homeService.ui.showCategoryProducts(this.displayOfferProducts, this.animationState);
   }
   
   private startOfferAnimations() {
-    this.homeService.startCategoryAnimation(this.displayOfferProducts, this.animationState);
+    this.homeService.ui.showCategoryProducts(this.displayOfferProducts, this.animationState);
   }
   
   handleImageError(event: any, category: string): void {

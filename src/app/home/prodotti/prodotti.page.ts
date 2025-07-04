@@ -6,11 +6,7 @@ import { ViewWillEnter } from '@ionic/angular';
 import { 
   IonContent, IonIcon, IonImg, IonFabButton, IonButton, IonBadge
 } from '@ionic/angular/standalone';
-import { HomeService, Product, Category, PurchaseHistory } from '../home.service';
-import { Supermarket } from '../../services/supermercati/supermercati.service';
-import { SupermarketDataState, AnimationState } from '../../services/ui/ui.service';
-import { CarrelloService } from '../../services/carrello/carrello.service';
-import { ProdottiService } from '../../services/prodotti/prodotti.service';
+import { HomeService, Product, Category, PurchaseHistory, Supermarket, SupermarketDataState, AnimationState } from '../../services/home/home.service';
 import { addIcons } from 'ionicons';
 import { add, remove, storefront, checkmarkCircle } from 'ionicons/icons';
 
@@ -28,8 +24,8 @@ import { add, remove, storefront, checkmarkCircle } from 'ionicons/icons';
 export class ProdottiPage implements OnInit, OnDestroy, ViewWillEnter {
 
   // Data state
-  private dataState: SupermarketDataState = this.homeService.createDataState();
-  private animationState: AnimationState = this.homeService.createAnimationState();
+  private dataState: SupermarketDataState = this.homeService.ui.createDataState();
+  private animationState: AnimationState = this.homeService.ui.createAnimationState();
   
   // Supermarket data
   selectedSupermarket: Supermarket | null = null;
@@ -41,8 +37,6 @@ export class ProdottiPage implements OnInit, OnDestroy, ViewWillEnter {
 
   constructor(
     private homeService: HomeService,
-    private carrelloService: CarrelloService,
-    private prodottiService: ProdottiService,
     private router: Router,
   ) { 
     addIcons({ add, remove, storefront, checkmarkCircle });
@@ -55,7 +49,7 @@ export class ProdottiPage implements OnInit, OnDestroy, ViewWillEnter {
 
   async ionViewWillEnter() {
     // Refresh data when entering the page
-    const currentSupermarket = this.homeService.getSelectedSupermarket();
+    const currentSupermarket = this.homeService.supermarkets.getSelectedSupermarket();
     if (currentSupermarket && currentSupermarket !== this.selectedSupermarket) {
       this.selectedSupermarket = currentSupermarket;
       await this.loadSupermarketData();
@@ -66,18 +60,18 @@ export class ProdottiPage implements OnInit, OnDestroy, ViewWillEnter {
   // Initialize subscriptions
   private initializeSubscriptions() {
     // Subscribe to selected supermarket changes
-    this.homeService.selectedSupermarket$.subscribe(async supermarket => {
+    this.homeService.supermarkets.selectedSupermarket$.subscribe(async (supermarket: Supermarket | null) => {
       this.selectedSupermarket = supermarket;
       if (supermarket) {
         await this.loadSupermarketData();
       } else {
-        this.homeService.clearSupermarketData(this.dataState);
+        this.homeService.ui.clearSupermarketData(this.dataState);
       }
       this.loadQuantitiesFromCart();
     });
 
     // Load initial data if a supermarket is already selected
-    const currentSupermarket = this.homeService.getSelectedSupermarket();
+    const currentSupermarket = this.homeService.supermarkets.getSelectedSupermarket();
     if (currentSupermarket) {
       this.selectedSupermarket = currentSupermarket;
       this.loadSupermarketData();
@@ -160,7 +154,7 @@ export class ProdottiPage implements OnInit, OnDestroy, ViewWillEnter {
       
       const allProducts = [...result.products, ...result.offerProducts];
       if (allProducts.length > 0) {
-        await this.homeService.loadImagesForLoadedProducts(allProducts);
+        await this.homeService.products.loadImagesForLoadedProducts(allProducts);
       }
       
       // Aggiorna le categorie
@@ -173,13 +167,13 @@ export class ProdottiPage implements OnInit, OnDestroy, ViewWillEnter {
   }
   
   private updateCategories(products: Product[]): void {
-    const categories = this.homeService.generateCategories(products);
-    this.homeService.updateCategories(this.dataState, categories);
+    const categories = this.homeService.products.generateCategories(products);
+    this.homeService.ui.updateCategories(this.dataState, categories);
   }
 
   private loadAvailableQuantities(): void {
     if (!this.selectedSupermarket) return;
-    this.availableQuantities = this.homeService.getAvailableQuantities(this.selectedSupermarket.id);
+    this.availableQuantities = this.homeService.ui.getAvailableQuantities(this.selectedSupermarket.id);
   }
 
   // Getters
@@ -193,21 +187,21 @@ export class ProdottiPage implements OnInit, OnDestroy, ViewWillEnter {
   get displayOfferProducts() { return this.filteredOfferProducts.slice(0, 8); }
   get filteredProducts() {
     const allProducts = [...this.products, ...this.offerProducts];
-    return this.homeService.filterProductsByCategory(allProducts, this.selectedCategory);
+    return this.homeService.products.filterProductsByCategory(allProducts, this.selectedCategory);
   }
   get filteredOfferProducts() {
-    return this.homeService.filterProductsByCategory(this.offerProducts, this.selectedCategory);
+    return this.homeService.products.filterProductsByCategory(this.offerProducts, this.selectedCategory);
   }
   get canCreateContent() { return this.homeService.isUserAdmin() || this.homeService.isUserManager(); }
   getDisplayPrice(product: Product): number {
-    return this.homeService.getDisplayPrice(product); 
+    return this.homeService.products.getDisplayPrice(product); 
   }
   getOriginalPrice(product: Product): number | null {
-    return this.homeService.getOriginalPrice(product);
+    return this.homeService.products.getOriginalPrice(product);
   }
 
   private updateQuantity(barcode: string, amount: number) {
-    const result = this.homeService.updateQuantity(this.quantities, barcode, amount, this.availableQuantities);
+    const result = this.homeService.ui.updateQuantity(this.quantities, barcode, amount, this.availableQuantities);
     this.quantities = result.quantities;
     
     // Non mostrare più alert quando si raggiunge il limite - il pulsante è disabilitato
@@ -215,7 +209,7 @@ export class ProdottiPage implements OnInit, OnDestroy, ViewWillEnter {
     const product = this.findProductByBarcode(barcode);
     if (product && this.selectedSupermarket) {
       const quantity = this.quantities[barcode] || 0;
-      this.carrelloService.updateCartItem(product, this.selectedSupermarket, quantity);
+      this.homeService.cart.updateCartItem(product, this.selectedSupermarket, quantity);
     }
   }
 
@@ -231,10 +225,10 @@ export class ProdottiPage implements OnInit, OnDestroy, ViewWillEnter {
     this.quantities = {};
     if (!this.selectedSupermarket) return;
 
-    const cartItems = this.carrelloService.getCartItems();
+    const cartItems = this.homeService.cart.getCartItems();
     cartItems
-      .filter(item => item.supermarketId === this.selectedSupermarket!.id)
-      .forEach(item => {
+      .filter((item: any) => item.supermarketId === this.selectedSupermarket!.id)
+      .forEach((item: any) => {
         this.quantities[item.barcode] = item.quantity;
       });
   }
@@ -247,20 +241,20 @@ export class ProdottiPage implements OnInit, OnDestroy, ViewWillEnter {
   decrementQuantity(barcode: string) { this.updateQuantity(barcode, -1); }
   
   onIncrementPress(barcode: string) { 
-    this.homeService.startQuantityTimer(barcode, true, this.updateQuantity.bind(this));
+    this.homeService.ui.startTimer(barcode, true, this.updateQuantity.bind(this));
   }
   
   onDecrementPress(barcode: string) { 
-    this.homeService.startQuantityTimer(barcode, false, this.updateQuantity.bind(this));
+    this.homeService.ui.startTimer(barcode, false, this.updateQuantity.bind(this));
   }
   
   onButtonRelease() { 
-    this.homeService.clearQuantityTimer();
+    this.homeService.ui.clearTimer();
   }
   
   onCategorySelect(categoryName: string) {
-    this.homeService.setSelectedCategory(this.dataState, categoryName);
-    this.homeService.startCategoryAnimation(this.displayProducts, this.animationState);
+    this.homeService.ui.setSelectedCategory(this.dataState, categoryName);
+    this.homeService.ui.showCategoryProducts(this.displayProducts, this.animationState);
   }
   
   handleImageError(event: any, category: string): void {

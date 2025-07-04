@@ -4,10 +4,7 @@
 
 export const environment = {
   production: false,
-  apiUrls: [
-    'http://192.168.186.155:5000', // IP attuale
-    'http://localhost:5000'       // Localhost fallback
-  ]
+  apiUrl: 'http://192.168.60.245:5000'
 };
 
 /*

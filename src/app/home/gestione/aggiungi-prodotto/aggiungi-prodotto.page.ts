@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Location } from '@angular/common';
 import { Router } from '@angular/router';
-import { HomeService, Product, Category } from '../../home.service';
+import { HomeService, Product, Category, SupermarketDataState, AnimationState } from '../../../services/home/home.service';
 import { AuthService } from '../../../auth/auth.service';
 import { 
   IonContent, IonIcon, IonImg, IonBadge, IonFabButton, IonButton, IonHeader, IonToolbar, IonButtons, IonTitle, IonInput, IonList, IonItem, IonLabel, IonThumbnail, IonSpinner
@@ -14,9 +14,6 @@ import { AlertController } from '@ionic/angular/standalone';
 import { HttpClient } from '@angular/common/http';
 import { ApiConfig } from '../../../config/api.config';
 import { ActivatedRoute } from '@angular/router';
-
-import { ProdottiService } from '../../../services/prodotti/prodotti.service';
-import { SupermarketDataState, AnimationState } from '../../../services/ui/ui.service';
 
 @Component({
   selector: 'app-aggiungi-prodotto',
@@ -100,25 +97,19 @@ export class AggiungiProdottoPage implements OnInit, OnDestroy {
 
   async AddProduct() {
     if (this.isLoading) return;
-
     try {
       this.isLoading = true;
-      
-      // Get selected supermarket
-      const selectedSupermarket = this.homeService.getSelectedSupermarket();
+      const selectedSupermarket = this.homeService.supermarkets.getSelectedSupermarket();
+
       if (!selectedSupermarket) {
         throw new Error('Nessun supermercato selezionato');
       }
-
-      // Prepare products data
       const productsToAdd = this.selectedProducts.map(product => ({
         id: product.id,
         price: this.quantities[product.barcode] ? this.parseCurrency(product.price) : 0,
         quantity: this.quantities[product.barcode] || 0
       }));
-
-      // Add products to supermarket using HomeService
-      const response = await this.homeService.addProductsToSupermarket(selectedSupermarket.id, productsToAdd);
+      const response = await this.homeService.supermarkets.addProductsToSupermarket(selectedSupermarket.id, productsToAdd);
 
       if (response?.success) {
         this.showAlert('Prodotti aggiunti con successo!', 'Successo', 'checkmark-circle');
@@ -126,12 +117,10 @@ export class AggiungiProdottoPage implements OnInit, OnDestroy {
           this.router.navigate(['/home/dashboard']);
         }, 2000);
       } else {
-        throw new Error('Errore nell\'aggiunta dei prodotti');
+        throw new Error('Error on adding product');
       }
     } catch (error: any) {
-      console.error('Errore nell\'aggiunta dei prodotti:', error);
-      
-      // Handle different error types
+      console.error('Error on adding product:', error);
       let errorMessage = 'Errore nell\'aggiunta dei prodotti';
       if (error?.error?.error) {
         errorMessage = error.error.error;
@@ -156,7 +145,6 @@ export class AggiungiProdottoPage implements OnInit, OnDestroy {
   isLoading = false;
   SelectedProduct = false;
   selectedProducts: any[] = [];
-  dataState!: SupermarketDataState;
   showCustomAlert = false;
   alertType: 'success' | 'error' = 'success';
   alertIcon: string = '';
@@ -170,14 +158,19 @@ export class AggiungiProdottoPage implements OnInit, OnDestroy {
   // Scroll
   private scrollListeners: Array<{ element: Element; listener: EventListener }> = [];
 
+  // Stato per la gestione supermercati
+  dataState: SupermarketDataState;
+  animationState: AnimationState;
+
   constructor(
     private http: HttpClient,
     private alertController: AlertController,
-    private prodottiService: ProdottiService,
     private homeService: HomeService,
     private router: Router,
     private location: Location
   ) {
+    this.dataState = this.homeService.ui.createDataState();
+    this.animationState = this.homeService.ui.createAnimationState();
     addIcons({ add, remove, save });
   }
 
@@ -193,8 +186,8 @@ export class AggiungiProdottoPage implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
-    this.homeService.clearQuantityTimer();
-    this.homeService.removeScrollListeners(this.scrollListeners);
+    this.homeService.ui.clearTimer();
+    this.homeService.ui.removeScrollListeners(this.scrollListeners);
   }
 
   // Gestione prodotti
@@ -208,14 +201,14 @@ export class AggiungiProdottoPage implements OnInit, OnDestroy {
 
   private async loadProducts() {
     try {
-      const selectedSupermarket = this.homeService.getSelectedSupermarket();
+      const selectedSupermarket = this.homeService.supermarkets.getSelectedSupermarket();
       if (!selectedSupermarket) {
         throw new Error('Nessun supermercato selezionato');
       }
-      const allProducts = await this.prodottiService.loadDashboardProducts();
-      const supermarketProducts = await this.prodottiService.loadSupermarketProductsWithoutImages(selectedSupermarket.id);
-      const supermarketProductIds = new Set(supermarketProducts.map(p => p.id));
-      this.allProducts = allProducts.filter(product => !supermarketProductIds.has(product.id));
+      const allProducts = await this.homeService.products.loadDashboardProducts();
+      const supermarketProducts = await this.homeService.products.loadSupermarketProducts(selectedSupermarket.id, false);
+      const supermarketProductIds = new Set(supermarketProducts.map((p: any) => p.id));
+      this.allProducts = allProducts.filter((product: any) => !supermarketProductIds.has(product.id));
       this.setupCategories();
       this.onCategorySelect('');
     } catch (error) {
@@ -233,7 +226,7 @@ export class AggiungiProdottoPage implements OnInit, OnDestroy {
       if (!categoryMap.has(product.category)) {
         categoryMap.set(product.category, {
           name: product.category,
-          icon: this.prodottiService.getCategoryIcon(product.category),
+          icon: this.homeService.products.getCategoryIcon(product.category),
           count: 1
         });
       } else {
@@ -276,21 +269,21 @@ export class AggiungiProdottoPage implements OnInit, OnDestroy {
   decrementQuantity(barcode: string) { this.updateQuantity(barcode, -1); }
   
   onIncrementPress(barcode: string) { 
-    this.homeService.startQuantityTimer(barcode, true, this.updateQuantity.bind(this));
+    this.homeService.ui.startTimer(barcode, true, this.updateQuantity.bind(this));
   }
   
   onDecrementPress(barcode: string) { 
-    this.homeService.startQuantityTimer(barcode, false, this.updateQuantity.bind(this));
+    this.homeService.ui.startTimer(barcode, false, this.updateQuantity.bind(this));
   }
   
   onButtonRelease() { 
-    this.homeService.clearQuantityTimer();
+    this.homeService.ui.clearTimer();
   }
 
   private updateQuantity(barcode: string, amount: number) {
     // Per la gestione prodotti, non applichiamo limiti rigidi di disponibilità
     // poiché i manager stanno aggiungendo prodotti al loro inventario
-    const result = this.homeService.updateQuantity(this.quantities, barcode, amount);
+    const result = this.homeService.ui.updateQuantity(this.quantities, barcode, amount);
     this.quantities = { ...result.quantities };
     this.updateSelectedProductStatus();
   }
@@ -311,11 +304,11 @@ export class AggiungiProdottoPage implements OnInit, OnDestroy {
 
   // UI
   private setupHorizontalScroll(): void {
-    this.homeService.removeScrollListeners(this.scrollListeners);
+    this.homeService.ui.removeScrollListeners(this.scrollListeners);
     this.scrollListeners = [];
     
     const scrollableContainers = '.products-container, .categories-container';
-    this.scrollListeners = this.homeService.setupHorizontalScroll(scrollableContainers);
+    this.scrollListeners = this.homeService.ui.setupHorizontalScroll(scrollableContainers);
   }
 
   handleImageError(event: any, category: string): void {
@@ -333,7 +326,7 @@ export class AggiungiProdottoPage implements OnInit, OnDestroy {
   }
 
   private generateCategories() {
-    const categories = this.homeService.generateCategories(this.allProducts);
-    this.homeService.updateCategories(this.dataState, categories);
+    const categories = this.homeService.products.generateCategories(this.allProducts);
+    this.homeService.ui.updateCategories(this.dataState, categories);
   }
 }
