@@ -1,36 +1,23 @@
 @use '../../../theme/mixins.scss' as *;
 
+// COMPONENTI UI GLOBALI
 @include loading-spinner;
 @include add-button;
 @include quantity-block;
 @include custom-alert-system;
 
+// LAYOUT CARDS E PRODOTTI
+@include supermarket-card-base;
+@include create-card-with-content;
+@include standard-product-card-layout;
+@include products-horizontal-scroll;
 
-// === RESPONSIVE LAYOUT ===
-.desktop-layout {
-  display: block;
-  
-  @media (max-width: 991px) {
-    display: none;
-  }
-}
+// LAYOUT E CONTENITORI GENERALI
+@include category-block;
 
-.mobile-layout {
-  display: none;
-  
-  @media (max-width: 991px) {
-    display: block;
-  }
-}
-
-// === DASHBOARD LAYOUT ===
-.dashboard-container {
-  margin: 0 auto;
-  @include container-padding;
-}
-
-// === MAP SECTION ===
-.map-section {
+// SEZIONI COLLAPSIBILI E MAPPE
+.map-section,
+.collapsible-section {
   @include card-base;
   margin-bottom: 15px;
   
@@ -63,41 +50,13 @@
       flex: 1;
     }
   }
-  
+
   .content {
     max-height: 0;
     overflow: hidden;
     transition: $transition-smooth;
-    
-    .map {
-      height: 400px;
-      position: relative;
-      
-      #map {
-        width: 100%;
-        height: 100%;
-      }  
-      .geo-btn {
-        position: absolute;
-        top: 12px;
-        right: 12px;
-        z-index: 1000;
-        
-        ion-button {
-          --border-radius: 50%;
-          --box-shadow: $box-shadow-light;
-          width: 44px;
-          height: 44px;
-          margin: 0;
-          @include button-hover-scale;
-          ion-icon {
-            font-size: 20px;
-          }
-        }
-      }
-    }
   }
-  
+
   &:hover:not(.expanded) {
     @include hover-lift;
   }
@@ -126,7 +85,42 @@
   }
 }
 
-// === SUPERMARKET SELECTION ===
+// CONFIGURAZIONE MAPPA
+.map-section {
+  .content {
+    .map {
+      height: 400px;
+      position: relative;
+      
+      #map {
+        width: 100%;
+        height: 100%;
+      }  
+      
+      .geo-btn {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        z-index: 1000;
+        
+        ion-button {
+          --border-radius: 50%;
+          --box-shadow: $box-shadow-light;
+          width: 44px;
+          height: 44px;
+          margin: 0;
+          @include button-hover-scale;
+          
+          ion-icon {
+            font-size: 20px;
+          }
+        }
+      }
+    }
+  }
+}
+
+// SELEZIONE SUPERMERCATI
 .supermarket-selection {
   margin-bottom: 32px;
   transition: $transition-smooth;
@@ -142,6 +136,7 @@
 
 .selection-header {
   margin-bottom: 5px;
+  
   h2 {
     margin: 0;
     color: var(--ion-color-primary);
@@ -168,8 +163,6 @@
   color: var(--ion-color-primary);
 }
 
-
-
 .sort-indicator {
   margin: 0;
   font-size: 12px;
@@ -183,8 +176,30 @@
     color: var(--ion-color-primary);
   }
 }
+// LAYOUT RESPONSIVO
+.desktop-layout {
+  display: block;
+  
+  @media (max-width: 991px) {
+    display: none;
+  }
+}
 
-// === SUPERMARKET CONTAINERS & CARDS ===
+.mobile-layout {
+  display: none;
+  
+  @media (max-width: 991px) {
+    display: block;
+  }
+}
+
+// LAYOUT DASHBOARD
+.dashboard-container {
+  margin: 0 auto;
+  @include container-padding;
+}
+
+// CARDS SUPERMERCATI
 .supermarkets-container {
   @include horizontal-scroll;
   @include hide-scrollbar;
@@ -204,7 +219,6 @@
   display: flex;
   align-items: center;
 
-  // === Child Elements ===
   .selected-icon {
     position: absolute;
     top: 12px;
@@ -256,6 +270,7 @@
     .supermarket-card.selected & h4 {
       color: var(--ion-color-primary);
     }
+    
     .distance {
       display: flex;
       align-items: center;
@@ -277,14 +292,16 @@
   }
 }
 
-// === CREATE CARDS ===
+// CARDS CREAZIONE
 .supermarket-card.create-card {
   @include create-card-base;
+  
   .create-card-content {
     display: flex;
     align-items: center;
     width: 100%;
     padding: 16px;
+    
     .create-icon {
       @include create-card-icon;
       width: 80px;
@@ -292,6 +309,7 @@
       margin-right: 16px;
       flex-shrink: 0;
     }
+    
     .create-info {
       @include create-card-info;
       flex: 1;
@@ -301,50 +319,35 @@
 
 .product-card.create-product-card {
   @include create-card-base;
+  
   .product-info {
     @include create-card-info;
   }
+  
   .create-product-image{
     @include create-card-icon;
   }
 }
 
-.product-card.create-product-card {
-  @include create-card-base;
-  .product-info {
-    @include create-card-info;
-  }
-  .create-product-image{
-    @include create-card-icon;
-  }
-}
-
-
-
-// === SECTIONS ===
+// SEZIONI GENERALI
 .section {
   @include section-spacing;
   
   h3 {
-    margin: 0 0 16px 0;
-    font-size: 20px;
-    font-weight: 600;
-    color: var(--ion-color-dark);
+    @include heading-base($size: 20px, $margin-bottom: 16px);
   }
 }
 
-// === CATEGORIES ===
-@include category-block;
+// CATEGORIE
 .categories-section h3 {
   margin-bottom: 8px;
 }
 
-// === PRODUCT CARD ===
+// CARDS PRODOTTI
 .product-card {
   position: relative;
   padding-bottom: 15px;
   @include product-card-base;
-
 }
 
 .product-image-container {
@@ -382,14 +385,12 @@
   }
 }
 
-// Bottom controls container
 .bottom-controls {
   position: absolute;
   left: 0;
   right: 0;
   bottom: 0;
   
-  // Price container
   .price-container {
     padding: 8px 3px;
     
@@ -398,6 +399,7 @@
       font-weight: 700;
       color: var(--ion-color-primary);
     }
+    
     .original-price {
       font-size: 12px;
       color: var(--ion-color-medium);
@@ -405,7 +407,6 @@
     }
   }
   
-  // Quantity block
   .quantity-block {
     justify-content: right;
     padding: 4px;
@@ -415,6 +416,7 @@
       width: 27px;
       height: 27px;
       margin: 0 1px;
+      
       ion-icon {
         font-size: 15px;
       }
@@ -427,7 +429,7 @@
   }
 }
 
-// === PRODUCTS ===
+// CONTENITORI PRODOTTI
 .products-container {
   @include horizontal-scroll;
   @include hide-scrollbar;
@@ -470,52 +472,14 @@
     min-width: 0;
   }
 }
-
-.product-card {
-  @include product-card-base;
-
-}
-
-.product-image-container {
-  @include product-image-container;
-}
-
-.discount-badge {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  --background: var(--ion-color-danger);
-  --color: white;
-  font-weight: 600;
-  font-size: 20px;
-}
-
-.product-info {
-  padding: 12px;
-  
-  h4 {
-    margin: 0 0 8px 0;
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--ion-color-dark);
-    line-height: 1.2;
-    @include text-truncate(2);
-  }
-  
-  .create-description {
-    margin: 0 0 12px 0;
-    font-size: 12px;
-    color: var(--ion-color-medium);
-    line-height: 1.3;
-    @include text-truncate(2);
-  }
-}
-
-
-
-// === PURCHASE HISTORY ===
+// STORICO ACQUISTI
 .history-section {
   width: 300px;
+  
+  @media (max-width: 768px) {
+    display: none;
+  }
+
   .history-list {
     margin-top: 7px;
     @include card-base;
@@ -524,7 +488,6 @@
     flex-direction: column;
     max-height: 225px;
     overflow-y: auto;
-    
     @include custom-scrollbar;
   }
 
@@ -535,24 +498,24 @@
 
   .history-item {
     padding: 10px;
-    margin-bottom: 5px;
-    border-bottom: 1px solid var(--ion-color-light);
     margin-bottom: 12px;
     padding-bottom: 12px;
+    border-bottom: 1px solid var(--ion-color-light);
+    display: flex;
+    align-items: flex-start;
     
     &:last-child {
       border-bottom: none;
       margin-bottom: 0;
       padding-bottom: 0;
     }
-    display: flex;
-    align-items: flex-start;
 
     .history-button {
       position: absolute;
       margin: 18px 180px;
       width: 32px;
       height: 32px;
+      
       ion-icon {
         font-size: 20px;
       }
@@ -583,6 +546,7 @@
       font-weight: 500;
       color: var(--ion-color-primary);
     }
+    
     .purchase-date {
       font-size: 11px;
       color: var(--ion-color-medium-shade);
@@ -598,7 +562,7 @@
     }
   
     p {
-      margin: 0 0 0px 0;
+      margin: 0;
       font-size: 12px;
       color: var(--ion-color-medium);
       line-height: 1.3;
@@ -607,10 +571,10 @@
   
     .price-quantity-container {
       margin-left: auto;
+      
       .price-container {
         display: flex;
         align-items: center;
-        margin-top: 0px;
         flex-direction: column;
         gap: 2px;
     
@@ -625,14 +589,17 @@
           color: var(--ion-color-medium);
         }
       }
+      
       .quantity-block {
         position: relative;
-        padding: 0 0;
+        padding: 0;
+        
         .quantity-button {
           --box-shadow: none;
           width: 27px;
           height: 27px;
           margin: 0 1px;
+          
           ion-icon {
             font-size: 15px;
           }
@@ -640,13 +607,10 @@
     
         .quantity-label {
           width: 40px;
-          margin: 0 0;
+          margin: 0;
         }
       }
     }
-  }
-  @media (max-width: 768px) {
-    display: none;
   }
 
   .no-history {
@@ -696,12 +660,12 @@
   }
 }
 
-// === EMPTY STATE ===
+// STATO VUOTO
 .empty-state {
   @include empty-state-supermarket;
 }
 
-// === MOBILE RESPONSIVE ===
+// RESPONSIVE MOBILE
 @include mobile-responsive {
   .dashboard-container {
     padding: 8px;
@@ -755,7 +719,6 @@
     margin-bottom: 8px;
   }
   
-  
   .distance,
   .offers-count {
     font-size: 11px;
@@ -789,8 +752,34 @@
     }
   }
   
+  .product-card {
+    min-width: 130px;
+    max-width: 150px;
+    max-height: 200px;
+  }
+  
+  .product-image-container {
+    height: 100px;
+  }
+  
+  .product-info {
+    padding: 10px;
+    
+    h4 {
+      font-size: 13px;
+    }
+    
+    .create-description {
+      font-size: 11px;
+    }
+    
+    .current-price {
+      font-size: 14px;
+    }
+  }
+  
   .bottom-controls {
-    padding: 0px 0px;
+    padding: 0;
     
     .price-container {
       .current-price {
@@ -819,32 +808,6 @@
         height: 24px;
         font-size: 13px;
       }
-    }
-  }
-  
-  .product-card {
-    min-width: 130px;
-    max-width: 150px;
-    max-height: 200px;
-  }
-  
-  .product-image-container {
-    height: 100px;
-  }
-  
-  .product-info {
-    padding: 10px;
-    
-    h4 {
-      font-size: 13px;
-    }
-    
-    .create-description {
-      font-size: 11px;
-    }
-    
-    .current-price {
-      font-size: 14px;
     }
   }
   

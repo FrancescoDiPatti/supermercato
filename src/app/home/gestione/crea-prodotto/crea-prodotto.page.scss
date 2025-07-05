@@ -1,32 +1,45 @@
 @use '../../../../theme/mixins.scss' as *;
 
+// LAYOUT E CONTENITORI GENERALI
 @include create-container;
 @include create-content;
 @include header-content;
 @include char-counter;
 @include form-item;
+
+
+//HEADER MINIMAL
+@include minimal-header;
+
+// COMPONENTI CARD E LAYOUT
 @include create-card;
+
+// RICERCA E RISULTATI
 @include search-loading;
 @include search-no-results;
 @include search-results-list;
+
+// SISTEMA UI E INTERAZIONI
 @include custom-alert-system;
 @include action-buttons;
-@include common-animations;
-@include responsive-create-page;
+@include section-header;
 
-// ===== SEARCH SECTION =====
+// RICERCA PRODOTTI
 .search-section {
   margin-bottom: 24px;
+  
   h3 {
     margin: 0 0 8px 0;
     font-size: 18px;
     font-weight: 600;
     color: var(--ion-color-dark);
   }
+  
   .green-search-icon {
     --icon-color: var(--ion-color-primary);
   }
 }
+
 .search-container {
   ion-searchbar {
     --background: var(--ion-color-light);
@@ -37,14 +50,32 @@
   }
 }
 
-// ===== SEARCH RESULTS SECTION =====
-.search-results-section {
-  margin-bottom: 24px;
+.search-input-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  
+  ion-searchbar {
+    flex: 1;
+  }
+  
+  ion-button {
+    --padding-start: 8px;
+    --padding-end: 8px;
+    margin: 0;
+    
+    ion-icon {
+      font-size: 18px;
+      color: var(--ion-color-primary);
+    }
+  }
 }
 
-// ===== SELECTED PRODUCT =====
+// PRODOTTO SELEZIONATO
+
 .selected-product {
   margin-bottom: 20px;
+  
   .product-preview {
     background: var(--ion-color-light);
     margin: 0;
@@ -59,17 +90,20 @@
         --size: 60px;
         --border-radius: 8px;
       }
+      
       .product-preview-info {
         h4 {
           margin: 0 0 4px 0;
           font-size: 16px;
           font-weight: 500;
         }
+        
         p {
           margin: 0 0 4px 0;
           font-size: 14px;
           color: var(--ion-color-medium);
         }
+        
         ion-note {
           font-size: 12px;
           color: var(--ion-color-medium);
@@ -79,27 +113,16 @@
   }
 }
 
-// ===== FORM SECTION =====
-.form-section {
+// SEZIONI CONTENUTO
+.search-results-section {
   margin-bottom: 24px;
-  .section-header {
-    margin-bottom: 16px;
-    h3 {
-      margin: 0 0 4px 0;
-      font-size: 18px;
-      font-weight: 600;
-      color: var(--ion-color-dark);
-    }
-    p {
-      margin: 0;
-      font-size: 14px;
-      color: var(--ion-color-medium);
-      line-height: 1.4;
-    }
-  }
 }
 
-// ===== CATEGORY SECTION =====
+.form-section {
+  margin-bottom: 24px;
+}
+
+// CATEGORIE
 .category-section {
   margin-bottom: 32px;
   
@@ -201,29 +224,7 @@
   }
 }
 
-// ===== SEARCH INPUT CONTAINER =====
-.search-input-container {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  
-  ion-searchbar {
-    flex: 1;
-  }
-  
-  ion-button {
-    --padding-start: 8px;
-    --padding-end: 8px;
-    margin: 0;
-    
-    ion-icon {
-      font-size: 18px;
-      color: var(--ion-color-primary);
-    }
-  }
-}
-
-// ===== RATE LIMIT ALERT =====
+// ALERT RATE LIMIT
 .rate-limit-alert {
   position: fixed;
   top: 50px;
@@ -275,7 +276,7 @@
   }
 }
 
-// Animation for rate limit alert
+// ANIMAZIONI
 .rate-limit-alert {
   animation: slideInDown 0.3s ease-out;
 }
@@ -287,7 +288,6 @@
   }
   to {
     transform: translateX(-50%) translateY(0);
-     opacity: 1;
+    opacity: 1;
   }
 }
-

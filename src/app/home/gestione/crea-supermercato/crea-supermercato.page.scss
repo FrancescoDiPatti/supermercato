@@ -1,66 +1,27 @@
 @use '../../../../theme/mixins.scss' as *;
 
+// LAYOUT E CONTENITORI GENERALI
 @include create-container;
 @include create-content;
 @include header-content;
 @include char-counter;
 @include form-item;
+
+// COMPONENTI CARD E LAYOUT
 @include create-card;
+
+// RICERCA E RISULTATI
 @include search-loading;
 @include search-no-results;
 @include search-results-list;
+@include search-result-item;
+
+// SISTEMA UI E INTERAZIONI
 @include custom-alert-system;
 @include action-buttons;
-@include common-animations;
+
+//HEADER MINIMAL
+@include minimal-header;
+
+// RESPONSIVE DESIGN
 @include responsive-create-page;
-
-.search-result {
-  margin: 16px 0 24px 0;
-  
-  .result-item {
-    --background: rgba(var(--ion-color-success-rgb), 0.05);
-    --border-radius: 12px;
-    border-radius: 12px;
-    border: 1px solid rgba(var(--ion-color-success-rgb), 0.2);
-    
-    ion-label {
-      h3 {
-        color: var(--ion-color-success);
-        font-weight: 600;
-        margin: 0 0 4px 0;
-        font-size: 14px;
-      }
-      
-      p {
-        margin: 4px 0;
-        font-size: 13px;
-        color: var(--ion-color-dark);
-        line-height: 1.4;
-        
-        &.coordinates {
-          color: var(--ion-color-medium);
-          font-size: 12px;
-          font-family: monospace;
-        }
-      }
-    }
-  }
-}
-
-.user-info {
-  background: rgba(var(--ion-color-light-rgb), 0.5);
-  border-radius: 12px;
-  padding: 16px;
-  margin: 16px 0 24px 0;
-  
-  p {
-    margin: 4px 0;
-    font-size: 13px;
-    
-    strong {
-      color: var(--ion-color-dark);
-    }
-  }
-}
-
-

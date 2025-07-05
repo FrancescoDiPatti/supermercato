@@ -1,33 +1,95 @@
-// === SHARED VARIABLES ===
+// ===================================================================
+// SHARED VARIABLES
+// ===================================================================
+
+// Border radius values
 $border-radius-lg: 16px;
 $border-radius-md: 12px;
 $border-radius-sm: 8px;
 $border-radius-xs: 4px;
 
+// Box shadow definitions
 $box-shadow-subtle: 0 2px 8px rgba(0, 0, 0, 0.1);
 $box-shadow-light: 0 4px 12px rgba(0, 0, 0, 0.05);
 $box-shadow-medium: 0 0px 12px rgba(0, 0, 0, 0.08);
 
-$transition-slow: all 0.5s ease;
+// Transition effects
 $transition-smooth: all 0.3s ease;
-$transition-fast: all 0.2s ease;
 
-$padding-lg: 20px;
+// Spacing values
 $padding-md: 16px;
 $padding-sm: 12px;
 $padding-xs: 8px;
 
 $gap-lg: 16px;
-$gap-md: 12px;
-$gap-sm: 8px;
-$gap-xs: 4px;
 
-// === BREAKPOINTS ===
+// Responsive breakpoints
 $breakpoint-mobile: 576px;
 $breakpoint-tablet: 768px;
-$breakpoint-small-mobile: 480px;
 
-// CARD
+// ===================================================================
+// CORE LAYOUT MIXINS
+// ===================================================================
+
+// Flex utilities
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+// Text utilities
+@mixin text-truncate($lines: 2) {
+  display: -webkit-box;
+  -webkit-line-clamp: $lines;
+  line-clamp: $lines;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+// Common heading styles
+@mixin heading-base($size: 18px, $margin-bottom: 4px) {
+  margin: 0 0 $margin-bottom 0;
+  font-size: $size;
+  font-weight: 600;
+  color: var(--ion-color-dark);
+}
+
+// Responsive utilities
+@mixin mobile-responsive {
+  @media (max-width: $breakpoint-mobile) {
+    @content;
+  }
+}
+
+@mixin tablet-responsive {
+  @media (max-width: $breakpoint-tablet) {
+    @content;
+  }
+}
+
+// Spacing utilities
+@mixin section-spacing {
+  margin-bottom: 0px;
+  
+  @include mobile-responsive {
+    margin-bottom: 20px;
+  }
+}
+
+@mixin container-padding {
+  padding: $padding-md;
+  
+  @include mobile-responsive {
+    padding: $padding-xs;
+  }
+}
+
+// ===================================================================
+// CARD MIXINS
+// ===================================================================
+
+// Base cards
 @mixin card-base {
   background: white;
   border-radius: $border-radius-lg;
@@ -44,12 +106,13 @@ $breakpoint-small-mobile: 480px;
   transition: $transition-smooth;
 }
 
-// CREATE CARD
+// Create cards
 @mixin create-card-base {
   border: 2px dashed var(--ion-color-primary);
   background: white;
   cursor: pointer;
   @include hover-lift;
+  
   &:hover {
     border-color: var(--ion-color-primary-shade);
   }
@@ -85,19 +148,65 @@ $breakpoint-small-mobile: 480px;
   }
 }
 
-@mixin create-product-card {
-  .product-image-container {
-    @include product-image-container;
-  }
+// Product cards
+@mixin product-card-base($min-width: 160px, $max-width: 180px) {
+  @include card-base;
+  min-width: $min-width;
+  max-width: $max-width;
+  position: relative;
   
-  .product-info {
-    @include create-card-info;
-    padding: 12px;
+  @include hover-lift;
+}
+
+@mixin product-image-container($height: 120px) {
+  position: relative;
+  height: $height;
+  padding: $padding-sm;
+  
+  .image-wrapper {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    border-radius: $border-radius-md;
+    background: var(--ion-color-light);
+    
+    ion-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
   }
 }
 
-// ADD BUTTON
-@mixin add-button{
+// ===================================================================
+// BUTTON MIXINS
+// ===================================================================
+
+// Button interactions
+@mixin button-hover-scale {
+  &:hover {
+    transform: scale(1.05);
+  }
+}
+
+// Quantity button base
+@mixin quantity-button-base($size: 30px, $icon-size: 10px, $margin: 0) {
+  --background: var(--ion-color-primary);
+  --color: white;
+  --box-shadow: none;
+  width: $size;
+  height: $size;
+  border-radius: 50%;
+  margin: $margin;
+  @include button-hover-scale;
+  
+  ion-icon {
+    font-size: $icon-size;
+  }
+}
+
+// Add button
+@mixin add-button {
   .add-button {
     position: absolute;
     bottom: 0;
@@ -116,8 +225,46 @@ $breakpoint-small-mobile: 480px;
   }
 }
 
-// CATEGORIES
-@mixin category-block{
+// Action buttons
+@mixin action-buttons {
+  .submit-section {
+    display: flex;
+    flex-direction: column;
+    gap: $padding-sm;
+    margin-top: 24px;
+    
+    .submit-button {
+      --border-radius: #{$border-radius-md};
+      --box-shadow: 0 4px 12px rgba(var(--ion-color-primary-rgb), 0.3);
+      height: 48px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+
+      span {
+        color: white;
+      }
+      
+      &:hover:not([disabled]) {
+        --box-shadow: 0 0px 10px rgba(var(--ion-color-primary-rgb), 0.4);
+        transform: translateY(-1px);
+      }
+      
+      &[disabled] {
+        opacity: 0.6;
+        --box-shadow: none;
+      }
+      
+      ion-icon, ion-spinner {
+        margin-right: 8px;
+      }  
+    }
+  }
+}
+
+// ===================================================================
+// CATEGORY MIXINS
+// ===================================================================
+@mixin category-block {
   .categories-section .categories-container {
     @include horizontal-scroll;
     @include hide-scrollbar;
@@ -137,11 +284,13 @@ $breakpoint-small-mobile: 480px;
     margin: 6px;
     
     @include hover-lift;
+    
     &:hover {
       .category-icon ion-img {
         transform: scale(1.1);
       }
     }
+    
     &.selected {
       background: var(--ion-color-primary);
       color: white;
@@ -185,7 +334,36 @@ $breakpoint-small-mobile: 480px;
   }
 }
 
-// ANIMATION
+// ===================================================================
+// ANIMAZIONI E TRANSIZIONI
+// ===================================================================
+
+@mixin float-animation {
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+}
+
+@mixin pulse-animation {
+  @keyframes pulse {
+    0% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.05);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+}
+
+
 @mixin hover-lift {
   &:hover {
     background: rgba(var(--ion-color-primary-rgb), 0.08);
@@ -194,8 +372,8 @@ $breakpoint-small-mobile: 480px;
   }
 }
 
-@mixin select-animation{
-    &.selected {
+@mixin select-animation {
+  &.selected {
     border: 2px solid var(--ion-color-primary);
     transform: translateY(-2px) scale(1.05);
     background: rgba(var(--ion-color-primary-rgb), 0.05);
@@ -203,70 +381,13 @@ $breakpoint-small-mobile: 480px;
   }
 }
 
-@mixin button-hover-scale {
-  &:hover {
-    transform: scale(1.05);
-  }
-}
-
-// RESPONSIVE
-@mixin mobile-responsive {
-  @media (max-width: $breakpoint-mobile) {
-    @content;
-  }
-}
-
-@mixin tablet-responsive {
-  @media (max-width: $breakpoint-tablet) {
-    @content;
-  }
-}
-
-@mixin small-mobile-responsive {
-  @media (max-width: $breakpoint-small-mobile) {
-    @content;
-  }
-}
-
-@mixin text-truncate($lines: 2) {
-  display: -webkit-box;
-  -webkit-line-clamp: $lines;
-  line-clamp: $lines;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-@mixin flex-center {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-@mixin flex-start {
-  display: flex;
-  align-items: center;
-}
-
-@mixin section-spacing {
-  margin-bottom: 0px;
-  
-  @include mobile-responsive {
-    margin-bottom: 20px;
-  }
-}
-
-@mixin container-padding {
-  padding: $padding-md;
-  
-  @include mobile-responsive {
-    padding: $padding-xs;
-  }
-}
-
-// === SCROLL MIXINS ===
+// ===================================================================
+// SCROLL MIXINS
+// ===================================================================
 @mixin custom-scrollbar {
   -webkit-overflow-scrolling: touch;
   will-change: scroll-position;
+  
   &::-webkit-scrollbar {
     width: 8px;
   }
@@ -276,7 +397,8 @@ $breakpoint-small-mobile: 480px;
     border-radius: 4px;
     margin: 8px 0;
   }
-    &::-webkit-scrollbar-thumb {
+  
+  &::-webkit-scrollbar-thumb {
     background: var(--ion-color-primary);
     border-radius: 4px;
     
@@ -294,34 +416,6 @@ $breakpoint-small-mobile: 480px;
   }
 }
 
-// === ANIMATION MIXINS ===
-@mixin fade-in-animation {
-  animation: fadeIn 0.3s ease-out forwards;
-}
-
-
-
-@mixin pulse-animation {
-  animation: iconPulse 0.6s ease-out;
-}
-
-// === LAYOUT MIXINS ===
-@mixin grid-responsive($columns: 3, $gap: $gap-lg) {
-  display: grid;
-  grid-template-columns: repeat($columns, 1fr);
-  gap: $gap;
-  
-  @include tablet-responsive {
-    grid-template-columns: repeat(2, 1fr);
-    gap: $gap-md;
-  }
-  
-  @include mobile-responsive {
-    grid-template-columns: 1fr;
-    gap: $gap-sm;
-  }
-}
-
 @mixin horizontal-scroll {
   display: flex;
   gap: $gap-lg;
@@ -330,7 +424,6 @@ $breakpoint-small-mobile: 480px;
   padding: $padding-xs 0;
   scroll-behavior: smooth;
   scroll-padding: 20px;
-  
 
   &.active {
     scroll-behavior: auto;
@@ -341,40 +434,50 @@ $breakpoint-small-mobile: 480px;
   }
 }
 
-// === PRODUCT CARD MIXINS ===
-@mixin product-card-base($min-width: 160px, $max-width: 180px) {
-  @include card-base;
-  min-width: $min-width;
-  max-width: $max-width;
-  position: relative;
-  
-  @include hover-lift;
-}
+// ===================================================================
+// FORM & INPUT MIXINS
+// ===================================================================
 
-@mixin product-image-container($height: 120px) {
-  position: relative;
-  height: $height;
-  padding: $padding-sm;
+// Input styling
+@mixin input {
+  background: white;
+  border-radius: $border-radius-md;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 4px;
+  margin: 8px 0;
   
-  .image-wrapper {
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    border-radius: $border-radius-md;
-    background: var(--ion-color-light);
-    
-    ion-img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
+  ion-input {
+    border-radius: $border-radius-sm;
+    --color: var(--ion-color-dark);
+    border: 2px solid var(--ion-color-primary);
+    --placeholder-color: var(--ion-color-medium);
+    --padding-start: 16px;
+    --padding-end: 5px;
+    font-size: 16px;
+
+    &[readonly] {
+      --color: var(--ion-color-medium);
+      opacity: 0.7;
     }
   }
-
 }
 
-// === SUPERMARKET CARD MIXINS ===
+// Form components
+@mixin form-item {
+  .form-item {
+    margin-bottom: 16px;
+    border-radius: $border-radius-md;
+    
+    @include input;
 
-@mixin char-counter{
+    ion-label {
+      font-weight: 500;
+      margin-bottom: 8px;
+    }
+  }
+}
+
+@mixin char-counter {
   .char-counter {
     font-size: 11px;
     font-weight: 400;
@@ -390,49 +493,46 @@ $breakpoint-small-mobile: 480px;
   }
 }
 
-@mixin form-item{
-  .form-item {
-    margin-bottom: 16px;
-    border-radius: 12px;
-    
-    @include input;
+// ===================================================================
+// SEARCH MIXINS
+// ===================================================================
 
-    ion-label {
-      font-weight: 500;
-      margin-bottom: 8px;
-    }
-  }
-}
-@mixin search-loading{
+// Search states
+@mixin search-loading {
   .search-loading {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 16px;
+    gap: $padding-sm;
+    padding: $padding-md;
     background: var(--ion-color-light);
-    border-radius: 12px;
+    border-radius: $border-radius-md;
     margin-top: 8px;
+    
     ion-spinner {
       --color: var(--ion-color-primary);
     }
+    
     ion-text {
       font-size: 14px;
       color: var(--ion-color-medium);
     }
   }
 }
-@mixin search-no-results{
+
+@mixin search-no-results {
   .search-no-results {
     display: flex;
-    gap: 12px;
-    padding: 16px;
+    gap: $padding-sm;
+    padding: $padding-md;
     background: var(--ion-color-light);
-    border-radius: 12px;
+    border-radius: $border-radius-md;
     margin-top: 8px;
-      ion-icon {
+    
+    ion-icon {
       font-size: 20px;
       color: var(--ion-color-danger);
     }
+    
     ion-text {
       font-size: 14px;
       color: var(--ion-color-medium);
@@ -440,34 +540,14 @@ $breakpoint-small-mobile: 480px;
   }
 }
 
+// ===================================================================
+// CREATE PAGE MIXINS
+// ===================================================================
 
-// CREATE
-@mixin input{
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  padding: 4px;
-  margin: 8px 0;
-  
-  ion-input{
-    border-radius: 8px;
-    --color: var(--ion-color-dark);
-    border: 2px solid var(--ion-color-primary);
-    --placeholder-color: var(--ion-color-medium);
-    --padding-start: 16px;
-    --padding-end: 5px;
-    font-size: 16px;
-
-    &[readonly] {
-      --color: var(--ion-color-medium);
-      opacity: 0.7;
-    }
-  }
-}
-
-@mixin create-container{
+// Page layout
+@mixin create-container {
   .create-container {  
-    padding: 16px;
+    padding: $padding-md;
     max-width: 600px;
     margin: 0 auto;
     min-height: 100%;
@@ -478,13 +558,14 @@ $breakpoint-small-mobile: 480px;
   }
 }
 
-@mixin create-content{
-    ion-content {
+@mixin create-content {
+  ion-content {
     --overflow: auto;
     height: 100%;
     -webkit-overflow-scrolling: touch;
     touch-action: pan-y;
     will-change: scroll-position;
+    
     .scroll-content {
       overflow-y: auto;
       will-change: transform;
@@ -492,20 +573,20 @@ $breakpoint-small-mobile: 480px;
   }
 }
 
-@mixin header-content{
+@mixin header-content {
   .header-content {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  
-  .header-icon {
-    font-size: 24px;
-    color: var(--ion-color-primary);
-  }
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    
+    .header-icon {
+      font-size: 24px;
+      color: var(--ion-color-primary);
+    }
   }
 }
 
-@mixin create-card{
+@mixin create-card {
   ion-card {
     margin: 0;
     border-radius: 16px;
@@ -514,18 +595,23 @@ $breakpoint-small-mobile: 480px;
     overflow: hidden;
     touch-action: manipulation;
   }
+  
   ion-card-title {
     color: var(--ion-color-dark);
     font-weight: 600;
   }
 }
 
+// ===================================================================
+// SEARCH RESULTS MIXINS
+// ===================================================================
+
 @mixin search-results-list {
   .search-results-list {
     max-height: 250px;
     overflow-y: auto;
     border: 2px solid var(--ion-color-primary);
-    border-radius: 12px;
+    border-radius: $border-radius-md;
     padding: 4px 0;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     touch-action: pan-y;
@@ -678,7 +764,9 @@ $breakpoint-small-mobile: 480px;
   }
 }
 
-//ALERT
+// ===================================================================
+// ALERT SYSTEM MIXINS
+// ===================================================================
 @mixin custom-alert-system {
   .custom-alert-backdrop {
     position: fixed;
@@ -693,6 +781,7 @@ $breakpoint-small-mobile: 480px;
     opacity: 0;
     visibility: hidden;
     transition: all 0.3s ease;
+    
     &.show {
       opacity: 1;
       visibility: visible;
@@ -710,12 +799,15 @@ $breakpoint-small-mobile: 480px;
     transform: scale(0.9) translateY(20px);
     transition: all 0.3s ease;
     overflow: hidden;
+    
     &.show {
       transform: scale(1) translateY(0);
     }
+    
     &.success {
       border-top: 4px solid var(--ion-color-success);
     }
+    
     &.error {
       border-top: 4px solid var(--ion-color-danger);
     }
@@ -726,6 +818,7 @@ $breakpoint-small-mobile: 480px;
     justify-content: space-between;
     align-items: center;
     padding: 24px 24px 16px 24px;    
+    
     .alert-icon-container {
       width: 60px;
       height: 60px;
@@ -734,6 +827,7 @@ $breakpoint-small-mobile: 480px;
       align-items: center;
       justify-content: center;
       margin-right: 16px;
+      
       ion-icon {
         font-size: 32px;
       }
@@ -743,6 +837,7 @@ $breakpoint-small-mobile: 480px;
       --color: var(--ion-color-medium);
       --padding-start: 8px;
       --padding-end: 8px;
+      
       ion-icon {
         font-size: 20px;
       }
@@ -769,6 +864,7 @@ $breakpoint-small-mobile: 480px;
 
   .alert-actions {
     padding: 0 24px 24px 24px;
+    
     ion-button {
       --border-radius: 12px;
       height: 48px;
@@ -777,10 +873,18 @@ $breakpoint-small-mobile: 480px;
   }
 }
 
-// === EMPTY STATES ===
-@mixin empty-state-base {
-  text-align: center;
+// ===================================================================
+// EMPTY STATE MIXINS
+// ===================================================================
+
+// Base empty state
+@mixin empty-state-base($large: false) {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   padding: 60px 20px;
+  text-align: center;
   color: var(--ion-color-medium);
 
   .empty-icon {
@@ -792,16 +896,29 @@ $breakpoint-small-mobile: 480px;
 
   h3 {
     color: var(--ion-color-dark);
-    margin-bottom: 12px;
-    font-size: 18px;
+    margin-bottom: if($large, 10px, 12px);
+    font-size: if($large, 24px, 18px);
     font-weight: 600;
+    margin: 0 0 if($large, 10px, 12px) 0;
   }
 
   p {
     margin: 0;
     line-height: 1.5;
-    font-size: 14px;
-    opacity: 0.8;
+    font-size: if($large, 16px, 14px);
+    opacity: if($large, 1, 0.8);
+    @if $large {
+      margin: 0 0 30px 0;
+      max-width: 300px;
+    }
+  }
+
+  @if $large {
+    ion-button {
+      --border-radius: 25px;
+      --padding-start: 30px;
+      --padding-end: 30px;
+    }
   }
 
   @include mobile-responsive {
@@ -813,16 +930,17 @@ $breakpoint-small-mobile: 480px;
     }
 
     h3 {
-      font-size: 16px;
+      font-size: if($large, 20px, 16px);
       margin-bottom: 8px;
     }
 
     p {
-      font-size: 13px;
+      font-size: if($large, 15px, 13px);
     }
   }
 }
 
+// Specific empty states
 @mixin empty-state-supermarket {
   @include empty-state-base;
   
@@ -831,50 +949,9 @@ $breakpoint-small-mobile: 480px;
   }
 }
 
-@mixin empty-state-orders {
-  @include empty-state-base;
-  
-  .empty-icon {
-    color: var(--ion-color-tertiary);
-  }
-}
-
-// ACTION BUTTON
-@mixin action-buttons {
-  .submit-section {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    margin-top: 24px;
-    
-    .submit-button {
-      --border-radius: 12px;
-      --box-shadow: 0 4px 12px rgba(var(--ion-color-primary-rgb), 0.3);
-      height: 48px;
-      font-weight: 600;
-      transition: all 0.3s ease;
-
-      span {
-        color: white;
-      }
-      
-      &:hover:not([disabled]) {
-        --box-shadow: 0 0px 10px rgba(var(--ion-color-primary-rgb), 0.4);
-        transform: translateY(-1px);
-      }
-      
-      &[disabled] {
-        opacity: 0.6;
-        --box-shadow: none;
-      }
-      
-      ion-icon, ion-spinner {
-        margin-right: 8px;
-      }  
-    }
-  }
-}
-// SPINNER
+// ===================================================================
+// LOADING MIXINS
+// ===================================================================
 @mixin loading-spinner {
   .loading-container {
     @include flex-center;
@@ -891,18 +968,43 @@ $breakpoint-small-mobile: 480px;
   }
 }
 
+// ===================================================================
+// QUANTITY CONTROLS MIXINS
+// ===================================================================
 
-//ANIMATIONS
-@mixin common-animations {
+@mixin quantity-block {
+  .quantity-block {
+    position: absolute;
+    right: 0;
+    left: 0;
+    bottom: 0;
+    padding: 8px 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 
-  ion-alert {
-    --backdrop-opacity: 0.4;
+    .quantity-button {
+      @include quantity-button-base;
+    }
     
-    .alert-wrapper {
-      border-radius: 16px;
+    .quantity-label {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 50px;
+      height: 30px;
+      margin: 0 4px;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--ion-color-primary);
+      background: transparent;
     }
   }
 }
+
+// ===================================================================
+// RESPONSIVE DESIGN
+// ===================================================================
 
 @mixin responsive-create-page {
   @media (max-width: 768px) {
@@ -957,7 +1059,8 @@ $breakpoint-small-mobile: 480px;
         padding: 0 20px 20px 20px;
       }
     }
-      .form-item {
+    
+    .form-item {
       margin-bottom: 12px;
     }
     
@@ -1000,42 +1103,798 @@ $breakpoint-small-mobile: 480px;
   }
 }
 
-// === QUANTITY BLOCK ===
-@mixin quantity-block {
-  .quantity-block{
-    position: absolute;
-    right: 0;
-    left: 0;
-    bottom: 0;
-    padding: 8px 3px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+// COMPONENTI SPECIFICI
 
-    .quantity-button {
-      --background: var(--ion-color-primary);
-      --color: white;
-      box-shadow: none;
-      width: 30px;
-      height: 30px;
-      border-radius: 50%;
-      @include button-hover-scale;
-      ion-icon {
-        font-size: 10px;
+@mixin auth-container{
+  .auth-container {
+    padding-top: 30px;
+    width: 100%;
+    max-width: 400px;
+    margin: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    .auth-header {
+      text-align: center;
+
+      .logo-container {
+        margin-bottom: 20px;
+        
+        .logo-icon {
+        font-size: 60px;
+        color: var(--ion-color-primary);
+        background: rgba(var(--ion-color-primary-rgb), 0.2);
+        border-radius: 50%;
+        padding: 20px;
+        backdrop-filter: blur(10px);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        animation: float 8s ease-in-out infinite;
+        
+          &:hover {
+              animation: pulse 0.5s ease-in-out;
+          }
+        }
+      }
+
+      .auth-title {
+        color: var(--ion-color-primary);
+        font-size: 28px;
+        font-weight: 700;
+        margin: 0 0 8px 0;
+        text-shadow: 0 2px 4px rgba(var(--ion-color-primary-rgb), 0.2);
+      }
+
+      .auth-subtitle {
+        color: var(--ion-color-primary);
+        font-size: 16px;
+        margin: 0;
+        font-weight: 400;
       }
     }
-    .quantity-label {
+
+    .auth-form-container {
+      background: white;
+      border-radius: 20px;
+      padding: 30px;
+      box-shadow: 0 2px 4px rgba(var(--ion-color-primary-rgb), 0.2);
+      border: 2px solid var(--ion-color-primary);
+
+      .auth-form {
+        .input-group {
+          margin-bottom: 20px;
+          
+          .input-container {
+            position: relative;
+            display: flex;
+            align-items: center;
+            background: #f8f9fa;
+            border-radius: 12px;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+            
+            &:focus-within {
+              border-color: var(--ion-color-primary);
+              box-shadow: 0 0 0 3px rgba(var(--ion-color-primary-rgb), 0.1);
+              transform: translateY(-2px);
+              
+              .input-icon {
+                color: var(--ion-color-primary);
+              }
+            }
+            
+            .input-icon {
+              color: var(--ion-color-medium);
+              font-size: 20px;
+              margin: 0 12px 0 16px;
+              transition: color 0.3s ease;
+              flex-shrink: 0;
+              z-index: 2;
+            }
+            
+            .custom-input {
+              flex: 1;
+              --border-radius: 10px;
+              --padding-start: 5px;
+              --padding-end: 16px;
+              --min-height: 56px;
+              
+              ion-label {
+                font-weight: 500;
+                color: var(--ion-color-dark);
+              }
+              
+              ion-input {
+                font-size: 16px;
+                color: var(--ion-color-dark);
+                --padding-start: 0px;
+              }
+            }
+          }
+        }
+
+        .error-container {
+          margin-bottom: 20px;
+          padding: 12px;
+          background: rgba(var(--ion-color-danger-rgb), 0.1);
+          border: 1px solid rgba(var(--ion-color-danger-rgb), 0.2);
+          border-radius: 8px;
+          
+          .error-text {
+            font-size: 14px;
+            font-weight: 500;
+          }
+        }
+
+        .auth-button {
+          --background: var(--ion-color-primary);
+          --color: white;
+          --border-radius: 12px;
+          --padding-top: 16px;
+          --padding-bottom: 16px;
+          --box-shadow: 0 8px 16px rgba(var(--ion-color-primary-rgb), 0.3);
+          font-weight: 600;
+          font-size: 16px;
+          text-transform: none;
+          margin: 20px 0;
+          transition: all 0.3s ease;
+          
+          &:hover {
+            --box-shadow: 0 12px 24px rgba(var(--ion-color-primary-rgb), 0.4);
+            transform: translateY(-2px);
+          }
+          
+          &:active {
+            transform: translateY(0);
+          }
+          
+          ion-icon {
+            margin-right: 8px;
+          }
+        }
+
+        .divider {
+          position: relative;
+          text-align: center;
+          margin: 30px 0;
+          
+          &::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: #e0e0e0;
+          }
+          
+          .divider-text {
+            background: white;
+            padding: 0 16px;
+            color: var(--ion-color-medium);
+            font-size: 14px;
+            position: relative;
+            z-index: 1;
+          }
+        }
+        
+        .auth-footer {
+          text-align: center;
+          
+          .footer-text {
+            color: var(--ion-color-medium);
+            font-size: 14px;
+            margin: 0 0 8px 0;
+          }
+          
+          .auth-link {
+            --color: var(--ion-color-primary);
+            font-weight: 600;
+            text-transform: none;
+            font-size: 14px;
+            
+            &:hover {
+              --color: var(--ion-color-primary-shade);
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+
+// ===================================================================
+// PRODUCT INFO MIXINS
+// ===================================================================
+
+// Base product info content
+@mixin product-info-content {
+  h4 {
+    margin: 0 0 8px 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ion-color-dark);
+    line-height: 1.2;
+    @include text-truncate(2);
+  }
+  
+  .create-description {
+    margin: 0 0 12px 0;
+    font-size: 12px;
+    color: var(--ion-color-medium);
+    line-height: 1.3;
+    @include text-truncate(2);
+  }
+  
+  .product-description {
+    margin: 0 0 8px 0;
+    font-size: 12px;
+    color: var(--ion-color-medium);
+    line-height: 1.3;
+    @include text-truncate(2);
+  }
+}
+
+// Standard product info
+@mixin product-info-standard {
+  .product-info {
+    padding: 12px;
+    @include product-info-content;
+  }
+}
+
+// Product info with bottom controls
+@mixin product-info-with-controls {
+  .product-info {
+    padding: 12px 12px 60px 12px;
+    @include product-info-content;
+  }
+  
+  .bottom-controls {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    
+    @include price-container-standard;
+  }
+}
+
+// ===================================================================
+// SECTION HEADER MIXINS
+// ===================================================================
+
+//Minimal back header
+@mixin minimal-header{
+  .minimal-header {
+    --background: var(--ion-color-light);
+    --color: var(--ion-color-dark);
+    box-shadow: none;
+    border-bottom: 1px solid var(--ion-color-step-200);
+  }
+}
+
+
+// Standard section header
+@mixin section-header {
+  .section-header {
+    margin-bottom: 16px;
+    
+    h3 {
+      @include heading-base;
+    }
+    
+    p {
+      margin: 0;
+      font-size: 14px;
+      color: var(--ion-color-medium);
+      line-height: 1.4;
+    }
+  }
+}
+
+// ===================================================================
+// INFO PANELS MIXINS
+// ===================================================================
+
+// Search result item
+@mixin search-result-item {
+  .search-result {
+    margin: 16px 0 24px 0;
+    
+    .result-item {
+      --background: rgba(var(--ion-color-success-rgb), 0.05);
+      --border-radius: 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(var(--ion-color-success-rgb), 0.2);
+      
+      ion-label {
+        h3 {
+          color: var(--ion-color-success);
+          font-weight: 600;
+          margin: 0 0 4px 0;
+          font-size: 14px;
+        }
+        
+        p {
+          margin: 4px 0;
+          font-size: 13px;
+          color: var(--ion-color-dark);
+          line-height: 1.4;
+          
+          &.coordinates {
+            color: var(--ion-color-medium);
+            font-size: 12px;
+            font-family: monospace;
+          }
+        }
+      }
+    }
+  }
+}
+
+// ===================================================================
+// SUPERMARKET CARD MIXINS
+// ===================================================================
+
+// Supermarket card base
+@mixin supermarket-card-base {
+  .supermarket-card {
+    @include card-base;
+    @include hover-lift;
+    @include select-animation;
+    min-width: 300px;
+    max-width: 320px;
+    position: relative;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+
+    .selected-icon {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      color: var(--ion-color-primary);
+      font-size: 24px;
+      background: white;
+      border-radius: 50%;
+      padding: 2px;
+      box-shadow: $box-shadow-subtle;
+    }
+
+    .supermarket-image-container {
+      width: 80px;
+      height: 80px;
+      overflow: hidden;
+      margin: $padding-md;
+      border-radius: $border-radius-md;
+
+      ion-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+    }
+
+    .supermarket-info {
+      flex: 1;
+      padding: 12px 12px 12px 0;
       display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 50px;
-      height: 30px;
-      margin: 0 4px;
-      font-size: 16px;
+      flex-direction: column;
+
+      h4 {
+        margin: 0 0 6px 0;
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--ion-text-color);
+        line-height: 1.2;
+      }
+      
+      p {
+        margin: 0 0 8px 0;
+        font-size: 13px;
+        color: var(--ion-color-medium);
+        line-height: 1.3;
+        @include text-truncate(2);
+      }
+
+      .distance {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 12px;
+        color: var(--ion-color-primary);
+        font-weight: 500;
+
+        ion-icon {
+          font-size: 14px;
+        }
+      }
+
+      .offers-count {
+        font-size: 12px;
+        color: var(--ion-color-success);
+        font-weight: 500;
+      }
+    }
+
+    &.selected .supermarket-info h4 {
+      color: var(--ion-color-primary);
+    }
+  }
+}
+
+// ===================================================================
+// PRODUCT GRID MIXINS
+// ===================================================================
+
+// Horizontal product scroll
+@mixin products-horizontal-scroll {
+  .products-container {
+    @include horizontal-scroll;
+    @include hide-scrollbar;
+    
+    &.offers-container .product-card {
+      min-width: 200px;
+      max-width: 220px;
+    }
+  }
+}
+
+// ===================================================================
+// DISCOUNT & BADGE MIXINS
+// ===================================================================
+
+// Discount badge
+@mixin discount-badge {
+  .discount-badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    --background: var(--ion-color-danger);
+    --color: white;
+    font-weight: 600;
+    font-size: 20px;
+  }
+}
+
+// ===================================================================
+// COLLAPSIBLE SECTION MIXINS
+// ===================================================================
+
+// ===================================================================
+// CART SPECIFIC MIXINS
+// ===================================================================
+
+// Empty cart state
+@mixin empty-cart-state {
+  .empty-cart {
+    @include empty-state-base($large: true);
+  }
+}
+
+// Cart section structure
+@mixin cart-section-structure {
+  .cart-sections {
+    margin-bottom: 20px;
+  }
+
+  .supermarket-section {
+    @include card-base;
+    margin-bottom: 16px;
+    overflow: hidden;
+    
+    .supermarket-header {
+      background: var(--ion-color-light);
+      border-bottom: 1px solid var(--ion-border-color);
+      
+      .header-content {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 20px;
+        
+        .store-info {
+          .store-name {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--ion-color-dark);
+          }
+        }
+      }
+    }
+  }
+}
+
+// ===================================================================
+// PRICE CONTAINER MIXINS
+// ===================================================================
+
+// Standard price container
+@mixin price-container-standard {
+  .price-container {
+    padding: 8px 3px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding-left: 10px;
+    gap: 2px;
+    
+    .original-price {
+      font-size: 12px;
+      color: var(--ion-color-medium);
+      text-decoration: line-through;
+      order: 1;
+    }
+    
+    .current-price {
+      font-size: 15px;
       font-weight: 700;
       color: var(--ion-color-primary);
-      background: transparent;
+      order: 2;
     }
+  }
+}
+
+// ===================================================================
+// BOTTOM CONTROLS MIXINS
+// ===================================================================
+
+// Standard bottom controls
+@mixin bottom-controls-standard {
+  .bottom-controls {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    
+    @include price-container-standard;
+    
+    .quantity-block {
+      justify-content: right;
+      padding: 4px;
+      
+      .quantity-button {
+        @include quantity-button-base($size: 27px, $icon-size: 15px, $margin: 0 1px);
+      }
+
+      .quantity-label {
+        width: 40px;
+        margin: 0 0;
+      }
+    }
+  }
+}
+
+// ===================================================================
+// RESPONSIVE PRODUCT GRID MIXINS
+// ===================================================================
+
+// --- Mobile Product Grid ---
+// --- Extra Small Mobile Product Grid ---
+// ===================================================================
+// CREATE CARD VARIATIONS MIXINS
+// ===================================================================
+
+// Create card with content layout
+@mixin create-card-with-content {
+  .create-card-content {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 16px;
+    
+    .create-icon {
+      @include create-card-icon;
+      width: 80px;
+      height: 80px;
+      margin-right: 16px;
+      flex-shrink: 0;
+    }
+    
+    .create-info {
+      @include create-card-info;
+      flex: 1;
+    }
+  }
+}
+
+// ===================================================================
+// DUPLICATE ELIMINATION MIXINS
+// ===================================================================
+
+// Standard product card with bottom controls
+@mixin standard-product-card-layout {
+  .product-card {
+    position: relative;
+    padding-bottom: 15px;
+    @include product-card-base;
+  }
+
+  .product-image-container {
+    @include product-image-container;
+  }
+
+  @include discount-badge;
+  @include product-info-standard;
+  @include bottom-controls-standard;
+}
+
+// ===================================================================
+// MAIN CONTAINER MIXINS
+// ===================================================================
+
+// Standard main container
+@mixin main-container-standard {
+  .main-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0px;
+    padding: 16px;
+    
+    .products-section {
+      flex: 1;
+      min-width: 0;
+    }
+  }
+}
+
+// ORDER MANAGEMENT MIXINS
+
+@mixin order-filters-section {
+  @include card-base;
+  padding: 16px 20px;
+  margin-bottom: 16px;
+  
+  .filter-group {
+    margin-bottom: 16px;
+    
+    &:last-child {
+      margin-bottom: 0;
+    }
+    
+    h4 {
+      margin: 0 0 8px 0;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--ion-color-dark);
+    }
+    
+    .filter-buttons {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      
+      ion-button {
+        --border-radius: 20px;
+        --padding-start: 16px;
+        --padding-end: 16px;
+        font-size: 12px;
+        height: 32px;
+        
+        &[color="primary"] {
+          --background: var(--ion-color-primary);
+          --color: white;
+        }
+      }
+    }
+  }
+}
+
+@mixin statistics-summary-card {
+  @include card-base;
+  padding: 20px;
+  margin-bottom: 20px;
+  
+  .summary-stats {
+    display: flex;
+    justify-content: space-around;
+    gap: 20px;
+    
+    .stat-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      
+      .stat-icon {
+        font-size: 24px;
+        color: var(--ion-color-primary);
+      }
+      
+      .stat-info {
+        display: flex;
+        flex-direction: column;
+        
+        .stat-value {
+          font-size: 20px;
+          font-weight: 600;
+          color: var(--ion-color-dark);
+        }
+        
+        .stat-label {
+          font-size: 12px;
+          color: var(--ion-color-medium);
+        }
+      }
+    }
+  }
+  
+  .filter-summary {
+    margin-top: 12px;
+    text-align: center;
+    
+    ion-badge {
+      font-size: 11px;
+      --padding-start: 8px;
+      --padding-end: 8px;
+    }
+  }
+}
+
+@mixin order-group-card {
+  @include card-base;
+  margin-bottom: 16px;
+  overflow: hidden;
+  
+  .order-group-header {
+    background: var(--ion-color-light);
+    border-bottom: 1px solid var(--ion-border-color);
+    
+    .header-content {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      
+      .order-info {
+        .order-date {
+          margin: 0 0 4px 0;
+          font-size: 16px;
+          font-weight: 600;
+          color: var(--ion-color-dark);
+        }
+        
+        .store-name {
+          margin: 0;
+          font-size: 14px;
+          color: var(--ion-color-medium);
+        }
+      }
+      
+      .order-total {
+        text-align: right;
+        
+        .total-amount {
+          display: block;
+          font-size: 18px;
+          font-weight: 600;
+          color: var(--ion-color-primary);
+        }
+        
+        .items-count {
+          font-size: 12px;
+          color: var(--ion-color-medium);
+        }
+      }
+    }
+  }
+}
+
+@mixin order-item-layout {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--ion-border-color, #e0e0e0);
+  
+  &:last-child {
+    border-bottom: none;
+  }
+  
+  .item-content {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    width: 100%;
   }
 }
 

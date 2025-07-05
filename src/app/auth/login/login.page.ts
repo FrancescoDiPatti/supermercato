@@ -10,10 +10,37 @@ import {
   IonLabel, 
   IonInput, 
   IonButton, 
-  IonText 
+  IonText,
+  IonIcon
 } from '@ionic/angular/standalone';
 import { AuthService } from '../auth.service';
 import { Router } from '@angular/router';
+import { addIcons } from 'ionicons';
+import { 
+  storefront,
+  person,
+  lockClosed,
+  logIn,
+  personAdd,
+  mail,
+  people,
+  cart,
+  briefcase,
+  shieldCheckmark
+} from 'ionicons/icons';
+
+addIcons({
+  storefront,
+  person,
+  lockClosed,
+  logIn,
+  personAdd,
+  mail,
+  people,
+  cart,
+  briefcase,
+  shieldCheckmark
+});
 
 @Component({
   selector: 'app-login',
@@ -24,14 +51,12 @@ import { Router } from '@angular/router';
     CommonModule, 
     FormsModule,
     IonContent, 
-    IonHeader, 
-    IonTitle, 
-    IonToolbar, 
     IonItem, 
     IonLabel, 
     IonInput, 
     IonButton, 
-    IonText
+    IonText,
+    IonIcon
   ]
 })
 export class LoginPage implements OnInit {

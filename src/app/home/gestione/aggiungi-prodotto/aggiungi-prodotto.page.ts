@@ -1,7 +1,7 @@
 import { Component, OnInit, HostListener, AfterViewInit, ElementRef, ViewChild, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Location } from '@angular/common';
+// import { Location } from '@angular/common'; // removed, navigation simplified
 import { Router } from '@angular/router';
 import { HomeService, Product, Category, SupermarketDataState, AnimationState } from '../../../services/home/home.service';
 import { AuthService } from '../../../auth/auth.service';
@@ -166,8 +166,7 @@ export class AggiungiProdottoPage implements OnInit, OnDestroy {
     private http: HttpClient,
     private alertController: AlertController,
     private homeService: HomeService,
-    private router: Router,
-    private location: Location
+    private router: Router
   ) {
     this.dataState = this.homeService.ui.createDataState();
     this.animationState = this.homeService.ui.createAnimationState();
@@ -295,11 +294,11 @@ export class AggiungiProdottoPage implements OnInit, OnDestroy {
 
   // Navigazione
   goBack() {
-    this.location.back();
+    this.router.navigate(['/home/dashboard']);
   }
 
   onCreateProduct() {
-    this.router.navigate(['/home/gestione/crea-prodotto']);
+    this.router.navigate(['/home/gestione/crea-prodotto'], {});
   }
 
   // UI

@@ -1,15 +1,14 @@
-
-<ion-content>
+<ion-content [fullscreen]="true">
   <ion-header [translucent]="true">
-  <ion-toolbar>    
-    <ion-buttons slot="start">
-      <ion-button (click)="goBack()">
-        <ion-icon name="arrow-back"></ion-icon>
-      </ion-button>
-    </ion-buttons>
-    <ion-title>Aggiungi Prodotto</ion-title>
-  </ion-toolbar>
-</ion-header>
+    <ion-toolbar class="minimal-header">    
+      <ion-buttons slot="start">
+        <ion-button (click)="goBack()">
+          <ion-icon name="arrow-back"></ion-icon>
+        </ion-button>
+      </ion-buttons>
+      <ion-title>Aggiungi Prodotto</ion-title>
+    </ion-toolbar>
+  </ion-header>
   <div class="container">
     <!-- Categories Section -->
     <div class="section categories-section" *ngIf="displayProducts.length > 0">

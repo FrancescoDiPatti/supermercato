@@ -99,7 +99,9 @@
             </div>
             <div class="order-total">
               <span class="total-amount">€{{ group.total.toFixed(2) }}</span>
-              <span class="items-count">{{ group.value.length }} prodotto{{ group.value.length > 1 ? 'i' : '' }}</span>
+              <span class="items-count">
+                {{ group.value.length }} prodott{{ group.value.length === 1 ? 'o' : 'i' }}
+              </span>
             </div>
           </div>
         </div>

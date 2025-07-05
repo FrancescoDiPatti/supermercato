@@ -1,5 +1,5 @@
 <ion-content [fullscreen]="true" class="carrello-content">
-  <div class="carrello-container">
+  <div *ngIf="cartItems.length > 0" class="carrello-container">
     <!-- Cart Items by Supermarket -->
     <div class="cart-sections" *ngIf="cartItems.length > 0">
       <div class="supermarket-section" *ngFor="let group of groupedItems; trackBy: trackByGroup">
@@ -89,20 +89,6 @@
       </div>
     </div>
 
-    <!-- Empty Cart Message -->
-    <div *ngIf="cartItems.length === 0" class="empty-cart">
-      <div class="empty-illustration">
-        <ion-icon name="basket-outline" class="empty-icon"></ion-icon>
-      </div>
-      <div class="empty-content">
-        <h3 class="empty-title">Il tuo carrello è vuoto</h3>
-        <p class="empty-subtitle">Scopri i nostri prodotti freschi e le offerte del giorno</p>
-        <ion-button fill="solid" (click)="continueShopping()" class="start-shopping-btn">
-          <ion-icon slot="start" name="storefront-outline"></ion-icon>
-          Inizia a fare la spesa
-        </ion-button>
-      </div>
-    </div>
 
     <!-- Cart Summary -->
     <div *ngIf="cartItems.length > 0" class="cart-summary">
@@ -149,30 +135,44 @@
     </div>
 
       <!-- Custom Alert for Offer Generation -->
-  <div class="custom-alert-backdrop" [class.show]="showCustomAlert" (click)="closeAlert()">
-    <div class="custom-alert" [class.show]="showCustomAlert" [class.success]="alertType === 'success'" [class.error]="alertType === 'error'" (click)="$event.stopPropagation()">
-      <div class="alert-header">
-        <div class="alert-icon-container">
-          <ion-icon [name]="alertIcon" [color]="alertType === 'success' ? 'success' : 'danger'"></ion-icon>
+    <div class="custom-alert-backdrop" [class.show]="showCustomAlert" (click)="closeAlert()">
+      <div class="custom-alert" [class.show]="showCustomAlert" [class.success]="alertType === 'success'" [class.error]="alertType === 'error'" (click)="$event.stopPropagation()">
+        <div class="alert-header">
+          <div class="alert-icon-container">
+            <ion-icon [name]="alertIcon" [color]="alertType === 'success' ? 'success' : 'danger'"></ion-icon>
+          </div>
+          <ion-button fill="clear" size="small" class="close-btn" (click)="closeAlert()">
+            <ion-icon name="close"></ion-icon>
+          </ion-button>
         </div>
-        <ion-button fill="clear" size="small" class="close-btn" (click)="closeAlert()">
-          <ion-icon name="close"></ion-icon>
-        </ion-button>
-      </div>
-      <div class="alert-content">
-        <h3 class="alert-title">{{ alertTitle }}</h3>
-        <p class="alert-message">{{ alertMessageCustom }}</p>
-      </div>
-      <div class="alert-actions">
-        <ion-button 
-          expand="block" 
-          [color]="alertType === 'success' ? 'primary' : 'danger'"
-          (click)="closeAlert()">
-          OK
-        </ion-button>
+        <div class="alert-content">
+          <h3 class="alert-title">{{ alertTitle }}</h3>
+          <p class="alert-message">{{ alertMessageCustom }}</p>
+        </div>
+        <div class="alert-actions">
+          <ion-button 
+            expand="block" 
+            [color]="alertType === 'success' ? 'primary' : 'danger'"
+            (click)="closeAlert()">
+            OK
+          </ion-button>
+        </div>
       </div>
     </div>
-  </div>
 
+  </div>
+    <!-- Empty Cart Message displayed full-page centered -->
+  <div *ngIf="cartItems.length === 0" class="empty-cart">
+    <div class="empty-illustration">
+      <ion-icon name="basket-outline" class="empty-icon"></ion-icon>
+    </div>
+    <div class="empty-content">
+      <h3 class="empty-title">Il tuo carrello è vuoto</h3>
+      <p class="empty-subtitle">Scopri i nostri prodotti freschi e le offerte del giorno</p>
+      <ion-button fill="solid" (click)="continueShopping()" class="start-shopping-btn">
+        <ion-icon slot="start" name="storefront-outline"></ion-icon>
+        Inizia a fare la spesa
+      </ion-button>
+    </div>
   </div>
 </ion-content>

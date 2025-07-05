@@ -1,65 +1,110 @@
-<ion-header [translucent]="true">
-  <ion-toolbar>
-    <ion-title>register</ion-title>
-  </ion-toolbar>
-</ion-header>
-
-<ion-content [fullscreen]="true">
-  <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">Registrazione</ion-title>
-    </ion-toolbar>
-  </ion-header>
-  <form (ngSubmit)="onRegister()">
-    
-    <ion-item lines="none" class="input-item">
-      <ion-label position="floating">Username</ion-label>
-      <ion-input [(ngModel)]="username" name="username" required></ion-input>
-    </ion-item>
-
-    <ion-item lines="none" class="input-item">
-      <ion-label position="floating">Email</ion-label>
-      <ion-input [(ngModel)]="email" name="email" type="email" required></ion-input>
-    </ion-item>
-
-    <ion-item lines="none" class="input-item">
-      <ion-label position="floating">Password</ion-label>
-      <ion-input [(ngModel)]="password" name="password" type="password" required></ion-input>
-    </ion-item>    
-    <div class="role-section">
-      <ion-text color="medium">
-        <h3>Ruolo</h3>
-      </ion-text>
-      <ion-radio-group [(ngModel)]="role" name="role" required>
-        <ion-list class="role-list">
-          <ion-item class="role-list-item" [class.selected]="role === 'customer'" button (click)="selectRole('customer')">
-            <ion-label class="role-label">
-              <h3>Cliente</h3>
-            </ion-label>
-            <ion-radio slot="end" value="customer"></ion-radio>
-          </ion-item>
-          <ion-item class="role-list-item" [class.selected]="role === 'manager'" button (click)="selectRole('manager')">
-            <ion-label class="role-label">
-              <h3>Manager</h3>
-            </ion-label>
-            <ion-radio slot="end" value="manager"></ion-radio>
-          </ion-item>
-          <ion-item class="role-list-item" [class.selected]="role === 'admin'" button (click)="selectRole('admin')">
-            <ion-label class="role-label">
-              <h3>Admin</h3>
-            </ion-label>
-            <ion-radio slot="end" value="admin"></ion-radio>
-          </ion-item>
-        </ion-list>
-      </ion-radio-group>
+<ion-content [fullscreen]="true" class="auth-content">
+  <div class="auth-container">
+    <!-- Header Section -->
+    <div class="auth-header">
+      <h1 class="auth-title">Crea Account</h1>
+      <p class="auth-subtitle">Registrati per iniziare a fare shopping</p>
     </div>
 
-    <ion-button expand="block" type="submit" class="register-button">Registrati</ion-button>
-    <ion-text color="danger" *ngIf="errorMsg">{{ errorMsg }}</ion-text>
-    <ion-text color="success" *ngIf="successMsg">{{ successMsg }}</ion-text>
-    <div class="login-section">
-      <span>Hai già un account?</span>
-      <ion-button fill="clear" size="small" (click)="goToLogin()" class="login-button">Torna al Login</ion-button>
+    <!-- Form Section -->
+    <div class="auth-form-container">
+      <form (ngSubmit)="onRegister()" class="auth-form">
+        <div class="input-group">
+          <div class="input-container">
+            <ion-icon name="person" class="input-icon"></ion-icon>
+            <ion-item lines="none" class="custom-input">
+              <ion-label position="floating">Username</ion-label>
+              <ion-input [(ngModel)]="username" name="username" required></ion-input>
+            </ion-item>
+          </div>
+        </div>
+
+        <div class="input-group">
+          <div class="input-container">
+            <ion-icon name="mail" class="input-icon"></ion-icon>
+            <ion-item lines="none" class="custom-input">
+              <ion-label position="floating">Email</ion-label>
+              <ion-input [(ngModel)]="email" name="email" type="email" required></ion-input>
+            </ion-item>
+          </div>
+        </div>
+
+        <div class="input-group">
+          <div class="input-container">
+            <ion-icon name="lock-closed" class="input-icon"></ion-icon>
+            <ion-item lines="none" class="custom-input">
+              <ion-label position="floating">Password</ion-label>
+              <ion-input [(ngModel)]="password" name="password" type="password" required></ion-input>
+            </ion-item>
+          </div>
+        </div>
+        
+        <!-- Role Selection -->
+        <div class="role-section">
+          <h3 class="section-title">
+            <ion-icon name="people" class="section-icon"></ion-icon>
+            Seleziona il tuo ruolo
+          </h3>
+          <ion-radio-group [(ngModel)]="role" name="role" required class="role-group">
+            <div class="role-option" [class.selected]="role === 'customer'" (click)="selectRole('customer')">
+              <div class="role-content">
+                <ion-icon name="cart" class="role-icon"></ion-icon>
+                <div class="role-info">
+                  <h4>Cliente</h4>
+                  <p>Fai acquisti e gestisci i tuoi ordini</p>
+                </div>
+              </div>
+              <ion-radio value="customer"></ion-radio>
+            </div>
+            
+            <div class="role-option" [class.selected]="role === 'manager'" (click)="selectRole('manager')">
+              <div class="role-content">
+                <ion-icon name="briefcase" class="role-icon"></ion-icon>
+                <div class="role-info">
+                  <h4>Manager</h4>
+                  <p>Gestisci il supermercato e i prodotti</p>
+                </div>
+              </div>
+              <ion-radio value="manager"></ion-radio>
+            </div>
+            
+            <div class="role-option" [class.selected]="role === 'admin'" (click)="selectRole('admin')">
+              <div class="role-content">
+                <ion-icon name="shield-checkmark" class="role-icon"></ion-icon>
+                <div class="role-info">
+                  <h4>Admin</h4>
+                  <p>Controllo completo del sistema</p>
+                </div>
+              </div>
+              <ion-radio value="admin"></ion-radio>
+            </div>
+          </ion-radio-group>
+        </div>
+
+        <div class="error-container" *ngIf="errorMsg">
+          <ion-text color="danger" class="error-text">{{ errorMsg }}</ion-text>
+        </div>
+
+        <div class="success-container" *ngIf="successMsg">
+          <ion-text color="success" class="success-text">{{ successMsg }}</ion-text>
+        </div>
+
+        <ion-button expand="block" type="submit" class="auth-button primary">
+          <ion-icon name="person-add" slot="start"></ion-icon>
+          Registrati
+        </ion-button>
+
+        <div class="divider">
+          <span class="divider-text">oppure</span>
+        </div>
+
+        <div class="auth-footer">
+          <p class="footer-text">Hai già un account?</p>
+          <ion-button fill="clear" (click)="goToLogin()" class="auth-link">
+            Accedi qui
+          </ion-button>
+        </div>
+      </form>
     </div>
-  </form>
+  </div>
 </ion-content>

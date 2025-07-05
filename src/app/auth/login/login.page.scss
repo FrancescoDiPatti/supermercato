@@ -1,52 +1,29 @@
 @use '../../../theme/mixins.scss' as *;
 
-.input-item {
-  margin-bottom: 10px;
-  @include input;
-  ion-input {
-    --padding-top: 18px;
-    --padding-bottom: 18px;
+// ANIMAZIONI E TRANSIZIONI
+@include float-animation;
+@include pulse-animation;
+
+// STILE AUTENTICAZIONE GENERALE
+@include auth-container;
+
+// COMPONENTI SPECIFICI LOGIN
+.auth-container {
+  .auth-header {
+    margin-bottom: 40px;
   }
+}
+
+.auth-form {
+  .input-group {
+    margin-bottom: 20px;
+  }
+}
+
+// RESPONSIVE DESIGN
+@media (max-width: 480px) {
   
-  ion-label {
-    position: absolute;
-    left: 20px;
-    top: 50%;
-    transform: translateY(-50%);
-    transition: all 0.2s ease;
-    color: var(--ion-color-medium);
-    z-index: 10;
+  .auth-form-container {
+    margin: 20px;
   }
-  &.item-has-value ion-label,&.item-has-focus ion-label {
-    top: 8px;
-    transform: translateY(0);
-    font-size: 12px;
-    color: var(--ion-color-primary);
-    background: white;
-    padding: 0 4px;
-  }
-}
-
-form {
-    padding: 16px;
-}
-
-.login-button {
-    margin-top: 16px;
-}
-
-.register-section {
-    margin-top: 16px;
-    text-align: center;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 4px;
-}
-
-.register-button {
-    margin: 0;
-    padding: 0 4px;
-    height: auto;
-    line-height: 1;
 }

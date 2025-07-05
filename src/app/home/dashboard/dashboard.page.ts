@@ -265,7 +265,7 @@ export class DashboardPage implements OnInit, AfterViewInit, OnDestroy, ViewWill
     this.listenSMSelection();
     this.setupSearchListener();
     await this.loadPurchaseHistory();
-    await this.initializeUserLocation();
+    this.initializeUserLocation();
     await this.loadSupermarkets();
     this.autoExpandMapIfNeeded();
     this.reloadSM();
@@ -436,6 +436,8 @@ export class DashboardPage implements OnInit, AfterViewInit, OnDestroy, ViewWill
   private handleSupermarketSelection(supermarket: Supermarket | null) {
     const isDifferentSupermarket = supermarket?.id !== this.selectedSupermarket?.id;
     if (supermarket && isDifferentSupermarket) {
+      this.quantities = {};
+      this.homeService.cart.clearCart();
       this.selectedSupermarket = supermarket;
       if (this.isMapExpanded && !this.userExpandedMap) {
         this.isMapExpanded = false;

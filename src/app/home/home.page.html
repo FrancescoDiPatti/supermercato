@@ -27,6 +27,18 @@
         <ion-button fill="clear" *ngIf="isCustomer" (click)="navAndClose('ordini')" [class.active]="isMenuActive('ordini')">
           <ion-icon slot="start" name="receipt-outline"></ion-icon>Ordini
         </ion-button>
+
+        <ion-button fill="clear" *ngIf="isAdminOrManager" (click)="navAndClose('gestione/crea-supermercato')" [class.active]="isMenuActive('gestione/crea-supermercato')">
+          <ion-icon slot="start" name="storefront-outline"></ion-icon>Crea Supermercato
+        </ion-button>
+        
+        <ion-button fill="clear" *ngIf="isAdminOrManager" (click)="navAndClose('gestione/aggiungi-prodotto')" [class.active]="isMenuActive('gestione/aggiungi-prodotto')">
+          <ion-icon slot="start" name="add-circle-outline"></ion-icon>Aggiungi Prodotto
+        </ion-button>
+
+        <ion-button fill="clear" *ngIf="isAdminOrManager" (click)="navAndClose('gestione/crea-prodotto')" [class.active]="isMenuActive('gestione/crea-prodotto')">
+          <ion-icon slot="start" name="add-outline"></ion-icon>Crea Prodotto
+        </ion-button>
       </div>
       <div class="selected-supermarket-section" *ngIf="selectedSupermarket && shouldShowSupermarketSelection()">
         <div class="selected-supermarket-header">

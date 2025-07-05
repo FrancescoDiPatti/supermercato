@@ -1,9 +1,14 @@
 @use '../../../theme/mixins.scss' as *;
 
+// COMPONENTI SPECIFICI CARRELLO
 @include quantity-block;
+@include empty-cart-state;
+@include cart-section-structure;
+
+// SISTEMA UI E INTERAZIONI
 @include custom-alert-system;
 
-// === HEADER STYLES ===
+// HEADER E CONTROLLI PRINCIPALI
 .header-title {
   display: flex;
   align-items: center;
@@ -28,96 +33,18 @@
   }
 }
 
-// === CARRELLO LAYOUT ===
+// LAYOUT E CONTENITORI GENERALI
 .carrello-content {
   --background: var(--ion-background-color);
 }
 
 .carrello-container {
-  padding-bottom: 80px; // Space for summary fixed at bottom
+  padding-bottom: 80px;
   margin: 0 auto;
   @include container-padding;
 }
 
-// === EMPTY CART ===
-.empty-cart {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 60px 20px;
-  text-align: center;
-  color: var(--ion-color-medium);
-  
-  .empty-icon {
-    font-size: 80px;
-    margin-bottom: 20px;
-    opacity: 0.5;
-  }
-  
-  h3 {
-    font-size: 24px;
-    font-weight: 600;
-    color: var(--ion-color-dark);
-    margin: 0 0 10px 0;
-  }
-  
-  p {
-    font-size: 16px;
-    margin: 0 0 30px 0;
-    max-width: 300px;
-  }
-  
-  ion-button {
-    --border-radius: 25px;
-    --padding-start: 30px;
-    --padding-end: 30px;
-  }
-}
-
-// === SUPERMARKET SECTIONS ===
-.cart-sections {
-  margin-bottom: 20px;
-}
-
-.supermarket-section {
-  @include card-base;
-  margin-bottom: 16px;
-  overflow: hidden;
-  
-  .supermarket-header {
-    background: var(--ion-color-light);
-    border-bottom: 1px solid var(--ion-border-color);
-    
-    .header-content {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 16px 20px;
-      
-      .store-info {
-        .store-name {
-          margin: 0;
-          font-size: 18px;
-          font-weight: 600;
-          color: var(--ion-text-color);
-          line-height: 1.2;
-        }
-      }
-      
-      .supermarket-total {
-        .total-amount {
-          font-size: 18px;
-          font-weight: 700;
-          color: var(--ion-color-primary);
-          line-height: 1;
-        }
-      }
-    }
-  }
-}
-
-// === CART ITEMS ===
+// LISTA PRODOTTI CARRELLO
 .cart-items {
   .cart-item {
     --background: var(--ion-item-background);
@@ -230,7 +157,7 @@
   }
 }
 
-// === EMPTY CART STATE ===
+// STATO CARRELLO VUOTO
 .empty-cart {
   display: flex;
   flex-direction: column;
@@ -294,7 +221,7 @@
   }
 }
 
-// === CART SUMMARY ===
+// RIEPILOGO CARRELLO
 .cart-summary {
   @include card-base;
   position: sticky;
@@ -432,7 +359,7 @@
   }
 }
 
-// === REMOVE ITEM OPTION ===
+// AZIONI E CONTROLLI AGGIUNTIVI
 .remove-option {
   .remove-content {
     display: flex;
@@ -452,7 +379,6 @@
   }
 }
 
-// === LOADING SPINNER ===
 .loading-spinner {
   display: flex;
   align-items: center;
@@ -472,7 +398,8 @@
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
-// === RESPONSIVE DESIGN ===
+
+// RESPONSIVE DESIGN
 @media (max-width: 480px) {
   .cart-item {
     ion-item {
@@ -569,7 +496,7 @@
   }
 }
 
-// === ANIMATIONS ===
+// ANIMAZIONI E TRANSIZIONI
 .cart-item {
   ion-item {
     transition: $transition-smooth;
@@ -580,7 +507,7 @@
   }
 }
 
-// === ACCESSIBILITY ===
+// ACCESSIBILITA E RIDUZIONE MOVIMENTO
 @media (prefers-reduced-motion: reduce) {
   * {
     transition: none !important;
@@ -588,7 +515,7 @@
   }
 }
 
-// Offer information styles
+// INFORMAZIONI OFFERTE E PREZZI
 .unit-price-container {
   display: flex;
   flex-direction: column;

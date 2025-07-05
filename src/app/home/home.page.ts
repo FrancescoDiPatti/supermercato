@@ -36,7 +36,9 @@ import {
   arrowBackOutline,
   timeOutline,
   searchOutline,
-  close
+  close,
+  addOutline,
+  addCircleOutline,
 } from 'ionicons/icons';
 import { filter } from 'rxjs/operators';
 import { NavigationEnd } from '@angular/router';
@@ -112,7 +114,9 @@ export class HomePage implements OnInit, OnDestroy {
       arrowBackOutline,
       timeOutline,
       searchOutline,
-      close
+      close,
+      addOutline,
+      addCircleOutline
     });
       this.router.events.pipe(
       filter(event => event instanceof NavigationEnd)
@@ -191,6 +195,7 @@ export class HomePage implements OnInit, OnDestroy {
     );
     this.currentPlaceholder = config ? config[1].placeholder : '';
   }  
+  
   // Manage search input
   onInput(event: any) {
     // Don't process search if no search functionality is available

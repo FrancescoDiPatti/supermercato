@@ -1,34 +1,57 @@
-<ion-header [translucent]="true">
-  <ion-toolbar>
-    <ion-title>login</ion-title>
-  </ion-toolbar>
-</ion-header>
-
 <ion-content [fullscreen]="true">
-
-  <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">Login</ion-title>
-    </ion-toolbar>
-  </ion-header>
-  <form (ngSubmit)="onLogin()">
-
-    <ion-item lines="none" class="input-item">
-      <ion-label position="floating">Username</ion-label>
-      <ion-input [(ngModel)]="username" name="username" required></ion-input>
-    </ion-item>
-
-    <ion-item lines="none" class="input-item">
-      <ion-label position="floating">Password</ion-label>
-      <ion-input [(ngModel)]="password" name="password" type="password" required></ion-input>
-    </ion-item>
-
-    <ion-button expand="block" type="submit" class="login-button">Login</ion-button>
-    <ion-text color="danger" *ngIf="errorMsg">{{ errorMsg }}</ion-text>    
-    <div class="register-section">
-      <span>Non hai un account?</span>
-      <ion-button fill="clear" size="small" (click)="goToRegister()" class="register-button">Registrati</ion-button>
+  <div class="auth-container">
+    <!-- Header Section -->
+    <div class="auth-header">
+      <div class="logo-container">
+        <ion-icon name="storefront" class="logo-icon"></ion-icon>
+      </div>
+      <h1 class="auth-title">Benvenuto</h1>
+      <p class="auth-subtitle">Accedi al tuo account per continuare</p>
     </div>
 
-  </form>
+    <!-- Form Section -->
+    <div class="auth-form-container">
+      <form (ngSubmit)="onLogin()" class="auth-form">
+        <div class="input-group">
+          <div class="input-container">
+            <ion-icon name="person" class="input-icon"></ion-icon>
+            <ion-item lines="none" class="custom-input">
+              <ion-label position="floating">Username</ion-label>
+              <ion-input [(ngModel)]="username" name="username" required></ion-input>
+            </ion-item>
+          </div>
+        </div>
+
+        <div class="input-group">
+          <div class="input-container">
+            <ion-icon name="lock-closed" class="input-icon"></ion-icon>
+            <ion-item lines="none" class="custom-input">
+              <ion-label position="floating">Password</ion-label>
+              <ion-input [(ngModel)]="password" name="password" type="password" required></ion-input>
+            </ion-item>
+          </div>
+        </div>
+
+        <div class="error-container" *ngIf="errorMsg">
+          <ion-text color="danger" class="error-text">{{ errorMsg }}</ion-text>
+        </div>
+
+        <ion-button expand="block" type="submit" class="auth-button primary">
+          <ion-icon name="log-in" slot="start"></ion-icon>
+          Accedi
+        </ion-button>
+
+        <div class="divider">
+          <span class="divider-text">oppure</span>
+        </div>
+
+        <div class="auth-footer">
+          <p class="footer-text">Non hai un account?</p>
+          <ion-button fill="clear" (click)="goToRegister()" class="auth-link">
+            Registrati qui
+          </ion-button>
+        </div>
+      </form>
+    </div>
+  </div>
 </ion-content>

@@ -3,9 +3,6 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { 
   IonContent, 
-  IonHeader, 
-  IonTitle, 
-  IonToolbar, 
   IonItem, 
   IonLabel, 
   IonInput, 
@@ -13,22 +10,46 @@ import {
   IonText, 
   IonRadioGroup,
   IonRadio,
-  IonList
+  IonIcon
 } from '@ionic/angular/standalone';
 import { AuthService } from '../auth.service';
 import { Router } from '@angular/router';
+import { addIcons } from 'ionicons';
+import { 
+  storefront,
+  person,
+  lockClosed,
+  logIn,
+  personAdd,
+  mail,
+  people,
+  cart,
+  briefcase,
+  shieldCheckmark
+} from 'ionicons/icons';
+
+addIcons({
+  storefront,
+  person,
+  lockClosed,
+  logIn,
+  personAdd,
+  mail,
+  people,
+  cart,
+  briefcase,
+  shieldCheckmark
+});
 
 @Component({
   selector: 'app-register',
   templateUrl: './register.page.html',
   styleUrls: ['./register.page.scss'],
-  standalone: true,  imports: [
+  standalone: true,
+  imports: [
     CommonModule, 
     FormsModule,
     IonContent, 
-    IonHeader, 
-    IonTitle, 
-    IonToolbar, 
     IonItem, 
     IonLabel, 
     IonInput, 
@@ -36,7 +57,7 @@ import { Router } from '@angular/router';
     IonText, 
     IonRadioGroup,
     IonRadio,
-    IonList
+    IonIcon
   ]
 })
 export class RegisterPage implements OnInit {
@@ -52,7 +73,6 @@ export class RegisterPage implements OnInit {
     private router: Router,
     private elementRef: ElementRef
   ) {
-    // Recupera dati dal login se presenti
     const nav = this.router.getCurrentNavigation();
     if (nav?.extras?.state) {
       this.username = nav.extras.state['username'] || '';
@@ -74,6 +94,30 @@ export class RegisterPage implements OnInit {
 
     if (!this.username || !this.password || !this.email || !this.role) {
       this.errorMsg = 'Tutti i campi sono obbligatori.';
+      return;
+    }
+
+    // Validazione username
+    if (this.username.length <= 3) {
+      this.errorMsg = 'L\'username deve essere più lungo di 3 caratteri.';
+      return;
+    }
+
+    // Validazione password
+    if (this.password.length <= 3) {
+      this.errorMsg = 'La password deve essere più lunga di 3 caratteri.';
+      return;
+    }
+    
+    if (!/\d/.test(this.password)) {
+      this.errorMsg = 'La password deve contenere almeno un numero.';
+      return;
+    }
+
+    // Validazione email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(this.email)) {
+      this.errorMsg = 'Inserisci un indirizzo email valido.';
       return;
     }
     if (this.authService.isLoggedIn()) {

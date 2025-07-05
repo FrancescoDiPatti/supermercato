@@ -1,99 +1,170 @@
 @use '../../../theme/mixins.scss' as *;
 
-.input-item {
-  margin-bottom: 10px;
-  @include input;
-  ion-input {
-    --padding-top: 18px;
-    --padding-bottom: 18px;
+// ANIMAZIONI E TRANSIZIONI
+@include float-animation;
+@include pulse-animation;
+
+// STILE AUTENTICAZIONE GENERALE
+@include auth-container;
+
+// COMPONENTI SPECIFICI REGISTRAZIONE
+.auth-container {
+  .auth-header {
+    margin-bottom: 30px;
+  }
+}
+
+.auth-form {
+  .input-group {
+    margin-bottom: 20px;
+  }
+  .role-section {
+    margin-bottom: 24px;
+    
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 16px 0;
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--ion-color-dark);
+      
+      .section-icon {
+        color: var(--ion-color-primary);
+        font-size: 20px;
+      }
+    }
+    
+    .role-group {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      
+      .role-option {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px;
+        border: 2px solid #e0e0e0;
+        border-radius: 12px;
+        background: #f8f9fa;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        
+        &:hover {
+          border-color: var(--ion-color-primary-tint);
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        &.selected {
+          border-color: var(--ion-color-primary);
+          background: rgba(var(--ion-color-primary-rgb), 0.05);
+          box-shadow: 0 0 0 3px rgba(var(--ion-color-primary-rgb), 0.1);
+          
+          .role-icon {
+            color: var(--ion-color-primary);
+          }
+          
+          .role-info h4 {
+            color: var(--ion-color-primary);
+          }
+        }
+        
+        .role-content {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          flex: 1;
+          
+          .role-icon {
+            font-size: 24px;
+            color: var(--ion-color-medium);
+          }
+          
+          .role-info {
+            h4 {
+              margin: 0 0 4px 0;
+              font-size: 16px;
+              font-weight: 600;
+              color: var(--ion-color-dark);
+            }
+            
+            p {
+              margin: 0;
+              font-size: 14px;
+              color: var(--ion-color-medium);
+              line-height: 1.3;
+            }
+          }
+        }
+        
+        ion-radio {
+          --color-checked: var(--ion-color-primary);
+          --border-color-checked: var(--ion-color-primary);
+        }
+      }
+    }
   }
   
-  ion-label {
-    position: absolute;
-    left: 20px;
-    top: 50%;
-    transform: translateY(-50%);
-    transition: all 0.2s ease;
-    color: var(--ion-color-medium);
-  }
-  &.item-has-value ion-label,&.item-has-focus ion-label {
-    top: 8px;
-    transform: translateY(0);
-    font-size: 12px;
-    color: var(--ion-color-primary);
-    background: white;
-    padding: 0 4px;
+  .success-container {
+    margin-bottom: 20px;
+    padding: 12px;
+    background: rgba(var(--ion-color-success-rgb), 0.1);
+    border: 1px solid rgba(var(--ion-color-success-rgb), 0.2);
+    border-radius: 8px;
+    
+    .success-text {
+      font-size: 14px;
+      font-weight: 500;
+    }
   }
 }
 
-form {
+
+// RESPONSIVE DESIGN
+@media (max-width: 480px) {
+  
+  .auth-container {
     padding: 16px;
-}
-
-.register-button {
-    margin-top: 16px;
-}
-
-.login-section {
-    margin-top: 16px;
-    text-align: center;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 4px;
-}
-
-.login-button {
-    margin: 0;
-    padding: 0 4px;
-    height: auto;
-    line-height: 1;
-}
-
-// ===== ROLE SECTION =====
-.role-section {
-  margin-bottom: 24px;
-  h3 {
-    margin: 0 0 8px 0;
-    font-size: 18px;
-    font-weight: 600;
-    color: var(--ion-color-dark);
   }
-}
-
-.role-list {
-  border: 2px solid var(--ion-color-primary);
-  border-radius: 12px;
-  padding: 5px 10px 5px 10px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  .role-list-item {
-    margin: 3px 6px;
-    border-radius: 6px;
-    transition: all 0.3s ease;
-    .role-label {
-      h3 {
-        margin: 0;
-        font-size: 14px;
-        font-weight: 500;
+  
+  .auth-form-container {
+    padding: 24px 20px;
+  }
+  
+  .auth-header {
+    margin-bottom: 24px;
+    
+    .auth-title {
+      font-size: 24px;
+    }
+    
+    .auth-subtitle {
+      font-size: 14px;
+    }
+  }
+  
+  .role-section .role-group .role-option {
+    padding: 12px;
+    
+    .role-content {
+      gap: 10px;
+      
+      .role-icon {
+        font-size: 20px;
+      }
+      
+      .role-info {
+        h4 {
+          font-size: 14px;
+        }
+        
+        p {
+          font-size: 12px;
+        }
       }
     }
-    ion-radio {
-      --color-checked: var(--ion-color-primary);
-      --border-color-checked: var(--ion-color-primary);
-    }
-    &:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
-    } 
-    &.selected {
-      --background: var(--ion-color-primary-tint);
-      box-shadow: 0 0px 4px rgba(var(--ion-color-primary-rgb), 0.8);
-      transform: scale(1.01);
-      .role-label h3 {
-        color: var(--ion-color-primary);
-        font-weight: 600;
-      }
-    }
-
   }
 }

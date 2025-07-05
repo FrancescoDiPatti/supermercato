@@ -1,13 +1,16 @@
 @use '../../theme/mixins.scss' as *;
 
+// LAYOUT MENU PRINCIPALE
 ion-menu {
-  --ion-background-color: var(--ion-color-light);  .menu-content {
+  --ion-background-color: var(--ion-color-light);
+  
+  .menu-content {
     display: flex;
     flex-direction: column;
     height: 100%;
   }
 
-  // === SELECTED SUPERMARKET SECTION ===
+  // SEZIONE SUPERMERCATO SELEZIONATO
   .selected-supermarket-section {
     margin-bottom: 24px;
     @include card-subtle;
@@ -27,7 +30,8 @@ ion-menu {
       @include tablet-responsive {
         margin-bottom: 8px;
       }
-        h3 {
+      
+      h3 {
         margin: 0;
         font-size: 14px;
         font-weight: 600;
@@ -37,7 +41,8 @@ ion-menu {
           font-size: 12px;
         }
       }
-        ion-button {
+      
+      ion-button {
         --padding-start: 8px;
         --padding-end: 8px;
         --color: var(--ion-color-medium);
@@ -56,7 +61,8 @@ ion-menu {
         }
       }
     }
-      .selected-supermarket-card {
+    
+    .selected-supermarket-card {
       display: flex;
       align-items: center;
       gap: 12px;
@@ -64,7 +70,8 @@ ion-menu {
       @include tablet-responsive {
         gap: 8px;
       }
-        .supermarket-image {
+      
+      .supermarket-image {
         width: 40px;
         height: 40px;
         border-radius: 8px;
@@ -83,7 +90,8 @@ ion-menu {
           object-fit: cover;
         }
       }
-        .supermarket-info {
+      
+      .supermarket-info {
         flex: 1;
         min-width: 0;
         
@@ -100,7 +108,9 @@ ion-menu {
             font-size: 11px;
             margin: 0 0 2px 0;
           }
-        }          p {
+        }
+        
+        p {
           margin: 0;
           font-size: 11px;
           color: var(--ion-color-medium);
@@ -116,6 +126,7 @@ ion-menu {
     }
   }
 
+  // ELEMENTI MENU NAVIGAZIONE
   .menu-items {
     flex-grow: 1;
     display: flex;
@@ -164,6 +175,8 @@ ion-menu {
       }
     }
   }
+  
+  // SEZIONE LOGOUT
   .logout-section {
     border-top: 1px solid var(--ion-color-light);
     padding-top: 16px;
@@ -177,7 +190,7 @@ ion-menu {
       height: 55px;
       margin: 0;
       --background: transparent;
-      --background-hoover: var(--ion-color-danger);
+      --background-hover: var(--ion-color-danger);
       --background-activated: var(--ion-color-danger);
       --background-focused: var(--ion-color-danger);
       --color: var(--ion-color-danger);
@@ -201,7 +214,7 @@ ion-menu {
   }
 }
 
-// === CART ICON STYLES ===
+// ICONA CARRELLO
 .cart-button {
   position: relative;
   --padding-start: 8px;
@@ -240,30 +253,30 @@ ion-menu {
   }
 }
 
+// RESPONSIVE MENU LAYOUT
 @media (min-width: 992px) {
   ion-menu {
+    max-width: 300px;
+    
     ion-content {
       --padding-top: 20px;
       --padding-bottom: 20px;
       max-width: 300px;
     }
-    max-width: 300px;
   }
-}
 
-// Hide menu button on large screens (992px and above) where split-pane is active
-@media (min-width: 992px) {
   .menu-button-container {
     display: none !important;
   }
 }
 
-// Show menu button only on small screens (below 992px) where split-pane is not active
 @media (max-width: 991px) {
   .menu-button-container {
     display: flex !important;
   }
 }
+
+// CONTENUTO PRINCIPALE
 
 ion-content {
   --background: #ffffff;
@@ -292,18 +305,21 @@ ion-content {
   }
 }
 
-//SEARCH
+// SISTEMA DI RICERCA
 .search-container {
   flex: 1;
   margin-left: 16px;
   margin-right: 16px;
+  
   @media (max-width: 768px) {
     margin-left: 8px;
     margin-right: 4px;
   }
+  
   .search-wrapper {
     position: relative;
     width: 100%;
+    
     .home-searchbar {
       --border-radius: 22px;
       margin: 0;
@@ -312,6 +328,8 @@ ion-content {
     }
   }
 }
+
+// RISULTATI RICERCA FLOTTANTI
 .floating-search-results {
   position: fixed;
   top: 56px;
@@ -335,24 +353,29 @@ ion-content {
     transform: translateY(0);
     visibility: visible;
   }
+  
   .search-results {
     padding: 8px 0;
   }
+  
   .search-loading {
     padding: 20px;
     display: flex;
     justify-content: center;
     align-items: center;
+    
     .loading-container {
       display: flex;
       flex-direction: column;
       align-items: center;
       gap: 12px;
+      
       .loading-spinner {
         display: flex;
         flex-direction: column;
         align-items: center;
         gap: 8px;
+        
         .spinner {
           width: 24px;
           height: 24px;
@@ -361,6 +384,7 @@ ion-content {
           border-radius: 50%;
           animation: spin 1s linear infinite;
         }
+        
         .loading-text {
           font-size: 12px;
           color: var(--ion-color-medium);
@@ -368,7 +392,9 @@ ion-content {
         }
       }
     }
-  }.search-result-item {
+  }
+  
+  .search-result-item {
     --background: rgba(255,255,255,0.7);
     margin: 4px 8px;
     border-radius: 10px;
@@ -428,12 +454,13 @@ ion-content {
       flex-shrink: 0;
     }
   }
-}
-@media (max-width: 768px) {
-  .floating-search-results {
+  
+  @media (max-width: 768px) {
     max-width: 90%;
   }
 }
+
+// STILI SEARCHBAR
 ion-searchbar {
   --background: transparent;
   --border-radius: 0;
@@ -449,8 +476,14 @@ ion-searchbar {
   &.focused {
     transform: scale(1.01);
   }
+  
+  &::part(cancel-button) {
+    color: var(--ion-color-primary);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
 }
 
+// OVERLAY VETRO
 .glass-overlay {
   position: fixed;
   top: 56px;
@@ -467,15 +500,8 @@ ion-searchbar {
     opacity: 1;
     visibility: visible;
   }
-}
-
-ion-searchbar::part(cancel-button) {
-  color: var(--ion-color-primary);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-@media (max-width: 768px) {
-  .glass-overlay {
+  
+  @media (max-width: 768px) {
     backdrop-filter: blur(8px);
     
     &.active {
@@ -483,6 +509,8 @@ ion-searchbar::part(cancel-button) {
     }
   }
 }
+
+// ANIMAZIONI RICERCA
 .search-entering {
   animation: fadeInUp 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
@@ -490,6 +518,8 @@ ion-searchbar::part(cancel-button) {
 .search-leaving {
   animation: fadeOutUp 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
+
+// KEYFRAMES ANIMAZIONI
 
 @keyframes fadeInUp {
   from {

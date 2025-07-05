@@ -1,11 +1,22 @@
 @use '../../../../theme/mixins.scss' as *;
 
+// LAYOUT E CONTENITORI GENERALI
 @include loading-spinner;
-@include action-buttons;
 @include category-block;
-@include custom-alert-system;
 @include quantity-block;
 
+// COMPONENTI CARD E LAYOUT
+@include products-horizontal-scroll;
+@include product-info-standard;
+
+// SISTEMA UI E INTERAZIONI
+@include action-buttons;
+@include custom-alert-system;
+
+//HEADER MINIMAL
+@include minimal-header;
+
+// SEZIONE SUBMIT
 .submit-section {
   margin: 20px 0;
   padding: 0 20px;
@@ -21,48 +32,24 @@
   }
 }
 
-// === PRODUCTS ===
-.products-container {
-  @include horizontal-scroll;
-  @include hide-scrollbar;
-}
 
+
+// PRODOTTI
 .product-card {
   @include product-card-base;
-
 }
 
+// IMMAGINI PRODOTTI
 .product-image-container {
   @include product-image-container;
 }
 
-.product-info {
-  padding: 12px;
-  
-  h4 {
-    margin: 0 0 8px 0;
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--ion-color-dark);
-    line-height: 1.2;
-    @include text-truncate(2);
-  }
-  
-  .create-description {
-    margin: 0 0 12px 0;
-    font-size: 12px;
-    color: var(--ion-color-medium);
-    line-height: 1.3;
-    @include text-truncate(2);
-  }
-}
-
-// === EMPTY STATE ===
+// STATO VUOTO
 .empty-state {
   @include empty-state-supermarket;
 }
 
-// === CONTAINER ===
+// CONTENITORI
 .container {
   margin: 0 auto;
   @include container-padding;
@@ -72,7 +59,7 @@
   @include hide-scrollbar;
 }
 
-// === CREATE CARD ===
+// CARD CREAZIONE
 .supermarket-card.create-card {
   @include create-card-base;
 }
@@ -105,11 +92,11 @@
   }
 }
 
-.create-product-image{
+.create-product-image {
   @include create-card-icon;
 }
 
-
+// SEZIONI LISTA
 .list-section {
   margin-bottom: 32px;
   
@@ -137,8 +124,9 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   touch-action: pan-y;
   -webkit-overflow-scrolling: touch;
-@include custom-scrollbar;
-    .list-item {
+  @include custom-scrollbar;
+  
+  .list-item {
     --border-radius: 8px;
     --padding-start: 16px;
     --padding-end: 16px;
@@ -225,11 +213,10 @@
   }
 }
 
-// Mobile styles
+// RESPONSIVE DESIGN
 @media (max-width: 768px) {
   .list-container {
-    @include custom-scrollbar;
-      .list-item {
+    .list-item {
       --padding-start: 3px;
       --padding-end: 0px;
       

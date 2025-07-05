@@ -125,8 +125,6 @@ export class CarrelloPage implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
-    // Non è più necessario inizializzare i dati di test - ora gestito da UiService
-    
     this.cartSubscription = this.homeService.cart.cartItems$.subscribe(items => {
       this.cartItems = items || [];
       this.loadQuantitiesFromCart();
@@ -146,7 +144,6 @@ export class CarrelloPage implements OnInit, OnDestroy {
 
   private loadAvailableQuantities(): void {
     this.availableQuantities = {};
-    // Raggruppa i prodotti per supermercato
     const supermarketIds = [...new Set(this.cartItems.map(item => item.supermarketId))];
     
     supermarketIds.forEach(supermarketId => {
@@ -358,7 +355,7 @@ export class CarrelloPage implements OnInit, OnDestroy {
     this.showAlert(
       'success', 
       'Acquisto completato!', 
-      `Hai acquistato un totale di ${totalQuantity} prodotto${totalQuantity > 1 ? 'i' : ''} per un totale di €${totalAmount.toFixed(2)}`
+      `Hai acquistato un totale di ${totalQuantity} prodott${totalQuantity === 1 ? 'o' : 'i'} per un totale di €${totalAmount.toFixed(2)}`
     );
     setTimeout(() => {
       this.router.navigate(['/home/ordini']);

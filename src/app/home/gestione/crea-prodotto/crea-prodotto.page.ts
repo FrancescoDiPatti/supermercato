@@ -452,8 +452,8 @@ export class CreaProdottoPage implements OnInit, OnDestroy {
       if (response) {
         this.showAlert('success', 'Successo', 'Prodotto creato con successo!', 'checkmark-circle');
         setTimeout(() => {
-          this.router.navigate(['/home/dashboard']);
-        }, 2000);
+          this.router.navigate(['/home/gestione/aggiungi-prodotto']);
+        }, 1500);
       } else {
         this.showAlert('error', 'Errore', 'Errore nella creazione del prodotto', 'close-circle');
       }

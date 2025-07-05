@@ -1,5 +1,5 @@
 <ion-header [translucent]="true">
-  <ion-toolbar>    
+  <ion-toolbar class="minimal-header">    
     <ion-buttons slot="start">
       <ion-button (click)="goBack()">
         <ion-icon name="arrow-back"></ion-icon>
@@ -121,7 +121,8 @@
                   Manager disponibili:
                 </span>
               </ion-text>
-            </div>            <div class="suggestions-list" *ngIf="!loadingManagers && managerSuggestions.length > 0">
+            </div>
+            <div class="suggestions-list" *ngIf="!loadingManagers && managerSuggestions.length > 0">
               <ion-item 
                 *ngFor="let manager of managerSuggestions; trackBy: trackById"
                 class="suggestion-item"
