@@ -328,4 +328,17 @@ export class AggiungiProdottoPage implements OnInit, OnDestroy {
     const categories = this.homeService.products.generateCategories(this.allProducts);
     this.homeService.ui.updateCategories(this.dataState, categories);
   }
+  
+  canAddProducts(): boolean {
+    if (this.isLoading) {
+      return false;
+    }
+    if (!this.selectedProducts.length) {
+      return false;
+    }
+    return this.selectedProducts.every(p => {
+      const priceValue = p.price ? this.parseCurrency(p.price) : 0;
+      return priceValue > 0;
+    });
+  }
 }

@@ -12,6 +12,7 @@ import { add, remove, storefront, location, checkmarkCircle, chevronForwardOutli
 import { HomeService, Product, Category, PurchaseHistory, Supermarket, SupermarketDataState, AnimationState } from '../../services/home/home.service';
 import { AuthService } from '../../auth/auth.service';
 import { lastValueFrom } from 'rxjs';
+import { skip } from 'rxjs/operators';
 import * as L from 'leaflet';
 
 @Component({
@@ -272,7 +273,7 @@ export class DashboardPage implements OnInit, AfterViewInit, OnDestroy, ViewWill
   }
 
   private listenSMSelection() {
-    this.homeService.supermarkets.selectedSupermarket$.subscribe(this.handleSupermarketSelection.bind(this));
+    this.homeService.supermarkets.selectedSupermarket$.pipe(skip(1)).subscribe(this.handleSupermarketSelection.bind(this));
   }  
   
 
@@ -452,7 +453,11 @@ export class DashboardPage implements OnInit, AfterViewInit, OnDestroy, ViewWill
   }
 
   selectSupermarket(supermarket: Supermarket) {
-    this.quantities = {}; 
+    if (this.selectedSupermarket?.id === supermarket.id) {
+      this.centerSelectedSupermarket(supermarket);
+      return;
+    }
+    this.quantities = {};
     this.homeService.cart.clearCart();
 
     this.homeService.supermarkets.setSelectedSupermarket(supermarket);

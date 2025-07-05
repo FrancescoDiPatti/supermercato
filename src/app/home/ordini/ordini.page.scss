@@ -53,6 +53,10 @@
 
 .empty-orders {
   @include empty-state-base($large: true);
+
+  .empty-icon {
+    color: var(--ion-color-primary);
+  }
 }
 
 .orders-summary {

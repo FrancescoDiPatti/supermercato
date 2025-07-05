@@ -625,7 +625,11 @@ export class HomePage implements OnInit, OnDestroy {
 
   // Selected supermarket visibility
   shouldShowSupermarketSelection(): boolean {
-    return this.activeUrl.includes('/prodotti') || this.activeUrl.includes('/offerte');
+    return this.activeUrl.includes('/prodotti')
+      || this.activeUrl.includes('/offerte')
+      || this.activeUrl.includes('/carrello')
+      || this.activeUrl.includes('/gestione/aggiungi-prodotto')
+      || this.activeUrl.includes('/gestione/crea-prodotto');
   }
 
   // Menu selected
@@ -636,6 +640,9 @@ export class HomePage implements OnInit, OnDestroy {
   // Logout and redirect
   logout() {
     this.clearSearch();
+    // Clear session storage on logout
+    sessionStorage.removeItem('inventoryData');
+    sessionStorage.removeItem('cartItems');
     this.recentSearches = [];
     this.homeService.supermarkets.clearSelectedSupermarket();
     this.menuController.close();

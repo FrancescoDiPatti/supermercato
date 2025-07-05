@@ -40,20 +40,21 @@
           <!-- indirizzo -->
           <ion-item class="form-item">
             <ion-label position="stacked">Indirizzo</ion-label>
-            <ion-input 
-              [(ngModel)]="supermarket.address"
-              name="address"
-              type="text"
-              placeholder="Es. Via Roma 123, Milano"
-              required
-              clearInput="true"
-              maxlength="32"
-              (ionInput)="onAddressInput($event)">
-            </ion-input>
-            <ion-text slot="end" class="char-counter" [color]="supermarket.address.length >= 32 ? 'danger' : supermarket.address.length >= 29 ? 'warning' : 'medium'">
-              {{supermarket.address.length}}/32
-            </ion-text>
-          </ion-item>          <!-- suggerimenti indirizzo -->
+              <ion-input 
+                [(ngModel)]="supermarket.address"
+                name="address"
+                type="text"
+                placeholder="Es. Via Roma 123, Milano"
+                required
+                clearInput="true"
+                maxlength="48"
+                (ionInput)="onAddressInput($event)">
+              </ion-input>
+              <ion-text slot="end" class="char-counter" [color]="supermarket.address.length >= 48 ? 'danger' : supermarket.address.length >= 45 ? 'warning' : 'medium'">
+                {{supermarket.address.length}}/48
+              </ion-text>
+          </ion-item>
+          <!-- suggerimenti indirizzo -->
           <div class="address-section">
             <!-- Loading search -->
             <div *ngIf="isSearching" class="search-loading">

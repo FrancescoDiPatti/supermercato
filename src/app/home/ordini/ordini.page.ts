@@ -146,13 +146,19 @@ export class OrdiniPage implements OnInit, OnDestroy {
         switch (this.selectedPeriod) {
           case 'today':
             return correctedDate.toDateString() === now.toDateString();
-          case 'week':
-            const weekAgo = new Date(now);
-            weekAgo.setDate(now.getDate() - 7);
-            return correctedDate >= weekAgo;
-          case 'month':
-            return correctedDate.getMonth() === now.getMonth() && 
-                   correctedDate.getFullYear() === now.getFullYear();
+          case 'week': {
+            const day = now.getDay();
+            const diffToMonday = (day + 6) % 7;
+            const lastMonday = new Date(now);
+            lastMonday.setDate(now.getDate() - diffToMonday);
+            lastMonday.setHours(0, 0, 0, 0);
+            return correctedDate >= lastMonday && correctedDate <= now;
+          }
+          case 'month': {
+            const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+            firstDay.setHours(0, 0, 0, 0);
+            return correctedDate >= firstDay && correctedDate <= now;
+          }
           default:
             return true;
         }

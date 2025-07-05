@@ -138,7 +138,7 @@
     <div class="submit-section" *ngIf="selectedProducts.length > 0">
       <ion-button 
         expand="block"
-        [disabled]="isLoading"
+        [disabled]="!canAddProducts() || isLoading"
         (click)="AddProduct()"
         class="submit-button">
         <ion-icon name="save" slot="start" *ngIf="!isLoading"></ion-icon>
