@@ -3,42 +3,18 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
 import {
-  IonContent,
-  IonHeader,
-  IonTitle,
-  IonToolbar,
-  IonButton,
-  IonText,
-  IonMenu,
-  IonMenuButton,
-  IonButtons,
-  IonIcon,
-  IonSplitPane,
-  IonSearchbar,
-  IonList,
-  IonItem,
-  IonBadge,
-  MenuController
+  IonContent, IonHeader, IonTitle, IonToolbar, IonButton, IonText, IonMenu,
+  IonMenuButton, IonButtons, IonIcon, IonSplitPane, IonSearchbar, IonList,
+  IonItem, IonBadge, MenuController
 } from '@ionic/angular/standalone';
 import { SearchService } from '../services/search/search.service';
 import { HomeService, Supermarket, SearchResult, RecentSearch } from '../services/home/home.service';
 import { AuthService } from '../auth/auth.service';
 import { addIcons } from 'ionicons';
 import {
-  storefrontOutline,
-  cubeOutline,
-  cartOutline,
-  receiptOutline,
-  logOutOutline,
-  menuOutline,
-  pricetagsOutline,
-  gridOutline,
-  arrowBackOutline,
-  timeOutline,
-  searchOutline,
-  close,
-  addOutline,
-  addCircleOutline,
+  storefrontOutline, cubeOutline, cartOutline, receiptOutline, logOutOutline,
+  menuOutline, pricetagsOutline, gridOutline, arrowBackOutline, timeOutline,
+  searchOutline, close, addOutline, addCircleOutline,
 } from 'ionicons/icons';
 import { filter } from 'rxjs/operators';
 import { NavigationEnd } from '@angular/router';
@@ -48,61 +24,66 @@ import { debounceTime, Subject, Subscription } from 'rxjs';
   selector: 'app-home',
   templateUrl: './home.page.html',
   styleUrls: ['./home.page.scss'],
-  standalone: true,  imports: [
-    CommonModule,
-    FormsModule,
-    RouterModule,
-    IonContent,
-    IonHeader,
-    IonTitle,
-    IonToolbar,
-    IonButton,
-    IonText,
-    IonMenu,
-    IonMenuButton,
-    IonButtons,
-    IonIcon,
-    IonSplitPane,
-    IonSearchbar,
-    IonList,
-    IonItem,
-    IonBadge
+  standalone: true,
+  imports: [
+    CommonModule, FormsModule,
+    RouterModule, IonContent, IonHeader, IonTitle, IonToolbar, IonButton, 
+    IonMenu, IonMenuButton, IonButtons, IonIcon, IonSplitPane, IonSearchbar,
+    IonList, IonItem, IonBadge, IonText
   ]
 })
 export class HomePage implements OnInit, OnDestroy {
-  homeData: any;
-  errorMsg = '';
+  public homeData: any;
+  public errorMsg = '';
+  public searchTerm: string = '';
+  public searchResults: SearchResult[] = [];
+  public recentSearches: RecentSearch[] = [];
+  public showRecentSearches: boolean = false;
+  public isSearching: boolean = false;
+  public showResults: boolean = false;
+  public showOverlay: boolean = false;
+  public isSearchActive: boolean = false;
+  public currentPlaceholder: string = 'Ricerca...';
+  public selectedSupermarket: any = null;
+  public cartItemCount: number = 0;
+  
   private activeUrl = '';
-  searchTerm: string = '';
-  searchResults: SearchResult[] = [];
-  recentSearches: RecentSearch[] = [];
-  showRecentSearches: boolean = false;
-  isSearching: boolean = false;
-  showResults: boolean = false;
-  showOverlay: boolean = false;
-  isSearchActive: boolean = false;
-  currentPlaceholder: string = 'Ricerca...';
-  selectedSupermarket: any = null;
-  
-  // Cart functionality
-  cartItemCount: number = 0;
-  
   private searchSubject = new Subject<string>();  
   private subscription: Subscription = new Subscription();
   private readonly RECENT_SEARCHES_KEY = 'recentSearches';
-  private readonly MAX_RECENT_SEARCHES = 5;  private readonly SEARCH_CONFIG = {
+  private readonly MAX_RECENT_SEARCHES = 5;
+  private readonly SEARCH_CONFIG = {
     '/prodotti': { placeholder: 'Cerca prodotti', type: 'products' },
     '/offerte': { placeholder: 'Cerca offerte', type: 'offers' },
     '/dashboard': { placeholder: 'Cerca supermercati', type: 'supermarkets' }
   } as const;
   constructor(
-    private homeService: HomeService,
-    private authService: AuthService,
-    private router: Router,
-    private elementRef: ElementRef,
-    private menuController: MenuController,
-    private searchService: SearchService
-  ) {    addIcons({ 
+    private readonly homeService: HomeService,
+    private readonly authService: AuthService,
+    private readonly router: Router,
+    private readonly elementRef: ElementRef,
+    private readonly menuController: MenuController,
+    private readonly searchService: SearchService
+  ) {
+    this.initializeIcons();
+    this.setupRouterListener();
+  }  
+
+  ngOnInit(): void {
+    this.loadHomeData();
+    this.setupSearch();
+    this.loadRecentSearches();
+    this.setupUserListener();
+    this.setupCartListener();
+    this.setupSupermarketListener();
+    this.updateCartCount();
+  }  ngOnDestroy(): void {
+    this.subscription.unsubscribe();
+  }
+
+  // Initialize icons
+  private initializeIcons(): void {
+    addIcons({ 
       storefrontOutline, 
       cubeOutline, 
       cartOutline, 
@@ -118,69 +99,98 @@ export class HomePage implements OnInit, OnDestroy {
       addOutline,
       addCircleOutline
     });
-      this.router.events.pipe(
+  }
+
+  // Setup router event listener
+  private setupRouterListener(): void {
+    this.router.events.pipe(
       filter(event => event instanceof NavigationEnd)
     ).subscribe((event: NavigationEnd) => {
       this.activeUrl = event.urlAfterRedirects;
       this.updatePlaceholder();
     });
-  }  
+  }
 
-  ngOnInit() {
-    this.loadHome();
-    this.setupSearch();
-    this.loadRecent();
-    this.setupUserListener();
-    this.setupCartListener();
-    
-    // Subscribe to selected supermarket changes
+  // Load home data
+  private loadHomeData(): void {
+    this.homeData = null;
+    this.errorMsg = '';
+    this.homeService.getHome().subscribe({
+      next: (res) => {
+        this.homeData = res.data;
+        if (res.data.user) {
+          this.authService.updateUserData(res.data.user);
+        }
+      },
+      error: (err) => {
+        this.errorMsg = 'Errore nel recupero dei dati';
+      }
+    });
+  }
+
+  // Setup supermarket listener
+  private setupSupermarketListener(): void {
     this.subscription.add(
       this.homeService.supermarkets.selectedSupermarket$.subscribe((supermarket: Supermarket | null) => {
         this.selectedSupermarket = supermarket;
       })
     );
-    
-    // Initialize cart count
-    this.updateCartCount();
-  }  ngOnDestroy() {
-    this.subscription.unsubscribe();
   }
 
+  // Load recent searches from localStorage
+  private loadRecentSearches(): void {
+    const currentUser = this.authService.getUser();
+    if (!currentUser) return;
+
+    const key = this.getRecentSearchesKey(currentUser.id);
+    const stored = localStorage.getItem(key);
+    
+    if (stored) {
+      try {
+        this.recentSearches = JSON.parse(stored);
+      } catch (error) {
+        console.error('Error parsing recent searches:', error);
+        this.recentSearches = [];
+      }
+    }
+  }
+
+  // Get supermarket image
   getSupermarketImage(name: string): string {
     return this.homeService.supermarkets.getStoreImage(name);
   }
 
+  // Clear selected supermarket
   clearSelectedSupermarket(): void {
     this.homeService.supermarkets.clearSelectedSupermarket();
   }
 
-  // Debounce search
-  private setupSearch() {
+  // Setup search
+  private setupSearch(): void {
     this.subscription.add(
       this.searchSubject.pipe(
         debounceTime(300)
       ).subscribe(query => {
-        this.search(query);
+        this.performSearch(query);
       })
     );
-  }  private setupUserListener() {    
+  }
+  
+  // Setup user authentication listener
+  private setupUserListener(): void {    
     this.subscription.add(
       this.authService.authState.subscribe(authState => {
         if (authState.isAuthenticated && authState.user) {
-          // User logged in
-          this.resetSearch();
-          this.recentSearches = [];
-          this.loadRecent();
-          this.menuController.close();
+          this.handleUserLogin();
         } else {
-          this.homeService.supermarkets.clearSelectedSupermarket();
-          this.resetSearch();
-          this.recentSearches = [];
-          this.menuController.close();
+          this.handleUserLogout();
         }
       })
     );
-  }  private setupCartListener() {    
+  }
+
+  // Setup cart items listener
+  private setupCartListener(): void {    
     this.subscription.add(
       this.homeService.cart.cartItems$.subscribe((items: any) => {
         this.cartItemCount = items.length;
@@ -188,18 +198,33 @@ export class HomePage implements OnInit, OnDestroy {
     );
   }
 
-  // Set placehoalder
-  private updatePlaceholder() {
+  // Handle user login
+  private handleUserLogin(): void {
+    this.resetSearch();
+    this.recentSearches = [];
+    this.loadRecentSearches();
+    this.menuController.close();
+  }
+
+  // Handle user logout
+  private handleUserLogout(): void {
+    this.homeService.supermarkets.clearSelectedSupermarket();
+    this.resetSearch();
+    this.recentSearches = [];
+    this.menuController.close();
+  }
+
+  // Set search placeholder
+  private updatePlaceholder(): void {
     const config = Object.entries(this.SEARCH_CONFIG).find(([path]) => 
       this.activeUrl.includes(path)
     );
     this.currentPlaceholder = config ? config[1].placeholder : '';
-  }  
-  
-  // Manage search input
-  onInput(event: any) {
-    // Don't process search if no search functionality is available
-    if (!this.currentPlaceholder) {
+  }
+
+  // Handle search input change
+  onInput(event: any): void {
+    if (!this.isSearchFunctionalityAvailable()) {
       return;
     }
     
@@ -207,30 +232,48 @@ export class HomePage implements OnInit, OnDestroy {
     this.searchTerm = query;
     
     if (query.length >= 2) {
-      this.showRecentSearches = false;
-      this.showOverlay = true;
-      this.searchSubject.next(query);
+      this.handleActiveSearch();
     } else if (query.length === 0) {
-      this.showRecentSearches = true;
-      this.showOverlay = true;
-      this.searchResults = this.combineResults([], true);
-      this.showResults = this.searchResults.length > 0;
+      this.handleEmptySearch();
     } else {
-      this.showOverlay = true;
-      this.searchResults = [];
-      this.showResults = false;
-      this.showRecentSearches = false;
+      this.handlePartialSearch();
     }
   }
-  // Reset search
-  private resetSearch() {
+
+  // Handle active search (query >= 2 characters)
+  private handleActiveSearch(): void {
+    this.showRecentSearches = false;
+    this.showOverlay = true;
+    this.searchSubject.next(this.searchTerm);
+  }
+
+  // Handle empty search
+  private handleEmptySearch(): void {
+    this.showRecentSearches = true;
+    this.showOverlay = true;
+    this.searchResults = this.combineResults([], true);
+    this.showResults = this.searchResults.length > 0;
+  }
+
+  // Handle partial search (1 character)
+  private handlePartialSearch(): void {
+    this.showOverlay = true;
+    this.searchResults = [];
+    this.showResults = false;
+    this.showRecentSearches = false;
+  }
+  // Reset search state
+  private resetSearch(): void {
     this.searchResults = [];
     this.showResults = false;
     this.showRecentSearches = false;
     this.showOverlay = false;
     this.isSearchActive = false;
     this.isSearching = false;
-  }  private async search(query: string) {
+  }
+
+  // Perform search with query
+  private async performSearch(query: string): Promise<void> {
     if (!query?.trim()) {
       this.resetSearch();
       return;
@@ -238,14 +281,14 @@ export class HomePage implements OnInit, OnDestroy {
     this.isSearching = true;
     this.showRecentSearches = false;
     this.showOverlay = true;
-    const rawResults = await this.execSearch(query);
+    const rawResults = await this.executeSearch(query);
     const showRecent = rawResults.length < 3;
     this.searchResults = this.combineResults(rawResults, showRecent);
     this.showResults = this.searchResults.length > 0;
     this.isSearching = false;
   }
-  // Research by type
-  private async execSearch(query: string): Promise<SearchResult[]> {
+  // Execute search by type
+  private async executeSearch(query: string): Promise<SearchResult[]> {
     const currentType = this.getSearchType();
     
     switch (currentType) {
@@ -259,7 +302,7 @@ export class HomePage implements OnInit, OnDestroy {
         return [];
     }
   }
-  // Search supermarkets using the search service (priority near)
+  // Search supermarkets
   private async searchSupermarkets(query: string): Promise<SearchResult[]> {
     try {
       const supermarkets = await this.homeService.supermarkets.getSupermarketsForCurrentUser();
@@ -288,12 +331,11 @@ export class HomePage implements OnInit, OnDestroy {
     }
 
     try {
-      // Get products from current supermarket through home service
       const result = await this.homeService.loadSupermarketDataWithoutImages(
         this.selectedSupermarket.id, 
         this.homeService.ui.createDataState(), 
-        true, // load products
-        true  // load offers
+        true,
+        true
       );
       
       const allProducts = [...result.products, ...result.offerProducts];
@@ -303,14 +345,7 @@ export class HomePage implements OnInit, OnDestroy {
       }
 
       const searchResults = this.filterProductsByQuery(allProducts, query);
-      return searchResults.map((product: any) => ({
-        id: product.barcode || product.id.toString(),
-        label: product.name,
-        sublabel: product.description || `€${(product.offer_price || product.price || 0).toFixed(2)}`,
-        type: 'search' as const,
-        icon: 'cube-outline',
-        data: product
-      }));
+      return this.mapProductsToSearchResults(searchResults, false);
     } catch (error) {
       console.error('Error searching products:', error);
       return [];
@@ -324,12 +359,11 @@ export class HomePage implements OnInit, OnDestroy {
     }
 
     try {
-      // Get offers from current supermarket through home service
       const result = await this.homeService.loadSupermarketDataWithoutImages(
         this.selectedSupermarket.id, 
         this.homeService.ui.createDataState(), 
-        false, // don't load regular products
-        true   // load offers
+        false,
+        true
       );
       
       const offers = result.offerProducts;
@@ -339,14 +373,7 @@ export class HomePage implements OnInit, OnDestroy {
       }
 
       const searchResults = this.filterProductsByQuery(offers, query);
-      return searchResults.map((product: any) => ({
-        id: product.barcode || product.id.toString(),
-        label: product.name,
-        sublabel: `Offerta: €${(product.offer_price || product.price || 0).toFixed(2)}`,
-        type: 'search' as const,
-        icon: 'pricetag-outline',
-        data: product
-      }));
+      return this.mapProductsToSearchResults(searchResults, true);
     } catch (error) {
       console.error('Error searching offers:', error);
       return [];
@@ -364,11 +391,25 @@ export class HomePage implements OnInit, OnDestroy {
       const barcodeMatch = product.barcode?.includes(query);
       
       return nameMatch || descriptionMatch || categoryMatch || barcodeMatch;
-    }).slice(0, 8); // Limit results
+    }).slice(0, 8);
   }
 
-  // Manage result selection
-  selectResult(result: SearchResult) {
+  // Map products to search results
+  private mapProductsToSearchResults(products: any[], isOffer: boolean = false): SearchResult[] {
+    return products.map((product: any) => ({
+      id: product.barcode || product.id.toString(),
+      label: product.name,
+      sublabel: isOffer 
+        ? `Offerta: €${(product.offer_price || product.price || 0).toFixed(2)}`
+        : product.description || `€${(product.offer_price || product.price || 0).toFixed(2)}`,
+      type: 'search' as const,
+      icon: isOffer ? 'pricetag-outline' : 'cube-outline',
+      data: product
+    }));
+  }
+
+  // Handle search result selection
+  selectResult(result: SearchResult): void {
     this.searchTerm = result.label;
     this.isSearching = false;
     this.resetSearch();
@@ -381,8 +422,8 @@ export class HomePage implements OnInit, OnDestroy {
     }
   }
 
-  // Manage recent search
-  private handleRecent(result: SearchResult) {
+  // Handle recent search selection
+  private handleRecent(result: SearchResult): void {
     const recentSearch = this.recentSearches.find(search => 
       search.query === result.label && search.type === this.getSearchType()
     );
@@ -400,61 +441,112 @@ export class HomePage implements OnInit, OnDestroy {
       this.searchSubject.next(result.label);
     }
   }
+
   // Navigate to selected result
   private navigate(result: SearchResult): void {
     const currentType = this.getSearchType();
     
-    // Handle supermarket selection from search
-    if (currentType === 'supermarkets' && result.data) {
-      if (!this.activeUrl.includes('/dashboard')) {
-        this.router.navigate(['/home/dashboard']).then(() => {
-          setTimeout(() => {
-            this.selectSupermarketFromSearch(result.data);
-          }, 100);
-        });
-      } else {
-        this.selectSupermarketFromSearch(result.data);
-      }
-    }
-    
-    // Handle product selection from search
-    if (currentType === 'products' && result.data) {
-      this.selectProductFromSearch(result.data);
-    }
-    
-    // Handle offer selection from search
-    if (currentType === 'offers' && result.data) {
-      this.selectOfferFromSearch(result.data);
+    switch (currentType) {
+      case 'supermarkets':
+        this.handleSupermarketNavigation(result);
+        break;
+      case 'products':
+        this.dispatchProductEvent('productSelectedFromSearch', result.data);
+        break;
+      case 'offers':
+        this.dispatchProductEvent('offerSelectedFromSearch', result.data);
+        break;
     }
   }
 
-  // Select and center supermarket
+  // Handle supermarket navigation
+  private handleSupermarketNavigation(result: SearchResult): void {
+    if (!result.data) return;
+    
+    if (!this.activeUrl.includes('/dashboard')) {
+      this.router.navigate(['/home/dashboard']).then(() => {
+        setTimeout(() => {
+          this.selectSupermarketFromSearch(result.data);
+        }, 100);
+      });
+    } else {
+      this.selectSupermarketFromSearch(result.data);
+    }
+  }
+
+  // Dispatch product/offer selection event
+  private dispatchProductEvent(eventName: string, productData: any): void {
+    if (productData) {
+      window.dispatchEvent(new CustomEvent(eventName, {
+        detail: { product: productData }
+      }));
+    }
+  }
+
+  // Select and center supermarket from search
   private selectSupermarketFromSearch(supermarket: any): void {
     this.homeService.supermarkets.setSelectedSupermarket(supermarket);
     window.dispatchEvent(new CustomEvent('supermarketSelectedFromSearch', {
       detail: { supermarket }
     }));
   }
-  // Select and highlight product from search
-  private selectProductFromSearch(product: any): void {
-    window.dispatchEvent(new CustomEvent('productSelectedFromSearch', {
-      detail: { product }
-    }));
-  }
 
-  // Select and highlight offer from search
-  private selectOfferFromSearch(product: any): void {
-    window.dispatchEvent(new CustomEvent('offerSelectedFromSearch', {
-      detail: { product }
-    }));
-  }
-
-  onFocus() {
-    // Don't activate search if no search functionality is available
-    if (!this.currentPlaceholder) {
+  // Handle search input focus
+  onFocus(): void {
+    if (!this.isSearchFunctionalityAvailable()) {
       return;
     }
     
+    this.activateSearch();
+    this.showRecentSearchesIfEmpty();
+  }
+  
+  // Handle search input blur
+  onBlur(): void {
+    setTimeout(() => this.resetSearch(), 200);
+  }
+
+  // Clear search input
+  clearSearch(): void {
+    this.searchTerm = '';
+    this.isSearching = false;
+    this.resetSearch();
+    
+    if (this.isSearchActive && this.isSearchFunctionalityAvailable()) {
+      this.showRecentSearchesIfEmpty();
+    }
+  }
+
+  // Handle search cancellation
+  onCancel(): void {
+    if (!this.isSearchFunctionalityAvailable()) {
+      return;
+    }
+    
+    this.isSearching = false;
+    this.clearSearch();
+    this.blurActiveElement();
+  }
+
+  // Handle enter key in search
+  onEnter(event: any): void {
+    if (!this.isSearchFunctionalityAvailable()) {
+      return;
+    }
+    
+    event.preventDefault();
+    if (this.searchResults?.length > 0) {
+      this.selectResult(this.searchResults[0]);
+    }
+  }
+
+  // Check if search functionality is available
+  private isSearchFunctionalityAvailable(): boolean {
+    return !!this.currentPlaceholder;
+  }
+
+  // Activate search mode
+  private activateSearch(): void {
     this.showOverlay = true;
     this.isSearchActive = true;
     
@@ -462,110 +554,67 @@ export class HomePage implements OnInit, OnDestroy {
       this.searchTerm = '';
       this.searchResults = [];
     }
-    
+  }
+
+  // Show recent searches if search is empty
+  private showRecentSearchesIfEmpty(): void {
     this.showRecentSearches = true;
     this.searchResults = this.combineResults([], true);
     this.showResults = this.searchResults.length > 0;
   }
-  
-  onBlur() {
-    setTimeout(() => this.resetSearch(), 200);
-  }
-  clearSearch() {
-    this.searchTerm = '';
-    this.isSearching = false;
-    this.resetSearch();
-    
-    // Only show recent searches if search functionality is available
-    if (this.isSearchActive && this.currentPlaceholder) {
-      this.showRecentSearches = true;
-      this.showOverlay = true;
-      this.searchResults = this.combineResults([], true);
-      this.showResults = this.searchResults.length > 0;
-    }
-  }  
-  
-  onCancel() {
-    // Don't process if no search functionality is available
-    if (!this.currentPlaceholder) {
-      return;
-    }
-    
-    this.isSearching = false;
-    this.clearSearch();
+
+  // Remove focus from active element
+  private blurActiveElement(): void {
     const activeElement = document.activeElement as HTMLElement;
     if (activeElement) {
       activeElement.blur();
     }
   }
 
-  // Enter key search
-  onEnter(event: any) {
-    // Don't process if no search functionality is available
-    if (!this.currentPlaceholder) {
-      return;
-    }
+  // Save recent search to localStorage
+  private saveRecent(query: string, type: string, result?: SearchResult): void {
+    const currentUser = this.authService.getUser();
+    if (!currentUser) return;
+
+    const key = this.getRecentSearchesKey(currentUser.id);
+    const newSearch = this.createRecentSearch(query, type, currentUser.id, result);
     
-    event.preventDefault();
-    if (this.searchResults && this.searchResults.length > 0) {
-      this.selectResult(this.searchResults[0]);
-      return;
-    }
+    this.updateRecentSearches(newSearch);
+    this.persistRecentSearches(key);
   }
 
-  // Load home data
-  private loadHome() {
-    this.homeData = null;
-    this.errorMsg = '';
-    this.homeService.getHome().subscribe({
-      next: (res) => {
-        this.homeData = res.data;
-        if (res.data.user) {
-          this.authService.updateUserData(res.data.user);
-        }
-      },
-      error: (err) => {
-        this.errorMsg = 'Errore nel recupero dei dati';
-      }
-    });
-  }  
+  // Get recent searches storage key
+  private getRecentSearchesKey(userId: number): string {
+    return `${this.RECENT_SEARCHES_KEY}_${userId}`;
+  }
 
-  // Load recent search from localstorage
-  private loadRecent() {
-    const currentUser = this.authService.getUser();
-    if (!currentUser) return;
-
-    const key = `${this.RECENT_SEARCHES_KEY}_${currentUser.id}`;
-    const stored = localStorage.getItem(key);
-    
-    if (stored) {
-      this.recentSearches = JSON.parse(stored);
-    }
-  }  
-
-  // Save recent search to localstorage
-  private saveRecent(query: string, type: string, result?: SearchResult) {
-    const currentUser = this.authService.getUser();
-    if (!currentUser) return;
-
-    const key = `${this.RECENT_SEARCHES_KEY}_${currentUser.id}`;
-    const newSearch: RecentSearch = {
+  // Create new recent search object
+  private createRecentSearch(query: string, type: string, userId: number, result?: SearchResult): RecentSearch {
+    return {
       query,
       timestamp: Date.now(),
       type,
-      userId: currentUser.id,
+      userId,
       data: result?.data,
       resultId: result?.id
     };
+  }
+
+  // Update recent searches array
+  private updateRecentSearches(newSearch: RecentSearch): void {
     this.recentSearches = this.recentSearches.filter(search => 
-      search.query.toLowerCase() !== query.toLowerCase() || search.type !== type
+      search.query.toLowerCase() !== newSearch.query.toLowerCase() || search.type !== newSearch.type
     );
     this.recentSearches.unshift(newSearch);
     this.recentSearches = this.recentSearches.slice(0, this.MAX_RECENT_SEARCHES);
+  }
+
+  // Persist recent searches to localStorage
+  private persistRecentSearches(key: string): void {
     localStorage.setItem(key, JSON.stringify(this.recentSearches));
   }  
-
-  // Combined list
+  
+  // Combine search results with recent searches
   private combineResults(searchResults: SearchResult[], showRecent: boolean = false): SearchResult[] {
     const combinedResults: SearchResult[] = [];
     const actualResults = searchResults.map(result => ({
@@ -597,7 +646,7 @@ export class HomePage implements OnInit, OnDestroy {
     return combinedResults;
   }
 
-  // Search type
+  // Get current search type
   private getSearchType(): string {
     const config = Object.entries(this.SEARCH_CONFIG).find(([path]) => 
       this.activeUrl.includes(path)
@@ -605,15 +654,18 @@ export class HomePage implements OnInit, OnDestroy {
     return config ? config[1].type : 'general';
   }
 
-  // User role management
+  // User role getters
   public get isAdmin(): boolean {
     const user = this.authService.getUser();
     return this.homeService.isUserAdmin(user);
   }
+
   public get isManager(): boolean {
     const user = this.authService.getUser();
     return this.homeService.isUserManager(user);
-  }  public get isCustomer(): boolean {
+  }
+
+  public get isCustomer(): boolean {
     const user = this.authService.getUser();
     return this.homeService.isUserCustomer(user);
   }
@@ -623,7 +675,7 @@ export class HomePage implements OnInit, OnDestroy {
     return this.homeService.isUserAdminOrManager(user);
   }
 
-  // Selected supermarket visibility
+  // Check if supermarket visibility
   shouldShowSupermarketSelection(): boolean {
     return this.activeUrl.includes('/prodotti')
       || this.activeUrl.includes('/offerte')
@@ -632,15 +684,19 @@ export class HomePage implements OnInit, OnDestroy {
       || this.activeUrl.includes('/gestione/crea-prodotto');
   }
 
-  // Menu selected
+  // Check if menu item is active
   isMenuActive(path: string): boolean {
     return this.activeUrl === `/home/${path}` || (path === 'dashboard' && (this.activeUrl === '/home' || this.activeUrl === '/home/dashboard'));
-  }  
+  }
 
-  // Logout and redirect
-  logout() {
+  // Check if cart visibility
+  shouldShowCartIcon(): boolean {
+    return this.isCustomer && !this.activeUrl.includes('/carrello') && !this.activeUrl.includes('/ordini');
+  }
+
+  // Handle user logout
+  logout(): void {
     this.clearSearch();
-    // Clear session storage on logout
     sessionStorage.removeItem('inventoryData');
     sessionStorage.removeItem('cartItems');
     this.recentSearches = [];
@@ -651,16 +707,11 @@ export class HomePage implements OnInit, OnDestroy {
   }
   
   // Navigate and close menu
-  navAndClose(route: string) {
+  navAndClose(route: string): void {
     this.router.navigate([`/home/${route}`]);
     if (window.innerWidth < 992) {
       this.menuController.close();
     }
-  }
-
-  // Cart icon visibility
-  shouldShowCartIcon(): boolean {
-    return this.isCustomer && !this.activeUrl.includes('/carrello') && !this.activeUrl.includes('/ordini');
   }
 
   // Navigate to cart
@@ -668,7 +719,7 @@ export class HomePage implements OnInit, OnDestroy {
     this.router.navigate(['/home/carrello']);
   }
 
-  // Update cart count
+  // Update cart item count
   private updateCartCount(): void {
     this.cartItemCount = this.homeService.cart.getCartItemsCount();
   }

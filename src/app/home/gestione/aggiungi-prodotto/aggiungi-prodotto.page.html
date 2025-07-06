@@ -11,7 +11,7 @@
   </ion-header>
   <div class="container">
     <!-- Categories Section -->
-    <div class="section categories-section" *ngIf="displayProducts.length > 0">
+    <div class="section categories-section" *ngIf="selectedSupermarket && displayProducts.length > 0">
       <h3>Categorie</h3>
       <div class="categories-container">
         <!-- "All Categories" Item -->
@@ -35,7 +35,7 @@
     </div>
     
     <!-- Products Section: ora visibile direttamente -->
-    <div class="section products-section" *ngIf="displayProducts.length > 0 || canCreateContent">
+    <div class="section products-section" *ngIf="selectedSupermarket && (displayProducts.length > 0 || canCreateContent)">
       <h3>Prodotti non ancora inseriti</h3>
       <div class="products-container">
         <!-- Product Cards -->
@@ -94,7 +94,7 @@
         </div>
       </div>
     </div>
-    <div *ngIf="SelectedProduct" class="selected-products-list" class="list-section">
+    <div *ngIf="selectedSupermarket && SelectedProduct" class="selected-products-list" class="list-section">
       <div >
         <h3>Prodotti Selezionati</h3>
       </div>
@@ -135,7 +135,7 @@
       </ion-list>
     </div>
     <!-- Submit button -->
-    <div class="submit-section" *ngIf="selectedProducts.length > 0">
+    <div class="submit-section" *ngIf="selectedSupermarket && selectedProducts.length > 0">
       <ion-button 
         expand="block"
         [disabled]="!canAddProducts() || isLoading"
@@ -146,8 +146,20 @@
         {{isLoading ? 'Aggiunta in corso...' : 'Aggiungi Prodotto'}}
       </ion-button>
     </div>
-    <!-- EMPTY -->
-    <div *ngIf="!SelectedProduct  && !isLoading" class="empty-state">
+    <!-- EMPTY STATES -->
+    <!-- Empty state when no supermarket is selected -->
+    <div *ngIf="!selectedSupermarket && !isLoading" class="empty-state">
+      <ion-icon name="storefront" class="empty-icon"></ion-icon>
+      <h3>Nessun supermercato selezionato</h3>
+      <p>Seleziona un supermercato per aggiungere prodotti al catalogo.</p>
+      <ion-button [routerLink]="['/home/dashboard']" class="see-more-button">
+        Vai alla Dashboard
+        <ion-icon slot="end" name="arrow-forward"></ion-icon>
+      </ion-button>
+    </div>
+    
+    <!-- Empty state when supermarket is selected but no product is selected -->
+    <div *ngIf="selectedSupermarket && !SelectedProduct && !isLoading" class="empty-state">
       <ion-icon name="cube" class="empty-icon"></ion-icon>
       <h3>Seleziona un prodotto per iniziare</h3>
       <p>Scegli un prodotto dalla lista sopra per aggiungerlo al supermercato</p>

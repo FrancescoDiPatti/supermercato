@@ -8,7 +8,7 @@ import {
   IonCard, IonCardHeader, IonCardTitle, IonCardContent, IonText, IonList
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { storefront, save, arrowBack, person, checkmarkCircle, closeCircle, close } from 'ionicons/icons';
+import { storefront, save, arrowBack, person, checkmarkCircle, closeCircle, close, location } from 'ionicons/icons';
 import { HomeService, User } from '../../../services/home/home.service';
 import { AuthService } from '../../../auth/auth.service';
 import { debounceTime, Subject, takeUntil } from 'rxjs';
@@ -17,7 +17,8 @@ import { debounceTime, Subject, takeUntil } from 'rxjs';
   selector: 'app-crea-supermercato',
   templateUrl: './crea-supermercato.page.html',
   styleUrls: ['./crea-supermercato.page.scss'],
-  standalone: true,   imports: [
+  standalone: true,
+  imports: [
     IonContent, IonHeader, IonTitle, IonToolbar, IonButtons,
     IonItem, IonLabel, IonInput, IonButton, IonSpinner, IonIcon,
     IonCard, IonCardHeader, IonCardTitle, IonCardContent, IonText, IonList,
@@ -25,53 +26,59 @@ import { debounceTime, Subject, takeUntil } from 'rxjs';
   ]
 })
 export class CreaSupermercatoPage implements OnInit, OnDestroy {
-  supermarket = {
+  public supermarket = {
     name: '',
     address: '',
     manager_id: null as number | null
   };
   
-  // UI state
-  isLoading = false;
-  isInitialized = false;
-  showCustomAlert = false;
-  alertMessage = '';
-  alertType: 'success' | 'error' = 'success';
-  alertTitle = '';
-  alertIcon = '';
+  // Component variables
+  public isLoading = false;
+  public isInitialized = false;
+  public showCustomAlert = false;
+  public alertMessage = '';
+  public alertType: 'success' | 'error' = 'success';
+  public alertTitle = '';
+  public alertIcon = '';
   
-  // User data
-  currentUser: any = null;
-  isAdmin = false;
-  isManager = false;
-    // Address handling
-  addressSuggestions: any[] = [];
-  isSearching = false;
-  selectedLat = '';
-  selectedLon = '';
-  isAddressSelected = false;
-  showAddressResults = false;
+  // User variables
+  public currentUser: any = null;
+  public isAdmin = false;
+  public isManager = false;
   
-  // Manager handling (for admin users)
-  managers: User[] = [];
-  loadingManagers = false;
-  managerSearchText = '';
-  managerSuggestions: User[] = [];
-  selectedManager: User | null = null;
-  showManagerSuggestions = false;
+  // Address variables
+  public addressSuggestions: any[] = [];
+  public isSearching = false;
+  public selectedLat = '';
+  public selectedLon = '';
+  public isAddressSelected = false;
+  public showAddressResults = false;
+  
+  // Manager variables (for admin users)
+  public managers: User[] = [];
+  public loadingManagers = false;
+  public managerSearchText = '';
+  public managerSuggestions: User[] = [];
+  public selectedManager: User | null = null;
+  public showManagerSuggestions = false;
+  public showManagerResults = false;
   
   // Reactive streams
   private readonly addressInput$ = new Subject<string>();
+  private readonly managerInput$ = new Subject<string>();
   private readonly destroy$ = new Subject<void>();
 
   constructor(
-    private homeService: HomeService,
-    private authService: AuthService,
-    private router: Router
+    private readonly homeService: HomeService,
+    private readonly authService: AuthService,
+    private readonly router: Router
   ) {
-    addIcons({ storefront, save, arrowBack, person, checkmarkCircle, closeCircle, close });
+    addIcons({ 
+      storefront, save, arrowBack, person, checkmarkCircle, 
+      closeCircle, close, location,
+    });
   }
-  ngOnInit() {
+  ngOnInit(): void {
     this.initializeComponent();
     this.setupAddressSearch();
     setTimeout(() => {
@@ -82,11 +89,11 @@ export class CreaSupermercatoPage implements OnInit, OnDestroy {
     }, 100);
   }
 
-  ngOnDestroy() {
+  ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
   }
-  // ===== INITIALIZATION =====
+
   private initializeComponent(): void {
     this.currentUser = this.authService.getUser();
     this.isAdmin = this.homeService.isUserAdmin();
@@ -97,6 +104,7 @@ export class CreaSupermercatoPage implements OnInit, OnDestroy {
     }
   }
 
+  // Setup address search with debounce
   private setupAddressSearch(): void {
     this.addressInput$
       .pipe(
@@ -104,9 +112,16 @@ export class CreaSupermercatoPage implements OnInit, OnDestroy {
         takeUntil(this.destroy$)
       )
       .subscribe(address => this.fetchAddressSuggestions(address));
+
+    this.managerInput$
+      .pipe(
+        debounceTime(300),
+        takeUntil(this.destroy$)
+      )
+      .subscribe(query => this.filterManagersWithDebounce(query));
   }
 
-  // ===== MANAGER HANDLING =====
+  // Load managers for admin users
   private loadManagers(): void {
     if (!this.isAdmin) return;
     
@@ -126,24 +141,36 @@ export class CreaSupermercatoPage implements OnInit, OnDestroy {
       });
   }
 
+  // Handle manager input
   onManagerInput(event: any): void {
     const query = event.detail.value;
     this.managerSearchText = query; 
     this.clearManagerSelection();
-    this.filterManagers(query);
+    this.managerInput$.next(query);
   }
 
+  // Handle manager input focus
   onManagerFocus(): void {
     this.showManagerSuggestions = true;
-    if (this.managerSuggestions.length === 0 && this.managers.length > 0) {
+    this.showManagerResults = true;
+    if (this.managerSuggestions.length === 0 && this.managers.length > 0 && !this.managerSearchText) {
       this.managerSuggestions = this.managers;
     }
   }
 
-  onManagerBlur(): void {
-    setTimeout(() => this.showManagerSuggestions = false, 300);
+  // Filter managers
+  private filterManagersWithDebounce(query: string): void {
+    if (!query) {
+      this.clearManagerSuggestions();
+      return;
+    }
+
+    this.showManagerResults = true;
+    this.showManagerSuggestions = true;
+    this.filterManagers(query);
   }
 
+  // Select manager from suggestions
   selectManager(manager: User): void {
     this.selectedManager = manager;
     this.supermarket.manager_id = manager.id;
@@ -151,6 +178,7 @@ export class CreaSupermercatoPage implements OnInit, OnDestroy {
     this.clearManagerSuggestions();
   }
 
+  // Filter managers
   private filterManagers(searchText: string): void {
     if (!searchText?.length) {
       this.managerSuggestions = this.managers;
@@ -164,23 +192,38 @@ export class CreaSupermercatoPage implements OnInit, OnDestroy {
     );
   }
 
+  // Reset manager search state
+  private resetManagerSearch(): void {
+    this.showManagerResults = false;
+  }
+
+  // Clear manager suggestions
+  private clearManagerSuggestions(): void {
+    this.managerSuggestions = [];
+    this.showManagerSuggestions = false;
+    this.showManagerResults = false;
+  }
+
+  // Clear manager selection
   private clearManagerSelection(): void {
     this.selectedManager = null;
     this.supermarket.manager_id = null;
   }
 
-  private clearManagerSuggestions(): void {
-    this.managerSuggestions = [];
-    this.showManagerSuggestions = false;
+  // Hide manager suggestions
+  hideManagerSuggestions(): void {
+    this.clearManagerSuggestions();
   }
 
-  // ===== ADDRESS HANDLING =====
+  // Handle address input with debounced search
   onAddressInput(event: any): void {
     const query = event.detail.value;
     this.supermarket.address = query;
     this.resetAddressSelection();
     this.addressInput$.next(query);
   }
+
+  // Fetch address suggestions with debounce
   private async fetchAddressSuggestions(address: string): Promise<void> {
     if (!address || address.length < 3) {
       this.clearAddressSuggestions();
@@ -199,6 +242,7 @@ export class CreaSupermercatoPage implements OnInit, OnDestroy {
     }
   }
 
+  // Select address suggestion
   selectSuggestion(suggestion: any): void {
     this.supermarket.address = this.homeService.position.formatAddress(suggestion, this.supermarket.address);
     this.selectedLat = suggestion.lat;
@@ -207,22 +251,26 @@ export class CreaSupermercatoPage implements OnInit, OnDestroy {
     this.clearAddressSuggestions();
   }
 
+  // Hide address suggestions
   hideSuggestions(): void {
     this.clearAddressSuggestions();
   }
 
+  // Reset address selection state
   private resetAddressSelection(): void {
     this.selectedLat = '';
     this.selectedLon = '';
     this.isAddressSelected = false;
   }
+
+  // Clear address suggestions
   private clearAddressSuggestions(): void {
     this.addressSuggestions = [];
     this.isSearching = false;
     this.showAddressResults = false;
   }
 
-  // ===== FORM SUBMISSION =====
+  // Create supermarket with validation
   async createSupermarket(): Promise<void> {
     if (!this.validateForm()) {
       return;
@@ -241,6 +289,7 @@ export class CreaSupermercatoPage implements OnInit, OnDestroy {
     }
   }
 
+  // Validate form fields
   private validateForm(): boolean {
     const validations = [
       {
@@ -267,12 +316,14 @@ export class CreaSupermercatoPage implements OnInit, OnDestroy {
     return true;
   }
 
+  // Set manager ID
   private setManagerId(): void {
     if (this.isManager && !this.isAdmin) {
       this.supermarket.manager_id = this.currentUser.id;
     }
   }
 
+  // Submit supermarket data
   private async submitSupermarket(): Promise<any> {
     return await this.homeService.supermarkets.addSupermarket({
       name: this.supermarket.name,
@@ -283,18 +334,20 @@ export class CreaSupermercatoPage implements OnInit, OnDestroy {
     });
   }
 
+  // Handle successful creation
   private handleSuccess(): void {
     this.showAlert('Supermercato creato con successo!', 'success');
     setTimeout(() => this.router.navigate(['/home/dashboard']), 2000);
   }
 
+  // Handle creation error
   private handleError(error: any): void {
     console.error('Errore creazione supermercato:', error);
     const errorMessage = error?.error?.error || 'Errore durante la creazione del supermercato';
     this.showAlert(errorMessage, 'error');
   }
 
-  // ===== FORM UTILITIES =====
+  // Reset form
   resetForm(): void {
     this.supermarket = { name: '', address: '', manager_id: null };
     this.resetAddressSelection();
@@ -304,7 +357,7 @@ export class CreaSupermercatoPage implements OnInit, OnDestroy {
     this.managerSearchText = '';
   }
 
-  // ===== UI UTILITIES =====
+  // Show alert message
   private showAlert(message: string, type: 'success' | 'error'): void {
     this.alertMessage = message;
     this.alertType = type;
@@ -313,14 +366,17 @@ export class CreaSupermercatoPage implements OnInit, OnDestroy {
     this.showCustomAlert = true;
   }
 
+  // Close alert dialog
   closeAlert(): void {
     this.showCustomAlert = false;
   }
 
+  // Navigate back to dashboard
   goBack(): void {
     this.router.navigate(['/home/dashboard']);
   }
 
+  // Handle form click to close suggestions
   onFormClick(event: Event): void {
     const target = event.target as HTMLElement;
     if (!target.closest('ion-input') && !target.closest('.suggestions-container')) {
@@ -329,10 +385,12 @@ export class CreaSupermercatoPage implements OnInit, OnDestroy {
     }
   }
 
-  // ===== TRACK BY FUNCTIONS =====
+  // Track suggestions by coordinates
   trackByLatLon(index: number, suggestion: any): string {
     return `${suggestion.lat}-${suggestion.lon}`;
   }
+
+  // Track items by ID
   trackById(index: number, item: any): number {
     return item.id;
   }

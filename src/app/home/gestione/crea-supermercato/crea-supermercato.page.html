@@ -106,27 +106,22 @@
               clearInput="true"
               (ionInput)="onManagerInput($event)"
               (ionFocus)="onManagerFocus()"
-              (ionBlur)="onManagerBlur()"
               [disabled]="loadingManagers">
             </ion-input>
           </ion-item>
           <!-- suggerimenti manager -->
-          <div class="suggestions-container" *ngIf="showManagerSuggestions && (managerSuggestions.length > 0 || loadingManagers)">
-            <div class="suggestions-header">
-              <ion-text color="medium">
-                <span *ngIf="loadingManagers">
-                  <ion-spinner name="dots"></ion-spinner>
-                  Caricamento manager...
-                </span>
-                <span *ngIf="!loadingManagers && managerSuggestions.length > 0">
-                  Manager disponibili:
-                </span>
-              </ion-text>
+          <div class="manager-section" *ngIf="isAdmin">
+            <!-- No results found -->
+            <div *ngIf="showManagerResults && managerSuggestions.length === 0 && managerSearchText.length >= 2" class="search-no-results">
+              <ion-icon name="close" color="danger"></ion-icon>
+              <ion-text>Nessun manager trovato</ion-text>
             </div>
-            <div class="suggestions-list" *ngIf="!loadingManagers && managerSuggestions.length > 0">
+            <!-- Suggerimenti -->
+            <ion-list class="search-results-list" *ngIf="managerSuggestions.length > 0 && showManagerSuggestions">
               <ion-item 
                 *ngFor="let manager of managerSuggestions; trackBy: trackById"
                 class="suggestion-item"
+                button
                 (click)="selectManager(manager)">
                 <ion-icon name="person" slot="start" color="primary"></ion-icon>
                 <ion-label>
@@ -134,18 +129,18 @@
                   <p>{{ manager.email }}</p>
                 </ion-label>
               </ion-item>
-            </div>
+            </ion-list>
           </div>
 
           <!-- manager selezionato -->
-          <div *ngIf="selectedManager" class="search-result ">
+          <div *ngIf="selectedManager && isAdmin" class="search-result">
             <ion-item class="result-item">
               <ion-icon name="person" slot="start" color="success"></ion-icon>
               <ion-label>
                 <h3>Manager Selezionato</h3>
-                <p>{{selectedManager.username}}</p>
+                <p>{{ selectedManager.username }}</p>
                 <p class="coordinates">
-                  Email: {{selectedManager.email}}
+                  Email: {{ selectedManager.email }}
                 </p>
               </ion-label>
               <ion-icon name="checkmark-circle" slot="end" color="success"></ion-icon>

@@ -28,33 +28,46 @@ import * as L from 'leaflet';
 })
 export class DashboardPage implements OnInit, AfterViewInit, OnDestroy, ViewWillEnter {
   
+  // ViewChild references
   @ViewChild('mapContainer', { static: false }) mapContainer!: ElementRef;
   @ViewChild('supermarketsContainer', { static: false }) supermarketsContainer!: ElementRef;
   
-  // Supermarket Data
-  supermarkets: Supermarket[] = [];
-  selectedSupermarket: Supermarket | null = null;
-  private dataState: SupermarketDataState = this.homeService.ui.createDataState();
+  // Data properties
+  public supermarkets: Supermarket[] = [];
+  public selectedSupermarket: Supermarket | null = null;
+  public isHistoryView = true;
+  public quantities: { [barcode: string]: number } = {};
+  public availableQuantities: { [barcode: string]: number } = {};
   
-  // Loading States
-  isLoading = false;
-  isLocationLoading = false;
+  // Loading states
+  public isLoading = false;
+  public isLocationLoading = false;
   
-  // Location States
-  userPosition: { lat: number; lng: number } | null = null;
-  locationEnabled = false;
+  // Location properties
+  public userPosition: { lat: number; lng: number } | null = null;
+  public locationEnabled = false;
   
-  // Map States
-  isMapExpanded = true;
+  // Map properties
+  public isMapExpanded = true;
+  public map: L.Map | undefined;
+  
+  // Alert properties
+  public showCustomAlert = false;
+  public alertType: 'success' | 'error' = 'success';
+  public alertTitle = '';
+  public alertMessage = '';
+  
+  // Private state management
+  private readonly dataState: SupermarketDataState = this.homeService.ui.createDataState();
+  private readonly animationState = this.homeService.ui.createAnimationState();
+  private readonly imageCache: {[key: string]: string} = {};
   private userExpandedMap = false;
-  map: L.Map | undefined;
   private markers: L.Marker[] = [];
   private userMarker: L.CircleMarker | undefined;
-  
-  // UI States
-  private animationState = this.homeService.ui.createAnimationState();
   private scrollListeners: Array<{ element: Element; listener: EventListener }> = [];
-  private searchListener = (event: any) => {
+  
+  // Event listeners
+  private readonly searchListener = (event: any) => {
     if (event.detail?.supermarket) {
       this.selectedSupermarket = event.detail.supermarket;
       requestAnimationFrame(() => {
@@ -63,37 +76,26 @@ export class DashboardPage implements OnInit, AfterViewInit, OnDestroy, ViewWill
     }
   };
   
-  isHistoryView = true;
-  quantities: { [barcode: string]: number } = {};
-  availableQuantities: { [barcode: string]: number } = {};
-  private activeBarcode: string | null = null;
-  
-  // Cache per le immagini già caricate
-  private imageCache: {[key: string]: string} = {};
-  
-  // Getters
+  // Data getters
   get products() { return this.dataState.products; }
   get offerProducts() { return this.dataState.offerProducts; }
   get categories() { return this.dataState.categories; }
   get selectedCategory() { return this.dataState.selectedCategory; }
+  get purchaseHistory() { return this.dataState.purchaseHistory; }
+  get canCreateContent() { return this.homeService.isUserAdmin() || this.homeService.isUserManager(); }
+  
+  // Filter getters
   get filteredProducts() { 
     return this.homeService.products.filterProductsByCategory(this.products, this.selectedCategory);
   }
   get filteredOfferProducts() {
     return this.homeService.products.filterProductsByCategory(this.offerProducts, this.selectedCategory);
   }
-  get purchaseHistory() { return this.dataState.purchaseHistory; }
   get displayProducts() { return this.filteredProducts.slice(0, 8); }
   get displayOfferProducts() { return this.filteredOfferProducts.slice(0, 8); }
-  get canCreateContent() { return this.homeService.isUserAdmin() || this.homeService.isUserManager(); }
-  
-  // Alert properties
-  showCustomAlert = false;
-  alertType: 'success' | 'error' = 'success';
-  alertTitle = '';
-  alertMessage = '';
-  
-  // Get the appropriate icon based on alert type
+  get viewContent() {
+    return this.isHistoryView ? this.purchaseHistory : this.homeService.cart.getCartItems();
+  }
   get alertIcon(): string {
     return this.alertType === 'success' ? 'checkmark-circle' : 'alert-circle';
   }
@@ -110,158 +112,47 @@ export class DashboardPage implements OnInit, AfterViewInit, OnDestroy, ViewWill
   closeAlert(): void {
     this.showCustomAlert = false;
   }
-  
-  // Genera offerte casuali per il supermercato selezionato
-  async onGenerateOffer() {
-    if (!this.selectedSupermarket) {
-      console.error('Nessun supermercato selezionato');
-      this.showAlert('error', 'Errore', 'Seleziona un supermercato per generare le offerte');
-      return;
-    }
-    
-    try {
-      this.isLoading = true;
-      const response = await lastValueFrom(
-        this.homeService.products.generateOffers(this.selectedSupermarket.id)
-      );
-      console.log('Offerte generate con successo:', response);
-      const [products, offerProducts] = await Promise.all([
-        this.homeService.products.loadSupermarketProducts(this.selectedSupermarket.id).then(products => {
-          this.homeService.ui.updateInventoryFromProducts(products, this.selectedSupermarket!.id);
-          return products;
-        }),
-        this.homeService.products.loadSupermarketOffers(this.selectedSupermarket.id)
-      ]);
-      this.homeService.ui.updateProducts(this.dataState, products);
-      this.homeService.ui.updateOfferProducts(this.dataState, offerProducts);
-      await this.loadSupermarkets();
-      this.generateCategories();
-      this.startProductAnimations();
-      this.showAlert('success', 'Successo', 'Offerte generate con successo!');
-    } catch (error) {
-      console.error('Errore durante la generazione delle offerte:', error);
-      this.showAlert('error', 'Errore', 'Si è verificato un errore durante la generazione delle offerte');
-    } finally {
-      this.isLoading = false;
-    }
-  }
-  
+
   constructor(
-    private homeService: HomeService,
-    private authService: AuthService,
-    private router: Router
+    private readonly homeService: HomeService,
+    private readonly authService: AuthService,
+    private readonly router: Router
   ) {
     addIcons({ add, remove, storefront, location, checkmarkCircle, chevronForwardOutline, map, chevronUp, chevronDown, cart });
   }
 
-  toggleHistoryView() {
-    this.isHistoryView = true;
-    this.loadQuantitiesFromCart();
-  }
-
-  toggleCartView() {
-    this.isHistoryView = false;
-    this.loadQuantitiesFromCart();
-  }
-
-  getCartTotal(): number {
-    if (!this.viewContent || this.viewContent.length === 0) return 0;
-    
-    return this.viewContent.reduce((total, item) => {
-      return total + (item.price * item.quantity);
-    }, 0);
-  }
-
-  // Verifica se un prodotto è disponibile (sia in offerta che non)
-  isProductAvailable(item: any): boolean {
-    if (!this.isHistoryView) return true;
-    if (!this.selectedSupermarket) return false;
-    const barcode = item.product_barcode || item.barcode;
-    if (!barcode) return false;
-    const productExists = this.products.some(p => p.barcode === barcode);
-    const offerExists = this.offerProducts.some(p => p.barcode === barcode);
-    return productExists || offerExists;
-  }
-
-  // Filter history items to only show available products
-  getFilteredHistoryItems(items: any[]): any[] {
-    if (!this.isHistoryView) return items;
-    
-    return items.filter(item => {
-      const barcode = item.product_barcode || item.barcode;
-      return [...this.products, ...this.offerProducts].some(p => p.barcode === barcode);
-    });
-  }
-
-  // Usa una cache in memoria per evitare chiamate ripetute
-  getProductImage(barcode: string): string {
-    if (!barcode) return 'assets/images/placeholder.png';
-    if (this.imageCache[barcode]) {
-      return this.imageCache[barcode];
-    }
-    try {
-      const imageCache = localStorage.getItem('productImageCache');
-      if (imageCache) {
-        const cache = JSON.parse(imageCache);
-        if (cache[barcode]?.url) {
-          this.imageCache[barcode] = cache[barcode].url;
-          return this.imageCache[barcode];
-        }
-      }
-      const productData = localStorage.getItem(`product_${barcode}`);
-      if (productData) {
-        const product = JSON.parse(productData);
-        if (product.image_url) {
-          this.imageCache[barcode] = product.image_url;
-          return this.imageCache[barcode];
-        } else if (product.url) {
-          this.imageCache[barcode] = product.url;
-          return this.imageCache[barcode];
-        }
-      }
-    } catch (error) {
-      console.error('Error getting product image:', error);
-    }
-    this.imageCache[barcode] = 'assets/images/placeholder.png';
-    return this.imageCache[barcode];
-  }
-
-  get viewContent() {
-    return this.isHistoryView ? this.purchaseHistory : this.homeService.cart.getCartItems();
-  }
-
-  @HostListener('window:resize', ['$event'])
-  onResize() {
-    if (this.selectedSupermarket) {
-      requestAnimationFrame(() => this.centerSelectedSupermarket(this.selectedSupermarket!));
-    }
-  }
-
-  async ngOnInit() {
+  async ngOnInit(): Promise<void> {
     await this.initializeComponent();
   }
 
-  ngAfterViewInit() {
+  ngAfterViewInit(): void {
     setTimeout(() => this.setupHorizontalScroll(), 500);
     if (this.isMapExpanded && !this.map) {
       requestAnimationFrame(() => this.initMap());
     }
   }
 
-  ngOnDestroy() {
+  ngOnDestroy(): void {
     this.homeService.ui.clearTimer();
     this.cleanup();
     window.removeEventListener('listenSMSelectionSearch', this.searchListener as EventListener);
   }
 
-  ionViewWillEnter() {
+  ionViewWillEnter(): void {
     if (this.selectedSupermarket) {
       requestAnimationFrame(() => this.centerSelectedSupermarket(this.selectedSupermarket!));
     }
     this.loadQuantitiesFromCart();
   }
 
-  // Init Methods
+  @HostListener('window:resize', ['$event'])
+  onResize(): void {
+    if (this.selectedSupermarket) {
+      requestAnimationFrame(() => this.centerSelectedSupermarket(this.selectedSupermarket!));
+    }
+  }
+
+  // Initialize component
   private async initializeComponent(): Promise<void> {
     this.listenSMSelection();
     this.setupSearchListener();
@@ -272,23 +163,23 @@ export class DashboardPage implements OnInit, AfterViewInit, OnDestroy, ViewWill
     this.reloadSM();
   }
 
-  private listenSMSelection() {
+  // Listen for supermarket selection changes
+  private listenSMSelection(): void {
     this.homeService.supermarkets.selectedSupermarket$.pipe(skip(1)).subscribe(this.handleSupermarketSelection.bind(this));
   }  
-  
 
-
+  // Setup search event listener
   private setupSearchListener(): void {
     window.addEventListener('listenSMSelectionSearch', this.searchListener as EventListener);
   }
 
+  // Load user purchase history
   private async loadPurchaseHistory(): Promise<void> {
     const purchaseHistory = this.canCreateContent ? [] : await this.homeService.products.loadPurchaseHistory(5);
-    // Set purchase history directly instead of via UiService
     this.dataState.purchaseHistory = purchaseHistory;
   }
 
-  //Location Management
+  // Initialize user location
   private async initializeUserLocation(): Promise<void> {
     try {
       const position = await this.homeService.position.getCurrentPosition();
@@ -300,6 +191,7 @@ export class DashboardPage implements OnInit, AfterViewInit, OnDestroy, ViewWill
     } catch (error) {}
   }
 
+  // Enable location and center map on user position
   async enableLocationAndCenter(): Promise<void> {
     if (this.isLocationLoading) return;
     this.isLocationLoading = true;
@@ -325,6 +217,7 @@ export class DashboardPage implements OnInit, AfterViewInit, OnDestroy, ViewWill
     }
   }
 
+  // Update map with user location
   private updateMapWithUserLocation(): void {
     const hasSupermarkets = this.supermarkets.length > 0;
     const hasMap = !!this.map;
@@ -344,6 +237,7 @@ export class DashboardPage implements OnInit, AfterViewInit, OnDestroy, ViewWill
     }
   }
 
+  // Sort supermarkets by distance from user
   private sortSupermarketsByDistance(): void {
     if (!this.userPosition) return;
     
@@ -354,7 +248,7 @@ export class DashboardPage implements OnInit, AfterViewInit, OnDestroy, ViewWill
     );
   }
 
-  // Map Management
+  // Initialize Leaflet map
   private initMap(): void {
     if (this.map || !this.mapContainer) return;
     try {
@@ -381,6 +275,7 @@ export class DashboardPage implements OnInit, AfterViewInit, OnDestroy, ViewWill
     } catch (error) {}
   }
 
+  // Setup map markers
   private setupMapMarkers(): void {
     this.homeService.map.completeMapSetup(
       this.map!,
@@ -392,12 +287,14 @@ export class DashboardPage implements OnInit, AfterViewInit, OnDestroy, ViewWill
     );
   }
 
-  toggleMap() {
+  // Toggle map expansion state
+  toggleMap(): void {
     this.isMapExpanded = !this.isMapExpanded;
     this.userExpandedMap = this.isMapExpanded;
     this.handleMapExpansion();
   }
   
+  // Auto expand map
   private autoExpandMapIfNeeded(): void {
     if (!this.selectedSupermarket && !this.isMapExpanded && this.supermarkets.length > 0) {
       this.isMapExpanded = true;
@@ -406,6 +303,7 @@ export class DashboardPage implements OnInit, AfterViewInit, OnDestroy, ViewWill
     }
   }
 
+  // Handle map expansion state
   private handleMapExpansion(): void {
     if (!this.isMapExpanded) return;
     requestAnimationFrame(() => {
@@ -413,8 +311,8 @@ export class DashboardPage implements OnInit, AfterViewInit, OnDestroy, ViewWill
     });
   }
 
-  // Supermarket Management
-  private async loadSupermarkets() {
+  // Load all supermarkets
+  private async loadSupermarkets(): Promise<void> {
     await this.homeService.ui.executeWithLoading(
       (loading: boolean) => this.isLoading = loading,
       async () => {        
@@ -434,7 +332,8 @@ export class DashboardPage implements OnInit, AfterViewInit, OnDestroy, ViewWill
     );
   }
 
-  private handleSupermarketSelection(supermarket: Supermarket | null) {
+  // Handle supermarket selection changes
+  private handleSupermarketSelection(supermarket: Supermarket | null): void {
     const isDifferentSupermarket = supermarket?.id !== this.selectedSupermarket?.id;
     if (supermarket && isDifferentSupermarket) {
       this.quantities = {};
@@ -452,7 +351,8 @@ export class DashboardPage implements OnInit, AfterViewInit, OnDestroy, ViewWill
     }
   }
 
-  selectSupermarket(supermarket: Supermarket) {
+  // Select a supermarket and update
+  selectSupermarket(supermarket: Supermarket): void {
     if (this.selectedSupermarket?.id === supermarket.id) {
       this.centerSelectedSupermarket(supermarket);
       return;
@@ -470,7 +370,8 @@ export class DashboardPage implements OnInit, AfterViewInit, OnDestroy, ViewWill
     setTimeout(() => this.setupHorizontalScroll(), 300);
   }
 
-  private centerSelectedSupermarket(selectedSupermarket: Supermarket) {
+  // Center selected supermarket view and map
+  private centerSelectedSupermarket(selectedSupermarket: Supermarket): void {
     this.homeService.ui.centerSelectedItem(
       this.supermarkets,
       selectedSupermarket, 
@@ -481,7 +382,8 @@ export class DashboardPage implements OnInit, AfterViewInit, OnDestroy, ViewWill
     }
   }
 
-  async onSupermarketChange() {
+  // Handle supermarket change
+  async onSupermarketChange(): Promise<void> {
     if (!this.selectedSupermarket) {
       this.homeService.ui.clearSupermarketData(this.dataState);
       this.resetAnimations();
@@ -507,22 +409,22 @@ export class DashboardPage implements OnInit, AfterViewInit, OnDestroy, ViewWill
     );
   }
   
+  // Load supermarket data (products and offers)
   private async loadSupermarketData(): Promise<{ products: any[], offerProducts: any[] }> {
     if (!this.selectedSupermarket) return { products: [], offerProducts: [] };
     const result = await this.homeService.loadSupermarketDataWithoutImages(this.selectedSupermarket.id, this.dataState, true, true);
-    
-    // Carica le quantità disponibili
     this.loadAvailableQuantities();
-    
     return { products: result.products, offerProducts: result.offerProducts };
   }
 
+  // Load available quantities for products
   private loadAvailableQuantities(): void {
     if (!this.selectedSupermarket) return;
     this.availableQuantities = this.homeService.ui.getAvailableQuantities(this.selectedSupermarket.id);
   }
 
-  private reloadSM() {
+  // Reload selected supermarket if available
+  private reloadSM(): void {
     const selectedSupermarket = this.homeService.supermarkets.getSelectedSupermarket();
     if (selectedSupermarket && this.supermarkets.length > 0) {
       const supermarketExists = this.supermarkets.find(sm => sm.id === selectedSupermarket.id); 
@@ -541,45 +443,54 @@ export class DashboardPage implements OnInit, AfterViewInit, OnDestroy, ViewWill
     }
   }
 
-  // Product Management
-  private generateCategories() {
+  // Generate categories from products
+  private generateCategories(): void {
     const allProducts = [...this.products, ...this.offerProducts];
     const categories = this.homeService.products.generateCategories(allProducts);
     this.homeService.ui.updateCategories(this.dataState, categories);
   }
 
-  onCategorySelect(categoryName: string) {
+  // Handle category selection
+  onCategorySelect(categoryName: string): void {
     this.homeService.ui.setSelectedCategory(this.dataState, categoryName);
     this.homeService.ui.showCategoryProducts(this.displayProducts, this.animationState);
   }
 
-  // Gestione quantità
-  handleQuantityClick(barcode: string, amount: number, event: MouseEvent) {
+  // Handle quantity button click
+  handleQuantityClick(barcode: string, amount: number, event: MouseEvent): void {
     event.preventDefault();
     this.updateQuantity(barcode, amount);
   }
 
-  incrementQuantity(barcode: string) { this.updateQuantity(barcode, 1); }
-  decrementQuantity(barcode: string) { this.updateQuantity(barcode, -1); }
+  // Increment product quantity
+  incrementQuantity(barcode: string): void { 
+    this.updateQuantity(barcode, 1); 
+  }
   
-  onIncrementPress(barcode: string) { 
+  // Decrement product quantity
+  decrementQuantity(barcode: string): void { 
+    this.updateQuantity(barcode, -1); 
+  }
+
+  // Increment button hold
+  onIncrementPress(barcode: string): void { 
     this.homeService.ui.startTimer(barcode, true, this.updateQuantity.bind(this));
   }
   
-  onDecrementPress(barcode: string) { 
+  // Decrement button hold
+  onDecrementPress(barcode: string): void { 
     this.homeService.ui.startTimer(barcode, false, this.updateQuantity.bind(this));
   }
-  
-  onButtonRelease() { 
+
+  // Button release
+  onButtonRelease(): void { 
     this.homeService.ui.clearTimer();
   }
 
-  private updateQuantity(barcode: string, amount: number) {
+  // Update product quantity in cart
+  private updateQuantity(barcode: string, amount: number): void {
     const result = this.homeService.ui.updateQuantity(this.quantities, barcode, amount, this.availableQuantities);
     this.quantities = result.quantities;
-    
-    // Non mostrare più alert quando si raggiunge il limite - il pulsante è disabilitato
-  
     const product = this.findProductByBarcode(barcode);
     if (product && this.selectedSupermarket) {
       const quantity = this.quantities[barcode] || 0;
@@ -587,6 +498,7 @@ export class DashboardPage implements OnInit, AfterViewInit, OnDestroy, ViewWill
     }
   }
 
+  // Find product by barcode
   private findProductByBarcode(barcode: string): Product | undefined {
     let product = this.products.find(p => p.barcode === barcode);
     if (!product) {
@@ -595,6 +507,7 @@ export class DashboardPage implements OnInit, AfterViewInit, OnDestroy, ViewWill
     return product;
   }
 
+  // Load quantities from cart
   private loadQuantitiesFromCart(): void {
     this.quantities = {};
     if (!this.selectedSupermarket) return;
@@ -606,7 +519,8 @@ export class DashboardPage implements OnInit, AfterViewInit, OnDestroy, ViewWill
     });
   }
 
-  addToCartFromHistory(purchase: any) {
+  // Add product to cart from purchase history
+  addToCartFromHistory(purchase: any): void {
     if (this.selectedSupermarket) {
       const product = {
         id: purchase.product_id,
@@ -618,16 +532,17 @@ export class DashboardPage implements OnInit, AfterViewInit, OnDestroy, ViewWill
     }
   }
 
-  // Animation Management
-  private resetAnimations() {
+  // Reset all product animations
+  private resetAnimations(): void {
     this.homeService.ui.resetAnimations(this.animationState);
   }
 
-  private startProductAnimations() {
+  // Start product animations
+  private startProductAnimations(): void {
     this.homeService.ui.showAllProducts(this.displayProducts, this.displayOfferProducts, this.animationState);
   }
 
-  //UI Management
+  // Setup horizontal scroll
   private setupHorizontalScroll(): void {
     this.homeService.ui.removeScrollListeners(this.scrollListeners);
     this.scrollListeners = [];
@@ -637,8 +552,8 @@ export class DashboardPage implements OnInit, AfterViewInit, OnDestroy, ViewWill
     this.scrollListeners = allListeners;
   }
 
-  // Cleanup Management
-  private cleanup() {
+  // Clean up listeners
+  private cleanup(): void {
     this.homeService.ui.removeScrollListeners(this.scrollListeners);
     this.scrollListeners = [];
     window.removeEventListener('listenSMSelectionSearch', this.searchListener as EventListener);
@@ -650,48 +565,56 @@ export class DashboardPage implements OnInit, AfterViewInit, OnDestroy, ViewWill
     }
   }
 
-  // Navigation Methods
-  onCreateSupermarket() {
+  // Navigate to create supermarket page
+  onCreateSupermarket(): void {
     this.router.navigate(['/home/gestione/crea-supermercato']);
   }
 
-  onCreateProduct() {
+  // Navigate to create product page
+  onCreateProduct(): void {
     this.router.navigate(['/home/gestione/aggiungi-prodotto']);
   }
 
-  navigateToProducts() {
+  // Navigate to products page
+  navigateToProducts(): void {
     if (this.selectedSupermarket) {
       this.router.navigate(['/home/prodotti']);
     }
   }
 
-  navigateToOffers() {
+  // Navigate to offers page
+  navigateToOffers(): void {
     if (this.selectedSupermarket) {
       this.router.navigate(['/home/offerte']);
     }
   }
 
-  //Utility Methods
+  // Get supermarket store image
   getSupermarketImage(name: string): string {
     return this.homeService.supermarkets.getStoreImage(name);
   }
 
+  // Get distance from user position
   getDistanceFromUser(supermarket: Supermarket): string | null {
     return this.homeService.position.getDistanceFromUser(this.userPosition, supermarket.latitude, supermarket.longitude);
   }
 
+  // Get category icon
   getCategoryIcon(category: string): string {
     return this.homeService.products.getCategoryIcon(category);
   }
 
+  // Get display price for product
   getDisplayPrice(product: Product): number {
     return this.homeService.products.getDisplayPrice(product);
   }
 
+  // Get original price for product
   getOriginalPrice(product: Product): number | null {
     return this.homeService.products.getOriginalPrice(product);
   }
 
+  // Handle image loading errors
   handleImageError(event: any, category: string): void {
     const fallbackImage = (category?.toLowerCase() === 'tutti') 
       ? 'assets/categories/grocery-cart.png' 
@@ -699,8 +622,117 @@ export class DashboardPage implements OnInit, AfterViewInit, OnDestroy, ViewWill
     event.target.src = fallbackImage;
   }
 
+  // Format purchase date for display
   formatPurchaseDate(dateString: string): string {
     const adjusted = this.homeService.ui.adjustServerDate(dateString);
     return adjusted.toLocaleDateString('it-IT');
+  }
+
+  // Public view methods
+  toggleHistoryView(): void {
+    this.isHistoryView = true;
+    this.loadQuantitiesFromCart();
+  }
+
+  toggleCartView(): void {
+    this.isHistoryView = false;
+    this.loadQuantitiesFromCart();
+  }
+
+  getCartTotal(): number {
+    if (!this.viewContent || this.viewContent.length === 0) return 0;
+    
+    return this.viewContent.reduce((total, item) => {
+      return total + (item.price * item.quantity);
+    }, 0);
+  }
+
+  // Check if product is available in selected supermarket
+  isProductAvailable(item: any): boolean {
+    if (!this.isHistoryView) return true;
+    if (!this.selectedSupermarket) return false;
+    const barcode = item.product_barcode || item.barcode;
+    if (!barcode) return false;
+    const productExists = this.products.some(p => p.barcode === barcode);
+    const offerExists = this.offerProducts.some(p => p.barcode === barcode);
+    return productExists || offerExists;
+  }
+
+  // Filter history items to show available products
+  getFilteredHistoryItems(items: any[]): any[] {
+    if (!this.isHistoryView) return items;
+    
+    return items.filter(item => {
+      const barcode = item.product_barcode || item.barcode;
+      return [...this.products, ...this.offerProducts].some(p => p.barcode === barcode);
+    });
+  }
+
+  // Get product image with caching
+  getProductImage(barcode: string): string {
+    if (!barcode) return 'assets/categories/packing.png';
+    if (this.imageCache[barcode]) {
+      return this.imageCache[barcode];
+    }
+    try {
+      const imageCache = localStorage.getItem('productImageCache');
+      if (imageCache) {
+        const cache = JSON.parse(imageCache);
+        if (cache[barcode]?.url) {
+          this.imageCache[barcode] = cache[barcode].url;
+          return this.imageCache[barcode];
+        }
+      }
+      const productData = localStorage.getItem(`product_${barcode}`);
+      if (productData) {
+        const product = JSON.parse(productData);
+        if (product.image_url) {
+          this.imageCache[barcode] = product.image_url;
+          return this.imageCache[barcode];
+        } else if (product.url) {
+          this.imageCache[barcode] = product.url;
+          return this.imageCache[barcode];
+        }
+      }
+    } catch (error) {
+      console.error('Error getting product image:', error);
+    }
+    this.imageCache[barcode] = 'assets/categories/packing.png';
+    return this.imageCache[barcode];
+  }
+
+  // Generate random offers
+  async onGenerateOffer(): Promise<void> {
+    if (!this.selectedSupermarket) {
+      console.error('Nessun supermercato selezionato');
+      this.showAlert('error', 'Errore', 'Seleziona un supermercato per generare le offerte');
+      return;
+    }
+
+    try {
+      this.isLoading = true;
+      const response = await lastValueFrom(
+        this.homeService.products.generateOffers(this.selectedSupermarket.id)
+      );
+      console.log('Offerte generate con successo:', response);
+      const [products, offerProducts] = await Promise.all([
+        this.homeService.products.loadSupermarketProducts(this.selectedSupermarket.id).then(products => {
+          this.homeService.ui.updateInventoryFromProducts(products, this.selectedSupermarket!.id);
+          return products;
+        }),
+        this.homeService.products.loadSupermarketOffers(this.selectedSupermarket.id)
+      ]);
+      this.homeService.ui.updateProducts(this.dataState, products);
+      this.homeService.ui.updateOfferProducts(this.dataState, offerProducts);
+      await this.loadSupermarkets();
+      this.generateCategories();
+      this.startProductAnimations();
+      this.showAlert('success', 'Successo', 'Offerte generate con successo!');
+    } catch (error) {
+      console.error('Errore durante la generazione delle offerte:', error);
+      this.showAlert('error', 'Errore', 'Si è verificato un errore durante la generazione delle offerte');
+    } finally {
+      this.isLoading = false;
+    }
   }
 }

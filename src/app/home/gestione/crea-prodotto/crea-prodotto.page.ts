@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -16,7 +16,6 @@ import {
 } from 'ionicons/icons';
 import { HomeService, Category } from '../../../services/home/home.service';
 import { AuthService } from '../../../auth/auth.service';
-import { Subject, takeUntil } from 'rxjs';
 
 @Component({
   selector: 'app-crea-prodotto',
@@ -32,9 +31,10 @@ import { Subject, takeUntil } from 'rxjs';
     CommonModule, FormsModule
   ]
 })
-export class CreaProdottoPage implements OnInit, OnDestroy {
+export class CreaProdottoPage implements OnInit {
   @ViewChild('categoryList', { static: false }) categoryList!: ElementRef;
 
+  // Product data
   product = {
     name: '',
     description: '',
@@ -49,23 +49,23 @@ export class CreaProdottoPage implements OnInit, OnDestroy {
   alertType: 'success' | 'error' = 'success';
   alertTitle = '';
   alertIcon = '';
-  // User data
+  showRateLimitAlert = false;
+  rateLimitMessage = '';
+
+  // User authentication
   currentUser: any = null;
   isAdmin = false;
   isManager = false;
 
-  // OpenFoodFacts integration
+  // Search variables
   searchQuery = '';
   searchResults: any[] = [];
   isSearching = false;
   showSearchResults = false;
   selectedOpenFoodProduct: any | null = null;
   lastSearchType: 'barcode' | 'name' | null = null;
-    // Rate limiting alerts
-  showRateLimitAlert = false;
-  rateLimitMessage = '';
 
-  // Categories - Allineate con la dashboard
+  // Product categories
   categories: Category[] = [
     { name: 'Frutta', icon: 'fruit.png', count: 0 },
     { name: 'Verdura', icon: 'cabbage.png', count: 0 },
@@ -94,25 +94,18 @@ export class CreaProdottoPage implements OnInit, OnDestroy {
     { name: 'Altro', icon: 'packing.png', count: 0 }
   ];
 
-  // Reactive streams
-  private readonly destroy$ = new Subject<void>();  constructor(
-    private homeService: HomeService,
-    private authService: AuthService,
-    private router: Router
-  ) {addIcons({ 
+  constructor(
+    private readonly homeService: HomeService,
+    private readonly authService: AuthService,
+    private readonly router: Router
+  ) {
+    addIcons({ 
       arrowBack, save, search, cube, warning,
       checkmarkCircle, closeCircle, close, image 
     });
   }
-  ngOnInit() {
-    this.initializeComponent();
-  }
 
-  ngOnDestroy() {
-    this.destroy$.next();
-    this.destroy$.complete();
-  }  // ===== INITIALIZATION =====
-  private initializeComponent(): void {
+  ngOnInit(): void {
     this.currentUser = this.authService.getUser();
     this.isAdmin = this.homeService.isUserAdmin();
     this.isManager = this.homeService.isUserManager();
@@ -122,11 +115,13 @@ export class CreaProdottoPage implements OnInit, OnDestroy {
     }
   }
 
-  // ===== NAVIGATION =====
+
+  // Navigate to product management
   goBack(): void {
     this.router.navigate(['/home/gestione/aggiungi-prodotto']);
   }
-  // ===== PRODUCT SEARCH =====
+
+  // Handle search input
   onSearchInput(): void {
     if (this.showSearchResults) {
       this.showSearchResults = false;
@@ -134,6 +129,7 @@ export class CreaProdottoPage implements OnInit, OnDestroy {
     }
   }
 
+  // Submit search query
   onSearchSubmit(): void {
     if (!this.searchQuery || this.searchQuery.trim().length < 3) {
       return;
@@ -141,10 +137,10 @@ export class CreaProdottoPage implements OnInit, OnDestroy {
     this.performSearch(this.searchQuery.trim());
   }
 
+  // Execute product search
   private performSearch(query: string): void {
-    // Determina il tipo di ricerca e verifica i limiti
-    const isBarcode = this.isLikelyBarcode(query);
-    
+    const isBarcode = this.isBarcode(query);
+
     if (isBarcode && !this.homeService.openFoodFacts.canSearchByBarcode()) {
       this.showRateLimit('Limite ricerche prodotto raggiunto (100 al minuto). Riprova tra qualche secondo.');
       return;
@@ -157,39 +153,48 @@ export class CreaProdottoPage implements OnInit, OnDestroy {
 
     this.isSearching = true;
     this.homeService.openFoodFacts.smartSearch(query)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({        next: (response: any) => {
-          this.searchResults = response.results;
-          this.lastSearchType = response.type;
-          this.isSearching = false;
-            if (response.isBarcode && response.results.length === 1) {
-            this.selectProduct(response.results[0]);
-            this.searchQuery = '';
-          } else {
-            this.showSearchResults = true;
-          }
-        },
-        error: (error: any) => {
-          console.error('Errore nella ricerca:', error);
-          this.isSearching = false;
-          this.showSearchResults = false;        }
+      .subscribe({
+        next: (response: any) => this.handleSearchSuccess(response),
+        error: (error: any) => this.handleSearchError(error)
       });
   }
-  private isLikelyBarcode(query: string): boolean {
-    // Rimuove spazi e trattini
-    const cleanQuery = query.replace(/[\s-]/g, '');
+
+  // Handle successful search response
+  private handleSearchSuccess(response: any): void {
+    this.searchResults = response.results;
+    this.lastSearchType = response.type;
+    this.isSearching = false;
     
-    // Un barcode deve essere:
-    // - SOLO numerico (nessun carattere alfabetico)
-    // - Lunghezza appropriata (8-14 caratteri)
+    if (response.isBarcode && response.results.length === 1) {
+      this.selectProduct(response.results[0]);
+      this.searchQuery = '';
+    } else {
+      this.showSearchResults = true;
+    }
+  }
+
+  // Handle search error
+  private handleSearchError(error: any): void {
+    console.error('Errore nella ricerca:', error);
+    this.isSearching = false;
+    this.showSearchResults = false;
+  }
+
+  // Check if query is barcode
+  private isBarcode(query: string): boolean {
+    const cleanQuery = query.replace(/[\s-]/g, '');
     const isNumericOnly = /^\d+$/.test(cleanQuery);
     const hasValidLength = cleanQuery.length >= 8 && cleanQuery.length <= 14;
     
     return isNumericOnly && hasValidLength;
-  }  selectProduct(product: any): void {
+  }
+  
+  // Select product from search results
+  selectProduct(product: any): void {
     this.selectedOpenFoodProduct = product;
     this.product.name = this.homeService.openFoodFacts.getBestProductName(product);
     this.product.barcode = product.code;
+    
     const categories = this.homeService.openFoodFacts.getCategories(product);
     let categoryMapped = false;
     
@@ -200,13 +205,25 @@ export class CreaProdottoPage implements OnInit, OnDestroy {
         break;
       }
     }
+    
     if (product.brands) {
       this.product.description = `Marca: ${product.brands}`;
     }
-    this.showSearchResults = false;    // Se è stata mappata una categoria, scorri per mostrarla
+    
+    this.showSearchResults = false;
+    
     if (categoryMapped && this.product.category) {
       this.scrollToCategorySelection();
     }
+  }
+
+  // Clear search data
+  clearSearch(): void {
+    this.searchQuery = '';
+    this.searchResults = [];
+    this.showSearchResults = false;
+    this.selectedOpenFoodProduct = null;
+    this.lastSearchType = null;
   }
   private mapCategoryFromOpenFoodFacts(openFoodCategory: string): void {
     const categoryMappings: { [key: string]: string } = {
@@ -406,23 +423,19 @@ export class CreaProdottoPage implements OnInit, OnDestroy {
       }
     }
   }
-  clearSearch(): void {
-    this.searchQuery = '';
-    this.searchResults = [];
-    this.showSearchResults = false;
-    this.selectedOpenFoodProduct = null;
-    this.lastSearchType = null;
-    
-    // Opzionalmente, potresti voler mantenere i dati già inseriti
-    // o chiedere conferma prima di cancellarli
-  }
-  // ===== CATEGORY SELECTION =====
+
+  // Get category icon path
   getCategoryIcon(category: Category): string {
     return `assets/categories/${category.icon}`;
-  }  selectCategory(categoryName: string): void {
+  }
+
+  // Select a product category
+  selectCategory(categoryName: string): void {
     this.product.category = categoryName;
     this.scrollToCategorySelection();
   }
+
+  // Scroll to selected category
   private scrollToCategorySelection(): void {
     if (this.product.category) {
       setTimeout(() => {
@@ -433,19 +446,22 @@ export class CreaProdottoPage implements OnInit, OnDestroy {
           const elementTop = selectedElement.offsetTop;
           const elementHeight = selectedElement.offsetHeight;
           const scrollTop = elementTop - (containerHeight / 2) + (elementHeight / 2);
-          categoryContainer.scrollTo({top: Math.max(0, scrollTop),behavior: 'smooth'});
+          categoryContainer.scrollTo({
+            top: Math.max(0, scrollTop),
+            behavior: 'smooth'
+          });
         }
       }, 100);
     }
   }
-  // ===== FORM SUBMISSION =====
+
+  // Create new product
   async createProduct(): Promise<void> {
     if (!this.validateForm()) {
       return;
     }
 
     this.isLoading = true;
-
     try {
       const response = await this.homeService.products.createProduct(this.product);
 
@@ -460,7 +476,6 @@ export class CreaProdottoPage implements OnInit, OnDestroy {
     } catch (error: any) {
       console.error('Errore nella creazione del prodotto:', error);
       
-      // Handle different error types
       let errorMessage = 'Errore di connessione al server';
       if (error?.error?.error) {
         errorMessage = error.error.error;
@@ -473,6 +488,8 @@ export class CreaProdottoPage implements OnInit, OnDestroy {
       this.isLoading = false;
     }
   }
+
+  // Validate form data
   private validateForm(): boolean {
     if (!this.product.name.trim()) {
       this.showAlert('error', 'Errore', 'Il nome del prodotto è obbligatorio', 'close-circle');
@@ -482,7 +499,9 @@ export class CreaProdottoPage implements OnInit, OnDestroy {
     if (!this.product.barcode.trim()) {
       this.showAlert('error', 'Errore', 'Il codice a barre è obbligatorio', 'close-circle');
       return false;
-    }    if (this.product.barcode.length > 13) {
+    }
+
+    if (this.product.barcode.length > 13) {
       this.showAlert('error', 'Errore', 'Il codice a barre deve essere massimo 13 caratteri', 'close-circle');
       return false;
     }
@@ -504,18 +523,20 @@ export class CreaProdottoPage implements OnInit, OnDestroy {
 
     return true;
   }
-  // Metodo per verificare se il form è valido (per abilitare/disabilitare il pulsante)
+
+  // Check if form is valid
   isFormValid(): boolean {
     return !!(
       this.product.name.trim() &&
       this.product.barcode.trim() && 
-      this.product.barcode.length <= 13 && // E massimo 13 caratteri
-      /^\d+$/.test(this.product.barcode) && // Solo numeri
+      this.product.barcode.length <= 13 &&
+      /^\d+$/.test(this.product.barcode) &&
       this.product.description.trim() &&
       this.product.category
     );
   }
-  // ===== ALERT SYSTEM =====
+
+  // Show alert message
   private showAlert(type: 'success' | 'error', title: string, message: string, icon: string): void {
     this.alertType = type;
     this.alertTitle = title;
@@ -524,31 +545,39 @@ export class CreaProdottoPage implements OnInit, OnDestroy {
     this.showCustomAlert = true;
   }
 
+  // Close alert dialog
   closeAlert(): void {
-    this.showCustomAlert = false;  }  // ===== UTILITIES =====
-  onFormClick(event: Event): void {
-    // Chiude i suggerimenti quando si clicca altrove nel form
-    if (!(event.target as HTMLElement).closest('.search-container')) {
-      this.showSearchResults = false;
-    }
+    this.showCustomAlert = false;
   }
 
-  getBestProductName(product: any): string {
-    return this.homeService.openFoodFacts.getBestProductName(product);
-  }
-
-  getProductImageUrl(product: any): string | null {
-    return this.homeService.openFoodFacts.getBestImageUrl(product);
-  }
-
-  // ===== RATE LIMITING ALERTS =====
+  // Show rate limit message
   private showRateLimit(message: string): void {
     this.rateLimitMessage = message;
     this.showRateLimitAlert = true;
     setTimeout(() => {
       this.showRateLimitAlert = false;
-    }, 3000);
+    }, 4000);
   }
+
+  // Dismiss rate limit alert
   dismissRateLimitAlert(): void {
-    this.showRateLimitAlert = false;  }
+    this.showRateLimitAlert = false;
+  }
+
+  // Handle form click events
+  onFormClick(event: Event): void {
+    if (!(event.target as HTMLElement).closest('.search-container')) {
+      this.showSearchResults = false;
+    }
+  }
+
+  // Get best product name from OpenFoodFacts
+  getBestProductName(product: any): string {
+    return this.homeService.openFoodFacts.getBestProductName(product);
+  }
+
+  // Get product image URL from OpenFoodFacts
+  getProductImageUrl(product: any): string | null {
+    return this.homeService.openFoodFacts.getBestImageUrl(product);
+  }
 }

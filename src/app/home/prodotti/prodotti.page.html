@@ -2,7 +2,7 @@
 <ion-content [fullscreen]="true">
   <div class="main-container">
     <!-- Categories Section -->
-    <div class="section categories-section" *ngIf="displayProducts.length > 0 || displayOfferProducts.length > 0">
+    <div class="section categories-section" *ngIf="displayProducts.length > 0">
       <h3>Categorie</h3>
       <div class="categories-container">
         <!-- "All Categories" Item -->
@@ -51,7 +51,7 @@
                 €{{getOriginalPrice(product)!.toFixed(2)}}
               </span>
             </div>
-            <ng-container *ngIf="!canCreateContent">
+            <ng-container *ngIf="!canCreateContent && product.barcode">
               <div class="quantity-block">
                 <ng-container *ngIf="quantities[product.barcode] > 0">
                   <ion-fab-button

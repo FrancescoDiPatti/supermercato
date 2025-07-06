@@ -6,10 +6,9 @@ import { ViewWillEnter } from '@ionic/angular';
 import { 
   IonContent, IonIcon, IonImg, IonFabButton, IonButton, IonBadge
 } from '@ionic/angular/standalone';
-import { HomeService, Product, Category, PurchaseHistory, Supermarket, SupermarketDataState, AnimationState } from '../../services/home/home.service';
+import { HomeService, Product, Supermarket, SupermarketDataState, AnimationState } from '../../services/home/home.service';
 import { addIcons } from 'ionicons';
 import { add, remove, storefront, checkmarkCircle } from 'ionicons/icons';
-
 
 @Component({
   selector: 'app-prodotti',
@@ -22,33 +21,33 @@ import { add, remove, storefront, checkmarkCircle } from 'ionicons/icons';
   ]
 })
 export class ProdottiPage implements OnInit, OnDestroy, ViewWillEnter {
-
-  // Data state
-  private dataState: SupermarketDataState = this.homeService.ui.createDataState();
-  private animationState: AnimationState = this.homeService.ui.createAnimationState();
+  // State variables
+  private readonly dataState: SupermarketDataState = this.homeService.ui.createDataState();
+  private readonly animationState: AnimationState = this.homeService.ui.createAnimationState();
   
-  // Supermarket data
-  selectedSupermarket: Supermarket | null = null;
+  // Data variables
+  public selectedSupermarket: Supermarket | null = null;
+  public quantities: { [barcode: string]: number } = {};
+  public availableQuantities: { [barcode: string]: number } = {};
+  public highlightedProductId: string | null = null;
 
-  // Search highlighting
-  highlightedProductId: string | null = null;
+  // Event listeners
   private searchEventListener: any;
   private offerSearchEventListener: any;
 
   constructor(
-    private homeService: HomeService,
-    private router: Router,
+    private readonly homeService: HomeService,
+    private readonly router: Router,
   ) { 
     addIcons({ add, remove, storefront, checkmarkCircle });
   }
 
-  ngOnInit() {
+  ngOnInit(): void {
     this.initializeSubscriptions();
     this.setupSearchListener();
   }
 
-  async ionViewWillEnter() {
-    // Refresh data when entering the page
+  async ionViewWillEnter(): Promise<void> {
     const currentSupermarket = this.homeService.supermarkets.getSelectedSupermarket();
     if (currentSupermarket && currentSupermarket !== this.selectedSupermarket) {
       this.selectedSupermarket = currentSupermarket;
@@ -57,9 +56,12 @@ export class ProdottiPage implements OnInit, OnDestroy, ViewWillEnter {
     }
   }
 
-  // Initialize subscriptions
-  private initializeSubscriptions() {
-    // Subscribe to selected supermarket changes
+  ngOnDestroy(): void {
+    this.removeEventListeners();
+  }
+
+  // Initialize component subscriptions
+  private initializeSubscriptions(): void {
     this.homeService.supermarkets.selectedSupermarket$.subscribe(async (supermarket: Supermarket | null) => {
       this.selectedSupermarket = supermarket;
       if (supermarket) {
@@ -70,7 +72,6 @@ export class ProdottiPage implements OnInit, OnDestroy, ViewWillEnter {
       this.loadQuantitiesFromCart();
     });
 
-    // Load initial data if a supermarket is already selected
     const currentSupermarket = this.homeService.supermarkets.getSelectedSupermarket();
     if (currentSupermarket) {
       this.selectedSupermarket = currentSupermarket;
@@ -79,15 +80,14 @@ export class ProdottiPage implements OnInit, OnDestroy, ViewWillEnter {
     }
   }
 
-  // Setup search event listener
-  private setupSearchListener() {
+  // Setup search event listeners
+  private setupSearchListener(): void {
     this.searchEventListener = (event: CustomEvent) => {
       const product = event.detail.product;
       this.highlightProduct(product);
     };
     window.addEventListener('productSelectedFromSearch', this.searchEventListener);
     
-    // Also listen for offer searches since products page shows both
     this.offerSearchEventListener = (event: CustomEvent) => {
       const product = event.detail.product;
       this.highlightProduct(product);
@@ -95,8 +95,8 @@ export class ProdottiPage implements OnInit, OnDestroy, ViewWillEnter {
     window.addEventListener('offerSelectedFromSearch', this.offerSearchEventListener);
   }
 
-  // Cleanup search listener
-  ngOnDestroy() {
+  // Remove event listeners
+  private removeEventListeners(): void {
     if (this.searchEventListener) {
       window.removeEventListener('productSelectedFromSearch', this.searchEventListener);
     }
@@ -106,23 +106,21 @@ export class ProdottiPage implements OnInit, OnDestroy, ViewWillEnter {
   }
 
   // Highlight selected product
-  private highlightProduct(product: any) {
+  private highlightProduct(product: any): void {
     const productId = product.barcode || product.id.toString();
     this.highlightedProductId = productId;
     
-    // Scroll to highlighted product after a short delay
     setTimeout(() => {
       this.scrollToProduct(productId);
     }, 100);
     
-    // Clear highlight after 3 seconds
     setTimeout(() => {
       this.highlightedProductId = null;
     }, 3000);
   }
 
   // Scroll to specific product
-  private scrollToProduct(productId: string) {
+  private scrollToProduct(productId: string): void {
     const element = document.getElementById(`product-${productId}`);
     if (element) {
       element.scrollIntoView({ 
@@ -138,27 +136,20 @@ export class ProdottiPage implements OnInit, OnDestroy, ViewWillEnter {
     return this.highlightedProductId === productId;
   }
 
+  // Load supermarket data and images
   private async loadSupermarketData(): Promise<void> {
     if (!this.selectedSupermarket) return;
-    
     try {
       const result = await this.homeService.loadSupermarketDataWithoutImages(
         this.selectedSupermarket.id, 
         this.dataState, 
-        true, // load products
-        true  // load offers
+        true, 
+        true  
       );
-      
-      // Carica le quantità disponibili
       this.loadAvailableQuantities();
-      
       const allProducts = [...result.products, ...result.offerProducts];
       if (allProducts.length > 0) {
         await this.homeService.products.loadImagesForLoadedProducts(allProducts);
-      }
-      
-      // Aggiorna le categorie
-      if (allProducts.length > 0) {
         this.updateCategories(allProducts);
       }
     } catch (error) {
@@ -166,46 +157,62 @@ export class ProdottiPage implements OnInit, OnDestroy, ViewWillEnter {
     }
   }
   
+  // Update categories
   private updateCategories(products: Product[]): void {
     const categories = this.homeService.products.generateCategories(products);
     this.homeService.ui.updateCategories(this.dataState, categories);
   }
 
+  // Load available quantities
   private loadAvailableQuantities(): void {
     if (!this.selectedSupermarket) return;
     this.availableQuantities = this.homeService.ui.getAvailableQuantities(this.selectedSupermarket.id);
   }
 
-  // Getters
-  get products() { return this.dataState.products; }
-  get offerProducts() { return this.dataState.offerProducts; }
-  get selectedCategory() { return this.dataState.selectedCategory; }
-  get categories() { return this.dataState.categories; }
-  quantities: { [barcode: string]: number } = {};
-  availableQuantities: { [barcode: string]: number } = {};
-  get displayProducts() { return this.filteredProducts.slice(0, 8); }
-  get displayOfferProducts() { return this.filteredOfferProducts.slice(0, 8); }
-  get filteredProducts() {
+  // Data getter
+  get products(): Product[] { 
+    return this.dataState.products; 
+  }
+  
+  get offerProducts(): Product[] { 
+    return this.dataState.offerProducts; 
+  }
+  
+  get selectedCategory(): string { 
+    return this.dataState.selectedCategory; 
+  }
+  
+  get categories(): any[] { 
+    return this.dataState.categories; 
+  }
+  
+  get displayProducts(): Product[] { 
+    return this.filteredProducts.slice(0, 8); 
+  }
+  
+  get filteredProducts(): Product[] {
     const allProducts = [...this.products, ...this.offerProducts];
     return this.homeService.products.filterProductsByCategory(allProducts, this.selectedCategory);
   }
-  get filteredOfferProducts() {
-    return this.homeService.products.filterProductsByCategory(this.offerProducts, this.selectedCategory);
+  
+  get canCreateContent(): boolean { 
+    return this.homeService.isUserAdmin() || this.homeService.isUserManager(); 
   }
-  get canCreateContent() { return this.homeService.isUserAdmin() || this.homeService.isUserManager(); }
+
+  // Price calculation
   getDisplayPrice(product: Product): number {
     return this.homeService.products.getDisplayPrice(product); 
   }
+  
   getOriginalPrice(product: Product): number | null {
     return this.homeService.products.getOriginalPrice(product);
   }
 
-  private updateQuantity(barcode: string, amount: number) {
+  // Quantity management
+  private updateQuantity(barcode: string, amount: number): void {
     const result = this.homeService.ui.updateQuantity(this.quantities, barcode, amount, this.availableQuantities);
     this.quantities = result.quantities;
     
-    // Non mostrare più alert quando si raggiunge il limite - il pulsante è disabilitato
-  
     const product = this.findProductByBarcode(barcode);
     if (product && this.selectedSupermarket) {
       const quantity = this.quantities[barcode] || 0;
@@ -213,6 +220,7 @@ export class ProdottiPage implements OnInit, OnDestroy, ViewWillEnter {
     }
   }
 
+  // Find product by barcode in products or offers
   private findProductByBarcode(barcode: string): Product | undefined {
     let product = this.products.find(p => p.barcode === barcode);
     if (!product) {
@@ -221,6 +229,7 @@ export class ProdottiPage implements OnInit, OnDestroy, ViewWillEnter {
     return product;
   }
 
+  // Load cart quantities for display
   private loadQuantitiesFromCart(): void {
     this.quantities = {};
     if (!this.selectedSupermarket) return;
@@ -233,30 +242,40 @@ export class ProdottiPage implements OnInit, OnDestroy, ViewWillEnter {
       });
   }
 
-  onCreateProduct() {
+  // Navigate to product creation
+  onCreateProduct(): void {
     this.router.navigate(['/home/gestione/aggiungi-prodotto']);
   }
 
-  incrementQuantity(barcode: string) { this.updateQuantity(barcode, 1); }
-  decrementQuantity(barcode: string) { this.updateQuantity(barcode, -1); }
+  // Quantity increment/decrement methods
+  incrementQuantity(barcode: string): void { 
+    this.updateQuantity(barcode, 1); 
+  }
   
-  onIncrementPress(barcode: string) { 
+  decrementQuantity(barcode: string): void { 
+    this.updateQuantity(barcode, -1); 
+  }
+  
+  // Button press handlers for long press functionality
+  onIncrementPress(barcode: string): void { 
     this.homeService.ui.startTimer(barcode, true, this.updateQuantity.bind(this));
   }
   
-  onDecrementPress(barcode: string) { 
+  onDecrementPress(barcode: string): void { 
     this.homeService.ui.startTimer(barcode, false, this.updateQuantity.bind(this));
   }
   
-  onButtonRelease() { 
+  onButtonRelease(): void { 
     this.homeService.ui.clearTimer();
   }
   
-  onCategorySelect(categoryName: string) {
+  // Category selection handler
+  onCategorySelect(categoryName: string): void {
     this.homeService.ui.setSelectedCategory(this.dataState, categoryName);
     this.homeService.ui.showCategoryProducts(this.displayProducts, this.animationState);
   }
   
+  // Image loading errors
   handleImageError(event: any, category: string): void {
     const fallbackImage = (category?.toLowerCase() === 'tutti') 
       ? 'assets/categories/grocery-cart.png' 

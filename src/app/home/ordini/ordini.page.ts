@@ -3,10 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { 
-  IonContent, 
-  IonButton,
-  IonIcon,
-  IonBadge,
+  IonContent, IonButton, IonIcon, IonBadge,
   IonSpinner
 } from '@ionic/angular/standalone';
 import { AuthService } from '../../auth/auth.service';
@@ -14,14 +11,8 @@ import { HomeService } from '../../services/home/home.service';
 import { Subscription } from 'rxjs';
 import { addIcons } from 'ionicons';
 import { 
-  receiptOutline,
-  storefrontOutline,
-  timeOutline,
-  calendarOutline,
-  cardOutline,
-  refreshOutline,
-  arrowBack,
-  basketOutline
+  receiptOutline, storefrontOutline, timeOutline, calendarOutline,
+  cardOutline, refreshOutline, arrowBack, basketOutline
 } from 'ionicons/icons';
 
 interface PurchaseHistory {
@@ -42,14 +33,9 @@ interface PurchaseHistory {
   styleUrls: ['./ordini.page.scss'],
   standalone: true,
   imports: [
-    IonContent, 
-    IonButton,
-    IonIcon,
-
-    IonBadge,
-    IonSpinner,
-    CommonModule, 
-    FormsModule
+    IonContent, IonButton,  IonIcon,
+    IonBadge, IonSpinner,
+    CommonModule, FormsModule
   ]
 })
 export class OrdiniPage implements OnInit, OnDestroy {
@@ -60,57 +46,65 @@ export class OrdiniPage implements OnInit, OnDestroy {
   isLoading = false;
   private ordersSubscription?: Subscription;
 
-  // Filter properties
+  // Filter variables
   selectedPeriod: 'today' | 'week' | 'month' | 'all' = 'all';
   selectedSupermarket: string = 'all';
 
   constructor(
-    private authService: AuthService,
-    private homeService: HomeService,
-    private router: Router
+    private readonly authService: AuthService,
+    private readonly homeService: HomeService,
+    private readonly router: Router
   ) {
     addIcons({ 
-      receiptOutline,
-      storefrontOutline,
-      timeOutline,
-      calendarOutline,
-      cardOutline,
-      refreshOutline,
-      arrowBack,
-      basketOutline
+      receiptOutline, storefrontOutline, timeOutline, calendarOutline,
+      cardOutline, refreshOutline, arrowBack, basketOutline
     });
   }
 
+  // Check if user is admin
   public get isAdmin(): boolean {
     const user = this.authService.getUser();
     return this.homeService.isUserAdmin(user);
   }
 
+  // Check if user is manager  
   public get isManager(): boolean {
     const user = this.authService.getUser();
     return this.homeService.isUserManager(user);
   }
 
+  // Check if user is customer
   public get isCustomer(): boolean {
     const user = this.authService.getUser();
     return this.homeService.isUserCustomer(user);
   }
 
-  ngOnInit() {
-    if (!this.isCustomer && !this.isManager && !this.isAdmin) {
+  ngOnInit(): void {
+    if (!this.isAuthorizedUser()) {
       console.warn('User not authorized to view orders');
       return;
     }
     this.loadOrders();
   }
 
-  ngOnDestroy() {
+  ngOnDestroy(): void {
+    this.cleanupSubscriptions();
+  }
+
+  // Check if user is authorized to view orders
+  private isAuthorizedUser(): boolean {
+    return this.isCustomer || this.isManager || this.isAdmin;
+  }
+
+  // Clean up subscriptions
+  private cleanupSubscriptions(): void {
     if (this.ordersSubscription) {
       this.ordersSubscription.unsubscribe();
     }
   }
 
-  async loadOrders() {
+  // Load orders from service
+  async loadOrders(): Promise<void> {
     this.isLoading = true;
     try {
       const purchaseHistory = await this.homeService.products.loadPurchaseHistory(50);
@@ -119,53 +113,35 @@ export class OrdiniPage implements OnInit, OnDestroy {
       this.applyFilters();
     } catch (error) {
       console.error('Error loading orders:', error);
-      this.orders = [];
-      this.filteredOrders = [];
-      this.groupedOrders = [];
+      this.resetOrdersData();
     } finally {
       this.isLoading = false;
     }
   }
 
+  // Reset orders data on error
+  private resetOrdersData(): void {
+    this.orders = [];
+    this.filteredOrders = [];
+    this.groupedOrders = [];
+  }
+
+  // Extract available supermarkets from orders
   private extractAvailableSupermarkets(): void {
     const supermarkets = new Set(this.orders.map(order => order.supermarket_name));
     this.availableSupermarkets = Array.from(supermarkets).sort();
   }
 
+  // Apply filters to orders
   private applyFilters(): void {
     let filtered = [...this.orders];
 
-    // Gestione diretta dei filtri temporali con correzione server (aggiungi 2 ore)
+    // Apply time period filter
     if (this.selectedPeriod !== 'all') {
-      const now = new Date();
-      filtered = filtered.filter(order => {
-        // Correggi la data del server aggiungendo 2 ore
-        const serverDate = new Date(order.purchase_date);
-        const correctedDate = new Date(serverDate.getTime() + (2 * 60 * 60 * 1000));
-        
-        switch (this.selectedPeriod) {
-          case 'today':
-            return correctedDate.toDateString() === now.toDateString();
-          case 'week': {
-            const day = now.getDay();
-            const diffToMonday = (day + 6) % 7;
-            const lastMonday = new Date(now);
-            lastMonday.setDate(now.getDate() - diffToMonday);
-            lastMonday.setHours(0, 0, 0, 0);
-            return correctedDate >= lastMonday && correctedDate <= now;
-          }
-          case 'month': {
-            const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-            firstDay.setHours(0, 0, 0, 0);
-            return correctedDate >= firstDay && correctedDate <= now;
-          }
-          default:
-            return true;
-        }
-      });
+      filtered = this.filterByTimePeriod(filtered);
     }
 
-    // Filter by supermarket
+    // Apply supermarket filter
     if (this.selectedSupermarket !== 'all') {
       filtered = filtered.filter(order => order.supermarket_name === this.selectedSupermarket);
     }
@@ -174,19 +150,64 @@ export class OrdiniPage implements OnInit, OnDestroy {
     this.updateGroupedOrders();
   }
 
+  // Filter orders by time period
+  private filterByTimePeriod(orders: PurchaseHistory[]): PurchaseHistory[] {
+    const now = new Date();
+    
+    return orders.filter(order => {
+      const correctedDate = this.homeService.ui.adjustServerDate(order.purchase_date);
+      
+      switch (this.selectedPeriod) {
+        case 'today':
+          return correctedDate.toDateString() === now.toDateString();
+        case 'week':
+          return this.isDateInCurrentWeek(correctedDate, now);
+        case 'month':
+          return this.isDateInCurrentMonth(correctedDate, now);
+        default:
+          return true;
+      }
+    });
+  }
+
+  // Check if date is in current week
+  private isDateInCurrentWeek(date: Date, now: Date): boolean {
+    const day = now.getDay();
+    const diffToMonday = (day + 6) % 7;
+    const lastMonday = new Date(now);
+    lastMonday.setDate(now.getDate() - diffToMonday);
+    lastMonday.setHours(0, 0, 0, 0);
+    return date >= lastMonday && date <= now;
+  }
+
+  // Check if date is in current month
+  private isDateInCurrentMonth(date: Date, now: Date): boolean {
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+    firstDay.setHours(0, 0, 0, 0);
+    return date >= firstDay && date <= now;
+  }
+
+  // Update grouped orders display
   private updateGroupedOrders(): void {
     if (!this.filteredOrders || this.filteredOrders.length === 0) {
       this.groupedOrders = [];
       return;
     }
     
+    const grouped = this.groupOrdersByDateAndSupermarket();
+    this.groupedOrders = this.convertToSortedArray(grouped);
+  }
+
+  // Group orders by date and supermarket
+  private groupOrdersByDateAndSupermarket(): { [key: string]: PurchaseHistory[] } {
     const grouped: { [key: string]: PurchaseHistory[] } = {};
+    
     this.filteredOrders.forEach(order => {
       if (order && order.purchase_date && order.supermarket_name) {
-        // Usa HomeService per correggere la data
         const adjustedDate = this.homeService.ui.adjustServerDate(order.purchase_date);
         const date = adjustedDate.toDateString();
         const key = `${date}-${order.supermarket_name}`;
+        
         if (!grouped[key]) {
           grouped[key] = [];
         }
@@ -194,8 +215,12 @@ export class OrdiniPage implements OnInit, OnDestroy {
       }
     });
     
-    // Convert to array format e ordina per data (più recenti prima)
-    this.groupedOrders = Object.keys(grouped)
+    return grouped;
+  }
+
+  // Convert grouped orders to sorted array
+  private convertToSortedArray(grouped: { [key: string]: PurchaseHistory[] }): Array<{key: string, value: PurchaseHistory[], name: string, date: string, total: number}> {
+    return Object.keys(grouped)
       .map(key => {
         const orders = grouped[key];
         const total = orders.reduce((sum, order) => sum + order.total_price, 0);
@@ -208,84 +233,104 @@ export class OrdiniPage implements OnInit, OnDestroy {
         };
       })
       .sort((a, b) => {
-        // Usa HomeService per correggere le date nel sorting
         const dateA = this.homeService.ui.adjustServerDate(a.date);
         const dateB = this.homeService.ui.adjustServerDate(b.date);
         return dateB.getTime() - dateA.getTime();
       });
   }
 
+  // Get formatted order date
   getOrderDate(dateString: string): string {
-    const adjustedDate = this.homeService.ui.adjustServerDate(dateString);
-    const defaultOptions: Intl.DateTimeFormatOptions = {
+    return this.formatDate(dateString, {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
-    };
+    });
+  }
+
+  // Get short formatted order date
+  getOrderDateShort(dateString: string): string {
+    return this.formatDate(dateString);
+  }
+
+  // Format date with options
+  private formatDate(dateString: string, options?: Intl.DateTimeFormatOptions): string {
+    const adjustedDate = this.homeService.ui.adjustServerDate(dateString);
+    const defaultOptions: Intl.DateTimeFormatOptions = options || {};
     return adjustedDate.toLocaleDateString('it-IT', defaultOptions);
   }
 
-  getOrderDateShort(dateString: string): string {
-    const adjusted = this.homeService.ui.adjustServerDate(dateString);
-    return adjusted.toLocaleDateString('it-IT');
-  }
-
-  continueShopping() {
+  // Navigate to dashboard
+  continueShopping(): void {
     this.router.navigate(['/home/dashboard']);
   }
 
+  // Get total count of filtered orders
   getTotalOrdersCount(): number {
     return this.filteredOrders.length;
   }
 
+  // Calculate total amount spent
   getTotalSpent(): number {
     return this.filteredOrders.reduce((sum, order) => sum + order.total_price, 0);
   }
 
+  // Check if any filters are active
   hasActiveFilters(): boolean {
     return this.selectedPeriod !== 'all' || this.selectedSupermarket !== 'all';
   }
 
+  // Get description of active filters
   getFilterDescription(): string {
+    const filters = this.buildFilterDescriptions();
+    return filters.join(' • ');
+  }
+
+  // Build filter descriptions array
+  private buildFilterDescriptions(): string[] {
     const filters = [];
     
     if (this.selectedPeriod !== 'all') {
-      switch (this.selectedPeriod) {
-        case 'today':
-          filters.push('Oggi');
-          break;
-        case 'week':
-          filters.push('Questa settimana');
-          break;
-        case 'month':
-          filters.push('Questo mese');
-          break;
-      }
+      filters.push(this.getPeriodDescription());
     }
     
     if (this.selectedSupermarket !== 'all') {
       filters.push(this.selectedSupermarket);
     }
     
-    return filters.join(' • ');
+    return filters;
   }
 
+  // Get period description
+  private getPeriodDescription(): string {
+    const periodMap: Record<string, string> = {
+      'today': 'Oggi',
+      'week': 'Questa settimana',
+      'month': 'Questo mese'
+    };
+    return periodMap[this.selectedPeriod] || '';
+  }
+
+  // Apply period filter
   filterByPeriod(period: 'today' | 'week' | 'month' | 'all'): void {
     this.selectedPeriod = period;
     this.applyFilters();
   }
 
+  // Apply supermarket filter
   filterBySupermarket(supermarket: string): void {
     this.selectedSupermarket = supermarket;
     this.applyFilters();
   }
 
+  // Track by function for group
   trackByGroup(index: number, group: any): any {
     return group.key;
   }
 
+  // Track by function for order
   trackByOrder(index: number, order: PurchaseHistory): any {
     return order.id;
   }
