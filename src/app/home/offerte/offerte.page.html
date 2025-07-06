@@ -1,6 +1,6 @@
 
 <ion-content [fullscreen]="true">
-  <div class="main-container">
+  <div *ngIf="currentUser$ | async as user" class="main-container">
     <!-- Categories Section -->
     <div class="section categories-section" *ngIf="displayOfferProducts.length > 0">
       <h3>Categorie</h3>
@@ -31,7 +31,7 @@
         <h3>Prodotti in Offerta</h3>
       </div>
       
-      <div class="products-container" *ngIf="displayOfferProducts.length > 0 || (canCreateContent && selectedSupermarket)">
+      <div class="products-container" *ngIf="displayOfferProducts.length > 0 || ((user?.role === 'admin' || user?.role === 'manager') && selectedSupermarket)">
         <!-- Offer Products -->
         <ng-container *ngIf="displayOfferProducts.length > 0">
           <div *ngFor="let product of displayOfferProducts" 
@@ -57,7 +57,7 @@
                   €{{getOriginalPrice(product)!.toFixed(2)}}
                 </span>
               </div>
-              <ng-container *ngIf="!canCreateContent">
+              <ng-container *ngIf="!(user?.role === 'admin' || user?.role === 'manager')">
                 <div class="quantity-block">
                   <ng-container *ngIf="quantities[product.barcode] > 0">
                     <ion-fab-button
@@ -96,7 +96,7 @@
         </ng-container>
         
         <!-- Generate Offer Button (for admin/manager) -->
-        <div *ngIf="canCreateContent && selectedSupermarket" class="product-card create-product-card" (click)="onGenerateOffer()">
+        <div *ngIf="(user?.role === 'admin' || user?.role === 'manager') && selectedSupermarket" class="product-card create-product-card" (click)="onGenerateOffer()">
           <div class="product-image-container">
             <div class="image-wrapper create-product-image">
               <ion-icon name="add"></ion-icon>

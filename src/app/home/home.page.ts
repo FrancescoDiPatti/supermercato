@@ -16,7 +16,7 @@ import {
   menuOutline, pricetagsOutline, gridOutline, arrowBackOutline, timeOutline,
   searchOutline, close, addOutline, addCircleOutline,
 } from 'ionicons/icons';
-import { filter } from 'rxjs/operators';
+import { filter, map, take } from 'rxjs/operators';
 import { NavigationEnd } from '@angular/router';
 import { debounceTime, Subject, Subscription } from 'rxjs';
 
@@ -46,7 +46,8 @@ export class HomePage implements OnInit, OnDestroy {
   public currentPlaceholder: string = 'Ricerca...';
   public selectedSupermarket: any = null;
   public cartItemCount: number = 0;
-  
+  public readonly currentUser$ = this.homeService.currentUser$;
+
   private activeUrl = '';
   private searchSubject = new Subject<string>();  
   private subscription: Subscription = new Subscription();
@@ -139,20 +140,21 @@ export class HomePage implements OnInit, OnDestroy {
 
   // Load recent searches from localStorage
   private loadRecentSearches(): void {
-    const currentUser = this.authService.getUser();
-    if (!currentUser) return;
+    this.homeService.currentUser$.pipe(take(1)).subscribe(currentUser => {
+      if (!currentUser?.id) return;
 
-    const key = this.getRecentSearchesKey(currentUser.id);
-    const stored = localStorage.getItem(key);
-    
-    if (stored) {
-      try {
-        this.recentSearches = JSON.parse(stored);
-      } catch (error) {
-        console.error('Error parsing recent searches:', error);
-        this.recentSearches = [];
+      const key = this.getRecentSearchesKey(currentUser.id);
+      const stored = localStorage.getItem(key);
+      
+      if (stored) {
+        try {
+          this.recentSearches = JSON.parse(stored);
+        } catch (error) {
+          console.error('Error parsing recent searches:', error);
+          this.recentSearches = [];
+        }
       }
-    }
+    });
   }
 
   // Get supermarket image
@@ -208,6 +210,7 @@ export class HomePage implements OnInit, OnDestroy {
 
   // Handle user logout
   private handleUserLogout(): void {
+    this.homeService.cart.clearCart();
     this.homeService.supermarkets.clearSelectedSupermarket();
     this.resetSearch();
     this.recentSearches = [];
@@ -573,14 +576,15 @@ export class HomePage implements OnInit, OnDestroy {
 
   // Save recent search to localStorage
   private saveRecent(query: string, type: string, result?: SearchResult): void {
-    const currentUser = this.authService.getUser();
-    if (!currentUser) return;
+    this.homeService.currentUser$.pipe(take(1)).subscribe(currentUser => {
+      if (!currentUser?.id) return;
 
-    const key = this.getRecentSearchesKey(currentUser.id);
-    const newSearch = this.createRecentSearch(query, type, currentUser.id, result);
-    
-    this.updateRecentSearches(newSearch);
-    this.persistRecentSearches(key);
+      const key = this.getRecentSearchesKey(currentUser.id);
+      const newSearch = this.createRecentSearch(query, type, currentUser.id, result);
+      
+      this.updateRecentSearches(newSearch);
+      this.persistRecentSearches(key);
+    });
   }
 
   // Get recent searches storage key
@@ -654,26 +658,6 @@ export class HomePage implements OnInit, OnDestroy {
     return config ? config[1].type : 'general';
   }
 
-  // User role getters
-  public get isAdmin(): boolean {
-    const user = this.authService.getUser();
-    return this.homeService.isUserAdmin(user);
-  }
-
-  public get isManager(): boolean {
-    const user = this.authService.getUser();
-    return this.homeService.isUserManager(user);
-  }
-
-  public get isCustomer(): boolean {
-    const user = this.authService.getUser();
-    return this.homeService.isUserCustomer(user);
-  }
-
-  public get isAdminOrManager(): boolean {
-    const user = this.authService.getUser();
-    return this.homeService.isUserAdminOrManager(user);
-  }
 
   // Check if supermarket visibility
   shouldShowSupermarketSelection(): boolean {
@@ -689,9 +673,11 @@ export class HomePage implements OnInit, OnDestroy {
     return this.activeUrl === `/home/${path}` || (path === 'dashboard' && (this.activeUrl === '/home' || this.activeUrl === '/home/dashboard'));
   }
 
-  // Check if cart visibility
-  shouldShowCartIcon(): boolean {
-    return this.isCustomer && !this.activeUrl.includes('/carrello') && !this.activeUrl.includes('/ordini');
+  // Check cart visibility
+  get shouldShowCartIcon$() {
+    return this.homeService.currentUser$.pipe(
+      map((user) => user?.role === 'customer' && !this.activeUrl.includes('/carrello') && !this.activeUrl.includes('/ordini'))
+    );
   }
 
   // Handle user logout
@@ -700,6 +686,7 @@ export class HomePage implements OnInit, OnDestroy {
     sessionStorage.removeItem('inventoryData');
     sessionStorage.removeItem('cartItems');
     this.recentSearches = [];
+    this.homeService.cart.clearCart();
     this.homeService.supermarkets.clearSelectedSupermarket();
     this.menuController.close();
     this.authService.logout();

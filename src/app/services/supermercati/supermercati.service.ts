@@ -197,7 +197,7 @@ export class SupermercatiService {
 
   // Get supermarkets for user by role
   async getSupermarketsForCurrentUser(): Promise<Supermarket[]> {
-    const user = this.authService.getUser();
+    const user = this.authService.getCurrentAuthState().user;
     if (!user) return [];
     try {
       const response = await this.getSupermarkets().toPromise();

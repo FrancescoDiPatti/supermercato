@@ -37,8 +37,7 @@ export interface LoginResponse {
 })
 export class AuthService {
   private readonly SESSION_STORAGE_KEY = 'authState';
-  
-  // BehaviorSubject for managing authentication state
+
   private readonly authState$ = new BehaviorSubject<AuthState>({
     isAuthenticated: false,
     user: null

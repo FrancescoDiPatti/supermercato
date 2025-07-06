@@ -11,7 +11,7 @@ import { addIcons } from 'ionicons';
 import { storefront, save, arrowBack, person, checkmarkCircle, closeCircle, close, location } from 'ionicons/icons';
 import { HomeService, User } from '../../../services/home/home.service';
 import { AuthService } from '../../../auth/auth.service';
-import { debounceTime, Subject, takeUntil } from 'rxjs';
+import { debounceTime, Subject, takeUntil, map, take } from 'rxjs';
 
 @Component({
   selector: 'app-crea-supermercato',
@@ -41,11 +41,6 @@ export class CreaSupermercatoPage implements OnInit, OnDestroy {
   public alertTitle = '';
   public alertIcon = '';
   
-  // User variables
-  public currentUser: any = null;
-  public isAdmin = false;
-  public isManager = false;
-  
   // Address variables
   public addressSuggestions: any[] = [];
   public isSearching = false;
@@ -62,6 +57,10 @@ export class CreaSupermercatoPage implements OnInit, OnDestroy {
   public selectedManager: User | null = null;
   public showManagerSuggestions = false;
   public showManagerResults = false;
+  
+  // User state tracking
+  public readonly currentUser$ = this.homeService.currentUser$;
+  public isAdmin = false;
   
   // Reactive streams
   private readonly addressInput$ = new Subject<string>();
@@ -95,13 +94,14 @@ export class CreaSupermercatoPage implements OnInit, OnDestroy {
   }
 
   private initializeComponent(): void {
-    this.currentUser = this.authService.getUser();
-    this.isAdmin = this.homeService.isUserAdmin();
-    this.isManager = this.homeService.isUserManager();
-    
-    if (!this.currentUser || !this.homeService.isUserAdminOrManager()) {
-      this.router.navigate(['/home/dashboard']);
-    }
+    this.currentUser$.pipe(takeUntil(this.destroy$)).subscribe(user => {
+      this.isAdmin = user?.role === 'admin';
+      if (!this.isAdmin) {
+        if (!user) {
+          this.router.navigate(['/home/dashboard']);
+        }
+      }
+    });
   }
 
   // Setup address search with debounce
@@ -176,6 +176,18 @@ export class CreaSupermercatoPage implements OnInit, OnDestroy {
     this.supermarket.manager_id = manager.id;
     this.managerSearchText = manager.username;
     this.clearManagerSuggestions();
+  }
+
+    
+  // Getter for form validation
+  get isSubmitDisabled$() {
+    return this.currentUser$.pipe(
+      map((user) => 
+        this.isLoading || 
+        (this.isInitialized && user?.role === 'admin' && !this.supermarket.manager_id) || 
+        !this.isAddressSelected
+      )
+    );
   }
 
   // Filter managers
@@ -276,7 +288,7 @@ export class CreaSupermercatoPage implements OnInit, OnDestroy {
       return;
     }
 
-    this.setManagerId();
+    await this.setManagerId();
     
     this.isLoading = true;
     try {
@@ -317,9 +329,10 @@ export class CreaSupermercatoPage implements OnInit, OnDestroy {
   }
 
   // Set manager ID
-  private setManagerId(): void {
-    if (this.isManager && !this.isAdmin) {
-      this.supermarket.manager_id = this.currentUser.id;
+  private async setManagerId(): Promise<void> {
+    const user = await this.currentUser$.pipe(take(1)).toPromise();
+    if (user?.role === 'manager' && !this.isAdmin) {
+      this.supermarket.manager_id = user.id;
     }
   }
 

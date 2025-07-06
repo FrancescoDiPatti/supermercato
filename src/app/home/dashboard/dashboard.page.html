@@ -1,5 +1,5 @@
 <ion-content class="padding" scroll="false">
-  <div class="dashboard-container">
+  <div *ngIf="currentUser$ | async as user" class="dashboard-container">
     
     <!-- MAP SECTION -->
     <div class="map-section" [class.expanded]="isMapExpanded" [class.auto-collapsed]="selectedSupermarket && !isMapExpanded">
@@ -69,7 +69,7 @@
           </ion-icon>
         </div>
         <!-- Add Supermarket Card -->
-        <div *ngIf="canCreateContent" class="supermarket-card create-card" (click)="onCreateSupermarket()">
+        <div *ngIf="user?.role === 'admin' || user?.role === 'manager'" class="supermarket-card create-card" (click)="onCreateSupermarket()">
           <div class="create-card-content">
             <div class="create-icon">
               <ion-icon name="add"></ion-icon>
@@ -116,7 +116,7 @@
       </div>
 
       <!-- Offers Section -->
-      <div class="section offers-section" *ngIf="displayOfferProducts.length > 0 || canCreateContent">
+      <div class="section offers-section" *ngIf="displayOfferProducts.length > 0 || (user?.role === 'admin' || user?.role === 'manager')">
         <div class="section-header">
           <h3>Prodotti in Offerta</h3>
           <a *ngIf="displayOfferProducts.length > 0" href="javascript:void(0)" (click)="navigateToOffers()" class="see-more">
@@ -146,7 +146,7 @@
                     €{{getOriginalPrice(product)!.toFixed(2)}}
                   </span>
                 </div>
-                <ng-container *ngIf="!canCreateContent">
+                <ng-container *ngIf="!(user?.role === 'admin' || user?.role === 'manager')">
                   <div class="quantity-block">
                     <ng-container *ngIf="quantities[product.barcode] > 0">
                       <ion-fab-button
@@ -185,7 +185,7 @@
           </ng-container>
           
           <!-- Generate Offer Button (for admin/manager) -->
-          <div *ngIf="canCreateContent && selectedSupermarket" class="product-card create-product-card" (click)="onGenerateOffer()">
+          <div *ngIf="(user?.role === 'admin' || user?.role === 'manager') && selectedSupermarket" class="product-card create-product-card" (click)="onGenerateOffer()">
             <div class="product-image-container">
               <div class="image-wrapper create-product-image">
                 <ion-icon name="add"></ion-icon>
@@ -202,7 +202,7 @@
       <!-- Products and History Sections -->
       <div class="products-history-container">
         <!-- Products Section -->
-        <div class="section products-section" *ngIf="displayProducts.length > 0 || canCreateContent">
+        <div class="section products-section" *ngIf="displayProducts.length > 0 || (user?.role === 'admin' || user?.role === 'manager')">
           <div class="section-header">
             <h3>Prodotti</h3>
             <a href="javascript:void(0)" (click)="navigateToProducts()" class="see-more">
@@ -227,7 +227,7 @@
                     €{{getOriginalPrice(product)!.toFixed(2)}}
                   </span>
                 </div>
-                <ng-container *ngIf="!canCreateContent">
+                <ng-container *ngIf="!(user?.role === 'admin' || user?.role === 'manager')">
                   <div class="quantity-block">
                     <ng-container *ngIf="quantities[product.barcode] > 0">
                       <ion-fab-button
@@ -263,7 +263,7 @@
                 </ng-container>
               </div>
             </div>
-            <div *ngIf="canCreateContent && selectedSupermarket" class="product-card create-product-card" (click)="onCreateProduct()">
+            <div *ngIf="(user?.role === 'admin' || user?.role === 'manager') && selectedSupermarket" class="product-card create-product-card" (click)="onCreateProduct()">
               <div class="product-image-container">
                 <div class="image-wrapper create-product-image">
                   <ion-icon name="add"></ion-icon>
@@ -278,7 +278,7 @@
         </div>
 
         <!-- History Section -->
-        <div class="section history-section" *ngIf="!canCreateContent && ((products && products.length > 0) || (offerProducts && offerProducts.length > 0))">
+        <div class="section history-section" *ngIf="!(user?.role === 'admin' || user?.role === 'manager') && ((products && products.length > 0) || (offerProducts && offerProducts.length > 0))">
           <div class="history-header">
             <div class="header-content">
               <h3 *ngIf="isHistoryView">Ordini Precedenti</h3>
@@ -405,7 +405,7 @@
       <p>Scegli un supermercato dal menu sopra per visualizzare prodotti e offerte</p>
     </div>
     <!-- EMPTY PRODUCTS -->
-    <div *ngIf="selectedSupermarket && !isLoading && filteredProducts.length === 0 && offerProducts.length === 0 && !canCreateContent" class="empty-state">
+    <div *ngIf="selectedSupermarket && !isLoading && filteredProducts.length === 0 && offerProducts.length === 0 && !(user?.role === 'admin' || user?.role === 'manager')" class="empty-state">
       <ion-icon name="cube" class="empty-icon"></ion-icon>
       <h3>Nessun prodotto presente</h3>
       <p>Questo supermercato non ha prodotti disponibili</p>

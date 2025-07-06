@@ -66,19 +66,8 @@ export class CarrelloPage implements OnInit, OnDestroy {
     });
   }
 
-  // User role getters
-  public get isAdmin(): boolean {
-    return this.homeService.isUserAdmin();
-  }
-
-  public get isManager(): boolean {
-    return this.homeService.isUserManager();
-  }
-
-  public get isCustomer(): boolean {
-    const user = this.homeService.getCurrentUser();
-    return user?.role === 'customer';
-  }
+  // User state
+  public readonly currentUser$ = this.homeService.currentUser$;
 
   // Initialize component
   ngOnInit(): void {

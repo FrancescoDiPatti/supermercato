@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -16,6 +16,7 @@ import {
 } from 'ionicons/icons';
 import { HomeService, Category } from '../../../services/home/home.service';
 import { AuthService } from '../../../auth/auth.service';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-crea-prodotto',
@@ -31,7 +32,7 @@ import { AuthService } from '../../../auth/auth.service';
     CommonModule, FormsModule
   ]
 })
-export class CreaProdottoPage implements OnInit {
+export class CreaProdottoPage implements OnInit, OnDestroy {
   @ViewChild('categoryList', { static: false }) categoryList!: ElementRef;
 
   // Product data
@@ -53,9 +54,8 @@ export class CreaProdottoPage implements OnInit {
   rateLimitMessage = '';
 
   // User authentication
-  currentUser: any = null;
-  isAdmin = false;
-  isManager = false;
+  public readonly currentUser$ = this.homeService.currentUser$;
+  private subscription = new Subscription();
 
   // Search variables
   searchQuery = '';
@@ -106,13 +106,17 @@ export class CreaProdottoPage implements OnInit {
   }
 
   ngOnInit(): void {
-    this.currentUser = this.authService.getUser();
-    this.isAdmin = this.homeService.isUserAdmin();
-    this.isManager = this.homeService.isUserManager();
-    
-    if (!this.currentUser || !this.homeService.isUserAdminOrManager()) {
-      this.router.navigate(['/home/dashboard']);
-    }
+    this.subscription.add(
+      this.currentUser$.subscribe(user => {
+        if (!user || (user.role !== 'admin' && user.role !== 'manager')) {
+          this.router.navigate(['/home/dashboard']);
+        }
+      })
+    );
+  }
+
+  ngOnDestroy(): void {
+    this.subscription.unsubscribe();
   }
 
 

@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { ViewWillEnter } from '@ionic/angular';
-import { lastValueFrom } from 'rxjs';
+import { lastValueFrom, Observable } from 'rxjs';
 import { 
   IonContent, IonIcon, IonImg, IonFabButton, IonButton, IonBadge
 } from '@ionic/angular/standalone';
@@ -27,6 +27,7 @@ export class OffertePage implements OnInit, OnDestroy {
   private isLoading = false;
   private readonly dataState = this.homeService.ui.createDataState();
   private readonly animationState = this.homeService.ui.createAnimationState();
+  readonly currentUser$ = this.homeService.currentUser$;
   
   // Supermarket variables
   public selectedSupermarket: Supermarket | null = null;
@@ -148,7 +149,6 @@ export class OffertePage implements OnInit, OnDestroy {
   get filteredOfferProducts() {
     return this.homeService.products.filterProductsByCategory(this.offerProducts, this.selectedCategory);
   }
-  get canCreateContent() { return this.homeService.isUserAdmin() || this.homeService.isUserManager();}
 
   // Get display price for product
   getDisplayPrice(product: Product): number {

@@ -6,7 +6,7 @@
       </ion-toolbar>
     </ion-header>    
     <ion-content class="ion-padding menu-content">
-
+      <div *ngIf="currentUser$ | async as user" class="menu-wrapper">
 
       <div class="menu-items"
            [class.with-supermarket]="selectedSupermarket">        <ion-button fill="clear" (click)="navAndClose('dashboard')" [class.active]="isMenuActive('dashboard')">
@@ -20,23 +20,23 @@
         <ion-button fill="clear" (click)="navAndClose('offerte')" [class.active]="isMenuActive('offerte')">
           <ion-icon slot="start" name="pricetags-outline"></ion-icon>Offerte
         </ion-button>
-        <ion-button fill="clear" *ngIf="isCustomer" (click)="navAndClose('carrello')" [class.active]="isMenuActive('carrello')">
+        <ion-button fill="clear" *ngIf="user?.role === 'customer'" (click)="navAndClose('carrello')" [class.active]="isMenuActive('carrello')">
           <ion-icon slot="start" name="cart-outline"></ion-icon>Carrello 
         </ion-button>
         
-        <ion-button fill="clear" *ngIf="isCustomer" (click)="navAndClose('ordini')" [class.active]="isMenuActive('ordini')">
+        <ion-button fill="clear" *ngIf="user?.role === 'customer'" (click)="navAndClose('ordini')" [class.active]="isMenuActive('ordini')">
           <ion-icon slot="start" name="receipt-outline"></ion-icon>Ordini
         </ion-button>
 
-        <ion-button fill="clear" *ngIf="isAdminOrManager" (click)="navAndClose('gestione/crea-supermercato')" [class.active]="isMenuActive('gestione/crea-supermercato')">
+        <ion-button fill="clear" *ngIf="user?.role === 'admin' || user?.role === 'manager'" (click)="navAndClose('gestione/crea-supermercato')" [class.active]="isMenuActive('gestione/crea-supermercato')">
           <ion-icon slot="start" name="storefront-outline"></ion-icon>Crea Supermercato
         </ion-button>
         
-        <ion-button fill="clear" *ngIf="isAdminOrManager" (click)="navAndClose('gestione/aggiungi-prodotto')" [class.active]="isMenuActive('gestione/aggiungi-prodotto')">
+        <ion-button fill="clear" *ngIf="user?.role === 'admin' || user?.role === 'manager'" (click)="navAndClose('gestione/aggiungi-prodotto')" [class.active]="isMenuActive('gestione/aggiungi-prodotto')">
           <ion-icon slot="start" name="add-circle-outline"></ion-icon>Aggiungi Prodotto
         </ion-button>
 
-        <ion-button fill="clear" *ngIf="isAdminOrManager" (click)="navAndClose('gestione/crea-prodotto')" [class.active]="isMenuActive('gestione/crea-prodotto')">
+        <ion-button fill="clear" *ngIf="user?.role === 'admin' || user?.role === 'manager'" (click)="navAndClose('gestione/crea-prodotto')" [class.active]="isMenuActive('gestione/crea-prodotto')">
           <ion-icon slot="start" name="add-outline"></ion-icon>Crea Prodotto
         </ion-button>
       </div>
@@ -62,6 +62,7 @@
         <ion-button fill="clear" (click)="logout()">
           <ion-icon slot="start" name="log-out-outline"></ion-icon>Logout
         </ion-button>
+      </div>
       </div>
     </ion-content>
   </ion-menu>  
@@ -92,7 +93,7 @@
           </div>
         </div>
 
-        <ion-buttons slot="end" *ngIf="shouldShowCartIcon()">
+        <ion-buttons slot="end" *ngIf="shouldShowCartIcon$ | async">
           <ion-button (click)="goToCart()" class="cart-button">
             <ion-icon name="cart-outline"></ion-icon>
             <ion-badge *ngIf="cartItemCount > 0" class="cart-badge">{{cartItemCount}}</ion-badge>

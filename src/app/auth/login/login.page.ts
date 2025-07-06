@@ -12,6 +12,7 @@ import {
   mail, people, cart, briefcase, shieldCheckmark
 } from 'ionicons/icons';
 import { AuthService } from '../auth.service';
+import { take } from 'rxjs/operators';
 
 addIcons({
   storefront, person, lockClosed, logIn, personAdd,
@@ -100,9 +101,11 @@ export class LoginPage implements OnInit {
 
   // Manage existing session
   private handleExistingSession(): void {
-    if (this.authService.isLoggedIn()) {
-      this.authService.logout();
-    }
+    this.authService.isAuthenticated$.pipe(take(1)).subscribe(isAuthenticated => {
+      if (isAuthenticated) {
+        this.authService.logout();
+      }
+    });
   }
 
   // Execute the login
@@ -120,7 +123,7 @@ export class LoginPage implements OnInit {
 
   // Handle login success
   private handleLoginSuccess(response: any): void {
-    this.authService.setUser(response.user);
+  
     this.clearForm();
     this.clearFocus();
     this.router.navigate(['/home/dashboard']);

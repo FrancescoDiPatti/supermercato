@@ -10,7 +10,7 @@
 </ion-header>
 
 <ion-content [fullscreen]="true" [scrollY]="true" class="ion-padding-bottom">
-  <div class="create-container">
+  <div class="create-container" *ngIf="currentUser$ | async as user">
     <ion-card>
       <ion-card-header>
         <div class="header-content">
@@ -95,7 +95,7 @@
             </ion-item>
           </div>
           <!-- seleziona manager (solo admin) -->
-          <ion-item class="form-item" *ngIf="isAdmin">
+          <ion-item class="form-item" *ngIf="user.role === 'admin'">
             <ion-label position="stacked">Seleziona Manager</ion-label>
             <ion-input 
               [(ngModel)]="managerSearchText"
@@ -110,7 +110,7 @@
             </ion-input>
           </ion-item>
           <!-- suggerimenti manager -->
-          <div class="manager-section" *ngIf="isAdmin">
+          <div class="manager-section" *ngIf="user.role === 'admin'">
             <!-- No results found -->
             <div *ngIf="showManagerResults && managerSuggestions.length === 0 && managerSearchText.length >= 2" class="search-no-results">
               <ion-icon name="close" color="danger"></ion-icon>
@@ -133,7 +133,7 @@
           </div>
 
           <!-- manager selezionato -->
-          <div *ngIf="selectedManager && isAdmin" class="search-result">
+          <div *ngIf="selectedManager && user.role === 'admin'" class="search-result">
             <ion-item class="result-item">
               <ion-icon name="person" slot="start" color="success"></ion-icon>
               <ion-label>
@@ -153,7 +153,7 @@
               type="submit"
               color="primary"
               class="submit-button"
-              [disabled]="isLoading || !supermarketForm.form.valid || (isInitialized && isAdmin && !supermarket.manager_id) || !isAddressSelected">
+              [disabled]="(isSubmitDisabled$ | async) || !supermarketForm.form.valid">
               <ion-icon slot="start" name="save"></ion-icon>
               <span *ngIf="!isLoading">Crea Supermercato</span>
               <span *ngIf="isLoading">
@@ -173,8 +173,8 @@
           </div>
         </form>
       </ion-card-content>
-    </ion-card>  </div>
-</ion-content>
+    </ion-card>
+  </div>
 
 <!-- alert -->
 <div class="custom-alert-backdrop" [class.show]="showCustomAlert" (click)="closeAlert()">
@@ -201,3 +201,5 @@
     </div>
   </div>
 </div>
+
+</ion-content>

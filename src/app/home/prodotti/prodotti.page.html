@@ -1,6 +1,6 @@
 
 <ion-content [fullscreen]="true">
-  <div class="main-container">
+  <div *ngIf="currentUser$ | async as user" class="main-container">
     <!-- Categories Section -->
     <div class="section categories-section" *ngIf="displayProducts.length > 0">
       <h3>Categorie</h3>
@@ -30,7 +30,7 @@
       <div *ngIf="selectedSupermarket">
         <h3>Prodotti</h3>
       </div>
-      <div class="products-container" *ngIf="displayProducts.length > 0 || (canCreateContent && selectedSupermarket)">
+      <div class="products-container" *ngIf="displayProducts.length > 0 || ((user?.role === 'admin' || user?.role === 'manager') && selectedSupermarket)">
         <div *ngFor="let product of displayProducts" 
              class="product-card"
              [class.highlighted]="isProductHighlighted(product)"
@@ -51,7 +51,7 @@
                 €{{getOriginalPrice(product)!.toFixed(2)}}
               </span>
             </div>
-            <ng-container *ngIf="!canCreateContent && product.barcode">
+            <ng-container *ngIf="!(user?.role === 'admin' || user?.role === 'manager') && product.barcode">
               <div class="quantity-block">
                 <ng-container *ngIf="quantities[product.barcode] > 0">
                   <ion-fab-button
@@ -87,7 +87,7 @@
             </ng-container>
           </div>
         </div>
-        <div *ngIf="canCreateContent && selectedSupermarket" class="product-card create-product-card" (click)="onCreateProduct()">
+        <div *ngIf="(user?.role === 'admin' || user?.role === 'manager') && selectedSupermarket" class="product-card create-product-card" (click)="onCreateProduct()">
           <div class="product-image-container">
             <div class="image-wrapper create-product-image">
               <ion-icon name="add"></ion-icon>
@@ -117,7 +117,6 @@
           <ion-icon slot="end" name="arrow-forward"></ion-icon>
         </ion-button>
       </div>
-      
     </div>
   </div>
 </ion-content>

@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { ViewWillEnter } from '@ionic/angular';
+import { Observable } from 'rxjs';
 import { 
   IonContent, IonIcon, IonImg, IonFabButton, IonButton, IonBadge
 } from '@ionic/angular/standalone';
@@ -24,6 +25,7 @@ export class ProdottiPage implements OnInit, OnDestroy, ViewWillEnter {
   // State variables
   private readonly dataState: SupermarketDataState = this.homeService.ui.createDataState();
   private readonly animationState: AnimationState = this.homeService.ui.createAnimationState();
+  readonly currentUser$ = this.homeService.currentUser$;
   
   // Data variables
   public selectedSupermarket: Supermarket | null = null;
@@ -193,10 +195,6 @@ export class ProdottiPage implements OnInit, OnDestroy, ViewWillEnter {
   get filteredProducts(): Product[] {
     const allProducts = [...this.products, ...this.offerProducts];
     return this.homeService.products.filterProductsByCategory(allProducts, this.selectedCategory);
-  }
-  
-  get canCreateContent(): boolean { 
-    return this.homeService.isUserAdmin() || this.homeService.isUserManager(); 
   }
 
   // Price calculation

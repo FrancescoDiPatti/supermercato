@@ -116,6 +116,7 @@ export class HomeService {
     
     return results;
   }
+
   // Service getters
   get supermarkets() { return this.supermercatiService; }
   get products() { return this.prodottiService; }
@@ -127,27 +128,8 @@ export class HomeService {
 
   // === USER MANAGEMENT ===
   
-  getCurrentUser(): any {
-    return this.authService.getUser();
-  }
-
-  isUserAdmin(user?: any): boolean {
-    const targetUser = user || this.getCurrentUser();
-    return targetUser?.role === 'admin';
-  }
-
-  isUserManager(user?: any): boolean {
-    const targetUser = user || this.getCurrentUser();
-    return targetUser?.role === 'manager';
-  }
-
-  isUserCustomer(user?: any): boolean {
-    const targetUser = user || this.getCurrentUser();
-    return targetUser?.role === 'customer';
-  }
-
-  isUserAdminOrManager(user?: any): boolean {
-    const targetUser = user || this.getCurrentUser();
-    return targetUser?.role === 'admin' || targetUser?.role === 'manager';
+  // Observable role getters
+  get currentUser$() { 
+    return this.authService.user$; 
   }
 }

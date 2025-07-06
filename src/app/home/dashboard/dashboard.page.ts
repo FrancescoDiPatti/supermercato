@@ -11,8 +11,8 @@ import { addIcons } from 'ionicons';
 import { add, remove, storefront, location, checkmarkCircle, chevronForwardOutline, map, chevronUp, chevronDown, cart } from 'ionicons/icons';
 import { HomeService, Product, Category, PurchaseHistory, Supermarket, SupermarketDataState, AnimationState } from '../../services/home/home.service';
 import { AuthService } from '../../auth/auth.service';
-import { lastValueFrom } from 'rxjs';
-import { skip } from 'rxjs/operators';
+import { lastValueFrom, Observable } from 'rxjs';
+import { skip, take } from 'rxjs/operators';
 import * as L from 'leaflet';
 
 @Component({
@@ -65,6 +65,7 @@ export class DashboardPage implements OnInit, AfterViewInit, OnDestroy, ViewWill
   private markers: L.Marker[] = [];
   private userMarker: L.CircleMarker | undefined;
   private scrollListeners: Array<{ element: Element; listener: EventListener }> = [];
+  readonly currentUser$ = this.homeService.currentUser$;
   
   // Event listeners
   private readonly searchListener = (event: any) => {
@@ -82,7 +83,6 @@ export class DashboardPage implements OnInit, AfterViewInit, OnDestroy, ViewWill
   get categories() { return this.dataState.categories; }
   get selectedCategory() { return this.dataState.selectedCategory; }
   get purchaseHistory() { return this.dataState.purchaseHistory; }
-  get canCreateContent() { return this.homeService.isUserAdmin() || this.homeService.isUserManager(); }
   
   // Filter getters
   get filteredProducts() { 
@@ -175,7 +175,9 @@ export class DashboardPage implements OnInit, AfterViewInit, OnDestroy, ViewWill
 
   // Load user purchase history
   private async loadPurchaseHistory(): Promise<void> {
-    const purchaseHistory = this.canCreateContent ? [] : await this.homeService.products.loadPurchaseHistory(5);
+    const user = await lastValueFrom(this.currentUser$.pipe(take(1)));
+    const canCreateContent = user?.role === 'admin' || user?.role === 'manager';
+    const purchaseHistory = canCreateContent ? [] : await this.homeService.products.loadPurchaseHistory(5);
     this.dataState.purchaseHistory = purchaseHistory;
   }
 

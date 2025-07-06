@@ -61,39 +61,22 @@ export class OrdiniPage implements OnInit, OnDestroy {
     });
   }
 
-  // Check if user is admin
-  public get isAdmin(): boolean {
-    const user = this.authService.getUser();
-    return this.homeService.isUserAdmin(user);
-  }
-
-  // Check if user is manager  
-  public get isManager(): boolean {
-    const user = this.authService.getUser();
-    return this.homeService.isUserManager(user);
-  }
-
-  // Check if user is customer
-  public get isCustomer(): boolean {
-    const user = this.authService.getUser();
-    return this.homeService.isUserCustomer(user);
-  }
-
   ngOnInit(): void {
-    if (!this.isAuthorizedUser()) {
-      console.warn('User not authorized to view orders');
-      return;
-    }
-    this.loadOrders();
+    this.ordersSubscription = this.homeService.currentUser$.subscribe(user => {
+      if (!user || !this.isAuthorizedUser(user)) {
+        console.warn('User not authorized to view orders');
+        return;
+      }
+      this.loadOrders();
+    });
   }
 
   ngOnDestroy(): void {
     this.cleanupSubscriptions();
   }
 
-  // Check if user is authorized to view orders
-  private isAuthorizedUser(): boolean {
-    return this.isCustomer || this.isManager || this.isAdmin;
+  private isAuthorizedUser(user: any): boolean {
+    return user?.role === 'customer' || user?.role === 'manager' || user?.role === 'admin';
   }
 
   // Clean up subscriptions
