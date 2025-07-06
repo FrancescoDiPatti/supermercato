@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { authGuard, adminManagerGuard } from './auth/guards/auth.guard';
+import { authGuard, adminManagerGuard, customerGuard } from './auth/guards/auth.guard';
 
 export const routes: Routes = [
   {
@@ -39,11 +39,13 @@ export const routes: Routes = [
       },
       {
         path: 'carrello',
-        loadComponent: () => import('./home/carrello/carrello.page').then( m => m.CarrelloPage)
+        loadComponent: () => import('./home/carrello/carrello.page').then( m => m.CarrelloPage),
+        canActivate: [customerGuard]
       },
       {
         path: 'ordini',
-        loadComponent: () => import('./home/ordini/ordini.page').then( m => m.OrdiniPage)
+        loadComponent: () => import('./home/ordini/ordini.page').then( m => m.OrdiniPage),
+        canActivate: [customerGuard]
       },
       {
         path: 'gestione',

@@ -41,3 +41,25 @@ export const adminManagerGuard: CanActivateFn = (route, state) => {
     })
   );
 };
+
+export const customerGuard: CanActivateFn = (route, state) => {
+  const authService = inject(AuthService);
+  const router = inject(Router);
+
+  return authService.authState.pipe(
+    take(1),
+    map(authState => {
+      if (!authState.isAuthenticated) {
+        router.navigate(['/login']);
+        return false;
+      }
+      const user = authState.user;
+      if (user && (user.role === 'admin' || user.role === 'manager')) {
+        router.navigate(['/home/dashboard']);
+        return false;
+      } else {
+        return true;
+      }
+    })
+  );
+};
