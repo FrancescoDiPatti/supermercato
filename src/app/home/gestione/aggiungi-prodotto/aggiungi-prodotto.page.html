@@ -10,183 +10,216 @@
     </ion-toolbar>
   </ion-header>
   <div class="container">
-    <!-- Categories Section -->
-    <div class="section categories-section" *ngIf="selectedSupermarket && displayProducts.length > 0">
-      <h3>Categorie</h3>
-      <div class="categories-container">
-        <!-- "All Categories" Item -->
-        <div class="category-item" [class.selected]="selectedCategory === ''" (click)="onCategorySelect('')">
-          <div class="category-icon">
-            <ion-img src="assets/categories/grocery-cart.png" alt="Tutti" (ionError)="handleImageError($event, 'tutti')">
-            </ion-img>
+    <!-- Loading State -->
+    <div *ngIf="isLoadingProducts" class="loading-state">
+      <ion-spinner name="crescent" class="loading-spinner"></ion-spinner>
+      <h3>Caricamento prodotti...</h3>
+      <p>Stiamo recuperando i prodotti disponibili</p>
+    </div>
+
+    <!-- Content when not loading -->
+    <div *ngIf="!isLoadingProducts">
+      <!-- Categories Section -->
+      <div class="section categories-section" *ngIf="selectedSupermarket && displayProducts.length > 0">
+        <h3>Categorie</h3>
+        <div class="categories-container">
+          <!-- "All Categories" Item -->
+          <div class="category-item" [class.selected]="selectedCategory === ''" (click)="onCategorySelect('')">
+            <div class="category-icon">
+              <ion-img src="assets/categories/grocery-cart.png" alt="Tutti" (ionError)="handleImageError($event, 'tutti')">
+              </ion-img>
+            </div>
+            <div class="category-name">Tutti</div>
           </div>
-          <div class="category-name">Tutti</div>
-        </div>
-        <!-- Category Items -->
-        <div *ngFor="let category of categories" class="category-item" [class.selected]="selectedCategory === category.name" (click)="onCategorySelect(category.name)">
-          <div class="category-icon">
-            <ion-img [src]="category.icon" [alt]="category.name" (ionError)="handleImageError($event, category.name)">
-            </ion-img>
+          <!-- Category Items -->
+          <div *ngFor="let category of categories" class="category-item" [class.selected]="selectedCategory === category.name" (click)="onCategorySelect(category.name)">
+            <div class="category-icon">
+              <ion-img [src]="category.icon" [alt]="category.name" (ionError)="handleImageError($event, category.name)">
+              </ion-img>
+            </div>
+            <div class="category-name">{{category.name}}</div>
+            <ion-badge class="category-count">{{category.count}}</ion-badge>
           </div>
-          <div class="category-name">{{category.name}}</div>
-          <ion-badge class="category-count">{{category.count}}</ion-badge>
         </div>
       </div>
-    </div>
-    
-    <!-- Products Section: ora visibile direttamente -->
-    <div class="section products-section" *ngIf="selectedSupermarket && (displayProducts.length > 0 || canCreateContent)">
-      <h3>Prodotti non ancora inseriti</h3>
-      <div class="products-container">
-        <!-- Product Cards -->
-        <div *ngFor="let product of displayProducts" class="product-card">
-          <div class="product-image-container">
-            <div class="image-wrapper">
-              <ion-img [src]="product.image_url" [alt]="product.name"></ion-img>
+      
+      <!-- Products Section: ora visibile direttamente -->
+      <div class="section products-section" *ngIf="selectedSupermarket && displayProducts.length > 0">
+        <h3>Prodotti non ancora inseriti</h3>
+        <div class="products-container">
+          <!-- Product Cards -->
+          <div *ngFor="let product of displayProducts" class="product-card">
+            <div class="product-image-container">
+              <div class="image-wrapper">
+                <ion-img [src]="product.image_url" [alt]="product.name"></ion-img>
+              </div>
+            </div>
+            <div class="product-info">
+              <h4>{{product.name}}</h4>
+              <p class="create-description">{{product.description}}</p>
+            </div>
+            <div class="quantity-block">
+              <ion-fab-button
+                type="button"
+                class="quantity-button"
+                [disabled]="!(quantities[product.barcode] > 0)"
+                (mousedown)="onDecrementPress(product.barcode); $event.preventDefault()"
+                (touchstart)="onDecrementPress(product.barcode); $event.preventDefault()"
+                (mouseup)="onButtonRelease()"
+                (mouseleave)="onButtonRelease()"
+                (touchend)="onButtonRelease()"
+                (touchcancel)="onButtonRelease()"
+                (click)="decrementQuantity(product.barcode)">
+                <ion-icon name="remove"></ion-icon>
+              </ion-fab-button>
+              <label class="quantity-label">
+                {{ quantities[product.barcode] || 0 }}
+              </label>
+              <ion-fab-button
+                type="button"
+                class="quantity-button"
+                (mousedown)="onIncrementPress(product.barcode); $event.preventDefault()"
+                (touchstart)="onIncrementPress(product.barcode); $event.preventDefault()"
+                (mouseup)="onButtonRelease()"
+                (mouseleave)="onButtonRelease()"
+                (touchend)="onButtonRelease()"
+                (touchcancel)="onButtonRelease()"
+                (click)="incrementQuantity(product.barcode)">
+                <ion-icon name="add"></ion-icon>
+              </ion-fab-button>
             </div>
           </div>
-          <div class="product-info">
-            <h4>{{product.name}}</h4>
-            <p class="create-description">{{product.description}}</p>
-          </div>
-          <div class="quantity-block">
-            <ion-fab-button
-              type="button"
-              class="quantity-button"
-              [disabled]="!(quantities[product.barcode] > 0)"
-              (mousedown)="onDecrementPress(product.barcode); $event.preventDefault()"
-              (touchstart)="onDecrementPress(product.barcode); $event.preventDefault()"
-              (mouseup)="onButtonRelease()"
-              (mouseleave)="onButtonRelease()"
-              (touchend)="onButtonRelease()"
-              (touchcancel)="onButtonRelease()"
-              (click)="decrementQuantity(product.barcode)">
-              <ion-icon name="remove"></ion-icon>
-            </ion-fab-button>
-            <label class="quantity-label">
-              {{ quantities[product.barcode] || 0 }}
-            </label>
-            <ion-fab-button
-              type="button"
-              class="quantity-button"
-              (mousedown)="onIncrementPress(product.barcode); $event.preventDefault()"
-              (touchstart)="onIncrementPress(product.barcode); $event.preventDefault()"
-              (mouseup)="onButtonRelease()"
-              (mouseleave)="onButtonRelease()"
-              (touchend)="onButtonRelease()"
-              (touchcancel)="onButtonRelease()"
-              (click)="incrementQuantity(product.barcode)">
-              <ion-icon name="add"></ion-icon>
-            </ion-fab-button>
-          </div>
-        </div>
-        <!-- Add Product Card -->
-        <div class="product-card create-product-card" (click)="onCreateProduct()">
-          <div class="product-image-container">
-            <div class="image-wrapper create-product-image">
-              <ion-icon name="add"></ion-icon>
+          <!-- Add Product Card -->
+          <div class="product-card create-product-card" (click)="onCreateProduct()">
+            <div class="product-image-container">
+              <div class="image-wrapper create-product-image">
+                <ion-icon name="add"></ion-icon>
+              </div>
+            </div>
+            <div class="product-info">
+              <h4>Crea Prodotto</h4>
+              <p class="create-description">aggiungi alla lista un nuovo prodotto</p>
             </div>
           </div>
-          <div class="product-info">
-            <h4>Crea Prodotto</h4>
-            <p class="create-description">aggiungi alla lista un nuovo prodotto</p>
+        </div>
+      </div>
+      
+      <!-- Create Product Section: sempre visibile quando nessun prodotto è disponibile -->
+      <div class="section products-section" *ngIf="selectedSupermarket && displayProducts.length === 0">
+        <h3>Crea il tuo primo prodotto</h3>
+        <div class="products-container">
+          <!-- Add Product Card -->
+          <div class="product-card create-product-card" (click)="onCreateProduct()">
+            <div class="product-image-container">
+              <div class="image-wrapper create-product-image">
+                <ion-icon name="add"></ion-icon>
+              </div>
+            </div>
+            <div class="product-info">
+              <h4>Crea Prodotto</h4>
+              <p class="create-description">aggiungi alla lista un nuovo prodotto</p>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-    <div *ngIf="selectedSupermarket && SelectedProduct" class="selected-products-list" class="list-section">
-      <div >
-        <h3>Prodotti Selezionati</h3>
-      </div>
-      <ion-list class="list-container">
-        <ion-item *ngFor="let product of selectedProducts" class="list-item">
-          <ion-thumbnail slot="start" class="list-thumbnail">
-            <img [src]="product.image_url" [alt]="product.name" onerror="this.src='assets/categories/packing.png'">
-          </ion-thumbnail>
-          <ion-label class="list-label">
-            <h3>{{product.name}}</h3>
-            <p>{{product.description}}</p>
-          </ion-label>
-          <div class="quantity-display">
-            x{{quantities[product.barcode] || 1}}
-          </div>
-          <div class="price-container">
-            <ion-input
-              class="list-input"
-              type="text"
-              id="currency-field"
-              pattern="^€\d{1,3}(\.\d{3})*(,\d+)?$"
-              value="" 
-              data-type="currency"
-              [(ngModel)]="product.price"
-              placeholder="€ 0,00"
-              min="0"
-              (input)="formatCurrency($event, product)">
-            </ion-input>
-            <ion-button 
-              fill="clear"
-              size="small"
-              (click)="clearProduct(product.barcode)"
-              class="clear-button">
-              <ion-icon name="close" slot="icon-only"></ion-icon>
-            </ion-button>
-          </div>
-        </ion-item>
-      </ion-list>
-    </div>
-    <!-- Submit button -->
-    <div class="submit-section" *ngIf="selectedSupermarket && selectedProducts.length > 0">
-      <ion-button 
-        expand="block"
-        [disabled]="!canAddProducts() || isLoading"
-        (click)="AddProduct()"
-        class="submit-button">
-        <ion-icon name="save" slot="start" *ngIf="!isLoading"></ion-icon>
-        <ion-spinner name="crescent" slot="start" *ngIf="isLoading"></ion-spinner>
-        {{isLoading ? 'Aggiunta in corso...' : 'Aggiungi Prodotto'}}
-      </ion-button>
-    </div>
-    <!-- EMPTY STATES -->
-    <!-- Empty state when no supermarket is selected -->
-    <div *ngIf="!selectedSupermarket && !isLoading" class="empty-state">
-      <ion-icon name="storefront" class="empty-icon"></ion-icon>
-      <h3>Nessun supermercato selezionato</h3>
-      <p>Seleziona un supermercato per aggiungere prodotti al catalogo.</p>
-      <ion-button [routerLink]="['/home/dashboard']" class="see-more-button">
-        Vai alla Dashboard
-        <ion-icon slot="end" name="arrow-forward"></ion-icon>
-      </ion-button>
-    </div>
-    
-    <!-- Empty state when supermarket is selected but no product is selected -->
-    <div *ngIf="selectedSupermarket && !SelectedProduct && !isLoading" class="empty-state">
-      <ion-icon name="cube" class="empty-icon"></ion-icon>
-      <h3>Seleziona un prodotto per iniziare</h3>
-      <p>Scegli un prodotto dalla lista sopra per aggiungerlo al supermercato</p>
-    </div>
-  </div>
-  <!-- Custom Alert -->
-  <div class="custom-alert-backdrop" [class.show]="showCustomAlert" (click)="closeAlert()">
-    <div class="custom-alert" [class.show]="showCustomAlert" [class.success]="alertType === 'success'" [class.error]="alertType === 'error'" (click)="$event.stopPropagation()">
-      <div class="alert-header">
-        <div class="alert-icon-container">
-          <ion-icon [name]="alertIcon" [color]="alertType === 'success' ? 'success' : 'danger'"></ion-icon>
+      
+      <div *ngIf="selectedSupermarket && SelectedProduct" class="selected-products-list" class="list-section">
+        <div >
+          <h3>Prodotti Selezionati</h3>
         </div>
-        <ion-button fill="clear" size="small" class="close-btn" (click)="closeAlert()">
-          <ion-icon name="close"></ion-icon>
-        </ion-button>
+        <ion-list class="list-container">
+          <ion-item *ngFor="let product of selectedProducts" class="list-item">
+            <ion-thumbnail slot="start" class="list-thumbnail">
+              <img [src]="product.image_url" [alt]="product.name" onerror="this.src='assets/categories/packing.png'">
+            </ion-thumbnail>
+            <ion-label class="list-label">
+              <h3>{{product.name}}</h3>
+              <p>{{product.description}}</p>
+            </ion-label>
+            <div class="quantity-display">
+              x{{quantities[product.barcode] || 1}}
+            </div>
+            <div class="price-container">
+              <ion-input
+                class="list-input"
+                type="text"
+                id="currency-field"
+                pattern="^€\d{1,3}(\.\d{3})*(,\d+)?$"
+                value="" 
+                data-type="currency"
+                [(ngModel)]="product.price"
+                placeholder="€ 0,00"
+                min="0"
+                (input)="formatCurrency($event, product)">
+              </ion-input>
+              <ion-button 
+                fill="clear"
+                size="small"
+                (click)="clearProduct(product.barcode)"
+                class="clear-button">
+                <ion-icon name="close" slot="icon-only"></ion-icon>
+              </ion-button>
+            </div>
+          </ion-item>
+        </ion-list>
       </div>
-      <div class="alert-content">
-        <h3 class="alert-title">{{ alertTitle }}</h3>
-        <p class="alert-message">{{ alertMessage }}</p>
-      </div>
-      <div class="alert-actions">
+      
+      <!-- Submit button -->
+      <div class="submit-section" *ngIf="selectedSupermarket && selectedProducts.length > 0">
         <ion-button 
-          expand="block" 
-          [color]="alertType === 'success' ? 'primary' : 'danger'"
-          (click)="closeAlert()">
-          OK
+          expand="block"
+          [disabled]="!canAddProducts() || isLoading"
+          (click)="AddProduct()"
+          class="submit-button">
+          <ion-icon name="save" slot="start" *ngIf="!isLoading"></ion-icon>
+          <ion-spinner name="crescent" slot="start" *ngIf="isLoading"></ion-spinner>
+          {{isLoading ? 'Aggiunta in corso...' : 'Aggiungi Prodotto'}}
         </ion-button>
+      </div>
+      
+      <!-- EMPTY STATES -->
+      <!-- Empty state when no supermarket is selected -->
+      <div *ngIf="!selectedSupermarket" class="empty-state">
+        <ion-icon name="storefront" class="empty-icon"></ion-icon>
+        <h3>Nessun supermercato selezionato</h3>
+        <p>Seleziona un supermercato per aggiungere prodotti al catalogo.</p>
+        <ion-button [routerLink]="['/home/dashboard']" class="see-more-button">
+          Vai alla Dashboard
+          <ion-icon slot="end" name="arrow-forward"></ion-icon>
+        </ion-button>
+      </div>
+      
+      <!-- Empty state when supermarket is selected but no product is selected -->
+      <div *ngIf="selectedSupermarket && !SelectedProduct" class="empty-state">
+        <ion-icon name="cube" class="empty-icon"></ion-icon>
+        <h3>Seleziona un prodotto per iniziare</h3>
+        <p>Scegli un prodotto dalla lista sopra per aggiungerlo al supermercato</p>
+      </div>
+    </div>
+    
+    <!-- Custom Alert -->
+    <div class="custom-alert-backdrop" [class.show]="showCustomAlert" (click)="closeAlert()">
+      <div class="custom-alert" [class.show]="showCustomAlert" [class.success]="alertType === 'success'" [class.error]="alertType === 'error'" (click)="$event.stopPropagation()">
+        <div class="alert-header">
+          <div class="alert-icon-container">
+            <ion-icon [name]="alertIcon" [color]="alertType === 'success' ? 'success' : 'danger'"></ion-icon>
+          </div>
+          <ion-button fill="clear" size="small" class="close-btn" (click)="closeAlert()">
+            <ion-icon name="close"></ion-icon>
+          </ion-button>
+        </div>
+        <div class="alert-content">
+          <h3 class="alert-title">{{ alertTitle }}</h3>
+          <p class="alert-message">{{ alertMessage }}</p>
+        </div>
+        <div class="alert-actions">
+          <ion-button 
+            expand="block" 
+            [color]="alertType === 'success' ? 'primary' : 'danger'"
+            (click)="closeAlert()">
+            OK
+          </ion-button>
+        </div>
       </div>
     </div>
   </div>

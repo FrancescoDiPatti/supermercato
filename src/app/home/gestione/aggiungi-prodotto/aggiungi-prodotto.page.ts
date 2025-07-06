@@ -1,4 +1,4 @@
-import { Component, OnInit, AfterViewInit, ElementRef, ViewChild, OnDestroy } from '@angular/core';
+import { Component, OnInit, AfterViewInit, ElementRef, ViewChild, OnDestroy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -36,6 +36,7 @@ export class AggiungiProdottoPage implements OnInit, OnDestroy {
   public allProducts: any[] = [];
   public canCreateContent = false;
   public isLoading = false;
+  public isLoadingProducts = false;
   public SelectedProduct = false;
   public selectedProducts: any[] = [];
   public showCustomAlert = false;
@@ -64,7 +65,14 @@ export class AggiungiProdottoPage implements OnInit, OnDestroy {
     addIcons({ add, remove, save, storefront, arrowForward });
   }
 
+  // Window resize listener to reinitialize scroll
+  @HostListener('window:resize', ['$event'])
+  onResize(): void {
+    setTimeout(() => this.setupHorizontalScroll(), 300);
+  }
+
   ngOnInit(): void {
+    this.isLoadingProducts = true;
     this.loadProducts();
     this.initializeQuantities();
   }
@@ -191,6 +199,7 @@ export class AggiungiProdottoPage implements OnInit, OnDestroy {
 
   private async loadProducts(): Promise<void> {
     try {
+      this.isLoadingProducts = true;
       this.selectedSupermarket = this.homeService.supermarkets.getSelectedSupermarket();
       if (!this.selectedSupermarket) {
         this.allProducts = [];
@@ -206,12 +215,19 @@ export class AggiungiProdottoPage implements OnInit, OnDestroy {
       this.allProducts = allProducts.filter((product: any) => !supermarketProductIds.has(product.id));
       this.setupCategories();
       this.onCategorySelect('');
+      
+      // Setup horizontal scroll after products are loaded
+      setTimeout(() => this.setupHorizontalScroll(), 100);
     } catch (error) {
       console.error('Error loading products:', error);
       this.allProducts = [];
       this.categories = [];
       this.displayProducts = [];
       this.showAlert('Errore nel caricamento dei prodotti', 'Errore');
+    } finally {
+      this.isLoadingProducts = false;
+      // Setup scroll again after loading state changes
+      setTimeout(() => this.setupHorizontalScroll(), 200);
     }
   }
 
@@ -240,6 +256,9 @@ export class AggiungiProdottoPage implements OnInit, OnDestroy {
       ? this.allProducts.filter(p => p.category === category)
       : this.allProducts;
     this.initializeQuantities();
+    
+    // Setup horizontal scroll after category change
+    setTimeout(() => this.setupHorizontalScroll(), 100);
   }
 
   // Price display utilities
@@ -308,6 +327,10 @@ export class AggiungiProdottoPage implements OnInit, OnDestroy {
 
   // Horizontal scroll setup
   private setupHorizontalScroll(): void {
+    if (!this.displayProducts.length) {
+      return;
+    }
+    
     this.homeService.ui.removeScrollListeners(this.scrollListeners);
     this.scrollListeners = [];
     
