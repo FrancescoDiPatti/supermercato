@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
 import {
-  IonContent, IonHeader, IonTitle, IonToolbar, IonButton, IonText, IonMenu,
+  IonContent, IonHeader, IonToolbar, IonButton, IonText, IonMenu,
   IonMenuButton, IonButtons, IonIcon, IonSplitPane, IonSearchbar, IonList,
   IonItem, IonBadge, MenuController
 } from '@ionic/angular/standalone';
@@ -27,7 +27,7 @@ import { debounceTime, Subject, Subscription } from 'rxjs';
   standalone: true,
   imports: [
     CommonModule, FormsModule,
-    RouterModule, IonContent, IonHeader, IonTitle, IonToolbar, IonButton, 
+    RouterModule, IonContent, IonHeader, IonToolbar, IonButton, 
     IonMenu, IonMenuButton, IonButtons, IonIcon, IonSplitPane, IonSearchbar,
     IonList, IonItem, IonBadge, IonText
   ]

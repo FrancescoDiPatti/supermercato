@@ -1122,17 +1122,34 @@ $breakpoint-tablet: 768px;
         margin-bottom: 20px;
         
         .logo-icon {
-        font-size: 60px;
-        color: var(--ion-color-primary);
-        background: rgba(var(--ion-color-primary-rgb), 0.2);
-        border-radius: 50%;
-        padding: 20px;
-        backdrop-filter: blur(10px);
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-        animation: float 8s ease-in-out infinite;
-        
+          font-size: 60px;
+          color: var(--ion-color-primary);
+          background: rgba(var(--ion-color-primary-rgb), 0.2);
+          border-radius: 50%;
+          padding: 20px;
+          backdrop-filter: blur(10px);
+          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+          animation: float 8s ease-in-out infinite;
+          
           &:hover {
-              animation: pulse 0.5s ease-in-out;
+            animation: pulse 0.5s ease-in-out;
+          }
+        }
+        
+        .logo-image {
+          height: 60px;
+          width: auto;
+          max-width: 200px;
+          object-fit: contain;
+          border-radius: 12px;
+          padding: 12px;
+          background: rgba(var(--ion-color-primary-rgb), 0.2);
+          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+          backdrop-filter: blur(10px);
+          animation: float 8s ease-in-out infinite;
+          
+          &:hover {
+            animation: pulse 0.5s ease-in-out;
           }
         }
       }
@@ -1615,11 +1632,11 @@ $breakpoint-tablet: 768px;
 // Standard price container
 @mixin price-container-standard {
   .price-container {
-    padding: 8px 3px;
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    padding-left: 10px;
+    margin-left: 8px;
+    margin-bottom: 3px;
     gap: 2px;
     
     .original-price {

@@ -10,6 +10,25 @@
 // COMPONENTI SPECIFICI LOGIN
 .auth-container {
   .auth-header {
+    .logo-container {
+      .logo-image {
+        height: 90px;
+        width: auto;
+        max-width: 200px;
+        object-fit: contain;
+        border-radius: 12px;
+        padding: 12px;
+        background: rgba(var(--ion-color-primary-rgb), 0.2);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        backdrop-filter: blur(10px);
+        animation: float 8s ease-in-out infinite;
+
+        &:hover {
+          animation: pulse 0.5s ease-in-out;
+        }
+      }
+    }
+
     margin-bottom: 40px;
   }
 }

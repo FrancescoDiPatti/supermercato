@@ -1,5 +1,47 @@
 @use '../../theme/mixins.scss' as *;
 
+// LOGO STYLES
+.menu-logo-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 8px;
+  
+  .menu-logo {
+    height: 40px;
+    width: auto;
+    max-width: 150px;
+    object-fit: contain;
+    
+    @include tablet-responsive {
+      height: 32px;
+      max-width: 120px;
+    }
+  }
+}
+
+.toolbar-logo-container {
+  position: absolute;
+  bottom: 50%;
+  left: 50%;
+  transform: translate(-50%, 50%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  
+  .toolbar-logo {
+    height: 36px;
+    width: auto;
+    max-width: 140px;
+    object-fit: contain;
+    
+    @include tablet-responsive {
+      height: 28px;
+      max-width: 100px;
+    }
+  }
+}
+
 // LAYOUT MENU PRINCIPALE
 ion-menu {
   --ion-background-color: var(--ion-color-light);
@@ -265,14 +307,15 @@ ion-menu {
     }
   }
 
-  .menu-button-container {
-    display: none !important;
+  .menu-button {
+    display: none;
   }
 }
 
 @media (max-width: 991px) {
-  .menu-button-container {
-    display: flex !important;
+  .menu-button {
+    display: flex;
+    color:var(--ion-color-primary);
   }
 }
 

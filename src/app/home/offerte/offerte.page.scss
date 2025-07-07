@@ -90,13 +90,9 @@
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
     gap: 12px;
   }
-
-  .product-info {
-    padding-bottom: 50px;
-  }
   
   .bottom-controls {
-    padding: 0px 0px;
+    padding: 0px;
     
     .price-container {
       .current-price {
