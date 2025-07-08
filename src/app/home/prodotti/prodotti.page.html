@@ -1,11 +1,10 @@
 
 <ion-content [fullscreen]="true">
   <div *ngIf="currentUser$ | async as user" class="main-container">
-    <!-- Categories Section -->
+    <!-- Category Section -->
     <div class="section categories-section" *ngIf="displayProducts.length > 0">
       <h3>Categorie</h3>
       <div class="categories-container">
-        <!-- "All Categories" Item -->
         <div class="category-item" [class.selected]="selectedCategory === ''" (click)="onCategorySelect('')">
           <div class="category-icon">
             <ion-img src="assets/categories/grocery-cart.png" alt="Tutti" (ionError)="handleImageError($event, 'tutti')">
@@ -13,7 +12,6 @@
           </div>
           <div class="category-name">Tutti</div>
         </div>
-        <!-- Category Items -->
         <div *ngFor="let category of categories" class="category-item" [class.selected]="selectedCategory === category.name" (click)="onCategorySelect(category.name)">
           <div class="category-icon">
             <ion-img [src]="category.icon" [alt]="category.name" (ionError)="handleImageError($event, category.name)">
@@ -25,7 +23,7 @@
       </div>
     </div>
     
-    <!-- Products Section -->
+    <!-- Product Section -->
     <div class="section products-section">
       <div *ngIf="selectedSupermarket">
         <h3>Prodotti</h3>
@@ -51,6 +49,7 @@
                 €{{getOriginalPrice(product)!.toFixed(2)}}
               </span>
             </div>
+            <!-- Quantity Controls -->
             <ng-container *ngIf="!(user?.role === 'admin' || user?.role === 'manager') && product.barcode">
               <div class="quantity-block">
                 <ng-container *ngIf="quantities[product.barcode] > 0">
@@ -99,15 +98,15 @@
           </div>
         </div>
       </div>
-      
-      <!-- EMPTY PRODUCTS -->
+
+      <!-- Empty Products -->
       <div *ngIf="displayProducts.length === 0 && selectedSupermarket" class="empty-state">
         <ion-icon name="cube" class="empty-icon"></ion-icon>
         <h4>Nessun prodotto disponibile</h4>
         <p>Questo supermercato non ha ancora prodotti nel suo catalogo.</p>
       </div>
 
-      <!-- EMPTY SUPERMARKET -->
+      <!-- Empty Supermarket -->
       <div *ngIf="!selectedSupermarket" class="empty-state">
         <ion-icon name="storefront" class="empty-icon"></ion-icon>
         <h4>Nessun supermercato selezionato</h4>

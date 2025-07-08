@@ -1,7 +1,7 @@
 <ion-content class="padding" scroll="false">
   <div *ngIf="currentUser$ | async as user" class="dashboard-container">
-    
-    <!-- MAP SECTION -->
+
+    <!-- Map Section -->
     <div class="map-section" [class.expanded]="isMapExpanded" [class.auto-collapsed]="selectedSupermarket && !isMapExpanded">
       <div class="header" (click)="toggleMap()" (keydown.enter)="toggleMap()" (keydown.space)="toggleMap()" tabindex="0" role="button" [attr.aria-expanded]="isMapExpanded">
         <ion-icon name="map"></ion-icon>
@@ -24,10 +24,10 @@
       </div>
     </div>
 
-    <!-- SUPERMARKET SELECTION SECTION -->
+    <!-- Supermarket Section -->
     <div class="supermarket-selection" [class.compact]="selectedSupermarket">
 
-      <!-- Selection Header -->
+      <!-- Supermarket Header -->
       <div class="selection-header">
         <div class="header-content">
           <ion-icon name="storefront" class="header-icon"></ion-icon>
@@ -45,12 +45,10 @@
       <div class="supermarkets-container" #supermarketsContainer>
         <!-- Supermarket Cards -->
         <div *ngFor="let supermarket of supermarkets" class="supermarket-card" [class.selected]="selectedSupermarket?.id === supermarket.id" (click)="selectSupermarket(supermarket)">
-          <!-- Supermarket Image -->
           <div class="supermarket-image-container">
             <ion-img [src]="getSupermarketImage(supermarket.name)" [alt]="supermarket.name">
             </ion-img>
           </div>
-          <!-- Supermarket Info -->
           <div class="supermarket-info">
             <h4>{{supermarket.name}}</h4>
             <p>{{supermarket.address}}</p>
@@ -64,7 +62,6 @@
               </span>
             </div>
           </div>
-          <!-- Selected Icon -->
           <ion-icon *ngIf="selectedSupermarket?.id === supermarket.id" name="checkmark-circle" class="selected-icon">
           </ion-icon>
         </div>
@@ -83,19 +80,19 @@
       </div>
     </div>
 
-    <!-- LOADING SPINNER -->
+    <!-- Loading Spinner -->
     <div *ngIf="isLoading" class="loading-container animate-fade-in">
       <ion-spinner name="crescent"></ion-spinner>
       <ion-text>Caricamento...</ion-text>
     </div>
-    
-    <!-- MAIN CONTENT -->
+
+    <!-- Main Content -->
     <div class="main-content" *ngIf="selectedSupermarket && !isLoading">
+
       <!-- Categories Section -->
       <div class="section categories-section" *ngIf="displayProducts.length > 0 || displayOfferProducts.length > 0">
         <h3>Categorie</h3>
         <div class="categories-container">
-          <!-- "All Categories" Item -->
           <div class="category-item" [class.selected]="selectedCategory === ''" (click)="onCategorySelect('')">
             <div class="category-icon">
               <ion-img src="assets/categories/grocery-cart.png" alt="Tutti" (ionError)="handleImageError($event, 'tutti')">
@@ -103,7 +100,6 @@
             </div>
             <div class="category-name">Tutti</div>
           </div>
-          <!-- Category Items -->
           <div *ngFor="let category of categories" class="category-item" [class.selected]="selectedCategory === category.name" (click)="onCategorySelect(category.name)">
             <div class="category-icon">
               <ion-img [src]="category.icon" [alt]="category.name" (ionError)="handleImageError($event, category.name)">
@@ -124,7 +120,6 @@
           </a>
         </div>
         <div class="products-container offers-container">
-          <!-- Offer products -->
           <ng-container *ngIf="displayOfferProducts.length > 0">
             <div *ngFor="let product of displayOfferProducts" class="product-card offer-card">
               <div class="product-image-container">
@@ -146,6 +141,8 @@
                     €{{getOriginalPrice(product)!.toFixed(2)}}
                   </span>
                 </div>
+
+                <!-- Quantity Controls -->
                 <ng-container *ngIf="!(user?.role === 'admin' || user?.role === 'manager')">
                   <div class="quantity-block">
                     <ng-container *ngIf="quantities[product.barcode] > 0">
@@ -184,7 +181,7 @@
             </div>
           </ng-container>
           
-          <!-- Generate Offer Button (for admin/manager) -->
+          <!-- Generate Offer -->
           <div *ngIf="(user?.role === 'admin' || user?.role === 'manager') && selectedSupermarket" class="product-card create-product-card" (click)="onGenerateOffer()">
             <div class="product-image-container">
               <div class="image-wrapper create-product-image">
@@ -227,6 +224,7 @@
                     €{{getOriginalPrice(product)!.toFixed(2)}}
                   </span>
                 </div>
+                <!-- Quantity Controls -->
                 <ng-container *ngIf="!(user?.role === 'admin' || user?.role === 'manager')">
                   <div class="quantity-block">
                     <ng-container *ngIf="quantities[product.barcode] > 0">
@@ -277,7 +275,7 @@
           </div>
         </div>
 
-        <!-- History Section -->
+        <!-- History/Cart Section -->
         <div class="section history-section" *ngIf="!(user?.role === 'admin' || user?.role === 'manager') && ((products && products.length > 0) || (offerProducts && offerProducts.length > 0))">
           <div class="history-header">
             <div class="header-content">
@@ -293,7 +291,6 @@
               </ion-button>
             </div>
           </div>
-          <!-- History/Cart Content -->
           <div class="history-list-container">
             <div class="history-list" *ngIf="viewContent.length > 0; else noContent">
               <div *ngFor="let item of viewContent" class="history-item" [class.unavailable]="isHistoryView && !isProductAvailable(item)">
@@ -313,6 +310,7 @@
                     <span class="current-price">€{{isHistoryView ? item.total_price.toFixed(2) : (item.price * item.quantity).toFixed(2)}}</span>
                     <p *ngIf="isHistoryView" class="purchase-date">{{ formatPurchaseDate(item.purchase_date) }}</p>
                   </div>
+                  <!-- Quantity Controls -->
                   <ng-container *ngIf="!isHistoryView || isProductAvailable(item)">
                     <ng-container *ngIf="(quantities[item.product_barcode || item.barcode] || 0) > 0; else addButton">
                       <div class="quantity-block">
@@ -364,8 +362,8 @@
                   </div>
                 </div>
               </div>
-              
-              <!-- Summary Row -->
+
+              <!-- GoTo Section -->
               <div class="summary-row" *ngIf="viewContent.length > 0">
                 <ion-button *ngIf="isHistoryView" fill="clear" [routerLink]="['/home/ordini']" class="see-more-button">
                   Vedi tutti gli ordini
@@ -398,21 +396,21 @@
       
 
     </div>
-    <!-- EMPTY -->
+    <!-- Empty Supermarket -->
     <div *ngIf="!selectedSupermarket && !isLoading" class="empty-state">
       <ion-icon name="storefront" class="empty-icon"></ion-icon>
       <h3>Seleziona un supermercato per iniziare</h3>
       <p>Scegli un supermercato dal menu sopra per visualizzare prodotti e offerte</p>
     </div>
-    <!-- EMPTY PRODUCTS -->
+    <!-- Empty Products -->
     <div *ngIf="selectedSupermarket && !isLoading && filteredProducts.length === 0 && offerProducts.length === 0 && !(user?.role === 'admin' || user?.role === 'manager')" class="empty-state">
       <ion-icon name="cube" class="empty-icon"></ion-icon>
       <h3>Nessun prodotto presente</h3>
       <p>Questo supermercato non ha prodotti disponibili</p>
     </div>
   </div>
-  
-  <!-- Custom Alert for Offer Generation -->
+
+  <!-- Alert Section -->
   <div class="custom-alert-backdrop" [class.show]="showCustomAlert" (click)="closeAlert()">
     <div class="custom-alert" [class.show]="showCustomAlert" [class.success]="alertType === 'success'" [class.error]="alertType === 'error'" (click)="$event.stopPropagation()">
       <div class="alert-header">

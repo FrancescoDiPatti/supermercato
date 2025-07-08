@@ -13,7 +13,6 @@
             </div>
           </div>
         </div>
-        
         <div class="cart-items">
           <ion-item-sliding *ngFor="let item of group.value; trackBy: trackByItem" class="cart-item">
             <ion-item>
@@ -125,7 +124,7 @@
       </div>
     </div>
 
-    <!-- Custom Alert for Offer Generation -->
+    <!-- Alert Section -->
     <div class="custom-alert-backdrop" [class.show]="showCustomAlert" (click)="closeAlert()">
       <div class="custom-alert" [class.show]="showCustomAlert" [class.success]="alertType === 'success'" [class.error]="alertType === 'error'" (click)="$event.stopPropagation()">
         <div class="alert-header">
@@ -150,9 +149,9 @@
         </div>
       </div>
     </div>
-
   </div>
-    <!-- Empty Cart Message displayed full-page centered -->
+
+  <!-- Empty Cart Section -->
   <div *ngIf="cartItems.length === 0" class="empty-cart">
     <div class="empty-illustration">
       <ion-icon name="basket-outline" class="empty-icon"></ion-icon>

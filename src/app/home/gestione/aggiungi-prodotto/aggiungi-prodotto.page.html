@@ -16,14 +16,11 @@
       <h3>Caricamento prodotti...</h3>
       <p>Stiamo recuperando i prodotti disponibili</p>
     </div>
-
-    <!-- Content when not loading -->
     <div *ngIf="!isLoadingProducts">
       <!-- Categories Section -->
       <div class="section categories-section" *ngIf="selectedSupermarket && displayProducts.length > 0">
         <h3>Categorie</h3>
         <div class="categories-container">
-          <!-- "All Categories" Item -->
           <div class="category-item" [class.selected]="selectedCategory === ''" (click)="onCategorySelect('')">
             <div class="category-icon">
               <ion-img src="assets/categories/grocery-cart.png" alt="Tutti" (ionError)="handleImageError($event, 'tutti')">
@@ -31,7 +28,6 @@
             </div>
             <div class="category-name">Tutti</div>
           </div>
-          <!-- Category Items -->
           <div *ngFor="let category of categories" class="category-item" [class.selected]="selectedCategory === category.name" (click)="onCategorySelect(category.name)">
             <div class="category-icon">
               <ion-img [src]="category.icon" [alt]="category.name" (ionError)="handleImageError($event, category.name)">
@@ -43,11 +39,10 @@
         </div>
       </div>
       
-      <!-- Products Section: ora visibile direttamente -->
+      <!-- Products Section -->
       <div class="section products-section" *ngIf="selectedSupermarket && displayProducts.length > 0">
         <h3>Prodotti non ancora inseriti</h3>
         <div class="products-container">
-          <!-- Product Cards -->
           <div *ngFor="let product of displayProducts" class="product-card">
             <div class="product-image-container">
               <div class="image-wrapper">
@@ -58,6 +53,7 @@
               <h4>{{product.name}}</h4>
               <p class="create-description">{{product.description}}</p>
             </div>
+            <!-- Quantity Controls -->
             <div class="quantity-block">
               <ion-fab-button
                 type="button"
@@ -104,7 +100,7 @@
         </div>
       </div>
       
-      <!-- Create Product Section: sempre visibile quando nessun prodotto è disponibile -->
+      <!-- Create Product Section -->
       <div class="section products-section" *ngIf="selectedSupermarket && displayProducts.length === 0">
         <h3>Crea il tuo primo prodotto</h3>
         <div class="products-container">
@@ -139,6 +135,7 @@
             <div class="quantity-display">
               x{{quantities[product.barcode] || 1}}
             </div>
+            <!-- Quantity Controls -->
             <div class="price-container">
               <ion-input
                 class="list-input"
@@ -177,8 +174,7 @@
         </ion-button>
       </div>
       
-      <!-- EMPTY STATES -->
-      <!-- Empty state when no supermarket is selected -->
+      <!-- Empty Supermarket -->
       <div *ngIf="!selectedSupermarket" class="empty-state">
         <ion-icon name="storefront" class="empty-icon"></ion-icon>
         <h3>Nessun supermercato selezionato</h3>
@@ -189,7 +185,7 @@
         </ion-button>
       </div>
       
-      <!-- Empty state when supermarket is selected but no product is selected -->
+      <!-- Empty Product-->
       <div *ngIf="selectedSupermarket && !SelectedProduct" class="empty-state">
         <ion-icon name="cube" class="empty-icon"></ion-icon>
         <h3>Seleziona un prodotto per iniziare</h3>
@@ -197,7 +193,7 @@
       </div>
     </div>
     
-    <!-- Custom Alert -->
+    <!-- Alert Section -->
     <div class="custom-alert-backdrop" [class.show]="showCustomAlert" (click)="closeAlert()">
       <div class="custom-alert" [class.show]="showCustomAlert" [class.success]="alertType === 'success'" [class.error]="alertType === 'error'" (click)="$event.stopPropagation()">
         <div class="alert-header">

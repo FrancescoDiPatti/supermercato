@@ -21,7 +21,7 @@
       
       <ion-card-content>
         <form (ngSubmit)="createSupermarket()" #supermarketForm="ngForm" (click)="onFormClick($event)">
-          <!-- nome -->
+          <!-- Name -->
           <ion-item class="form-item">
             <ion-label position="stacked">Nome Supermercato</ion-label>
             <ion-input 
@@ -37,7 +37,7 @@
               {{supermarket.name.length}}/32
             </ion-text>
           </ion-item>
-          <!-- indirizzo -->
+          <!-- Address -->
           <ion-item class="form-item">
             <ion-label position="stacked">Indirizzo</ion-label>
               <ion-input 
@@ -54,18 +54,16 @@
                 {{supermarket.address.length}}/48
               </ion-text>
           </ion-item>
-          <!-- suggerimenti indirizzo -->
+          <!-- Address Suggestions -->
           <div class="address-section">
-            <!-- Loading search -->
             <div *ngIf="isSearching" class="search-loading">
               <ion-spinner name="dots"></ion-spinner>
               <ion-text>Ricerca in corso...</ion-text>
             </div>
-            <!-- No results found -->
             <div *ngIf="!isSearching && showAddressResults && addressSuggestions.length === 0" class="search-no-results">
               <ion-icon name="close" color="danger"></ion-icon>
               <ion-text>Nessun indirizzo trovato</ion-text>
-            </div>            <!-- Suggerimenti -->
+            </div>
             <ion-list class="search-results-list" *ngIf="!isSearching && addressSuggestions.length > 0">
               <ion-item 
                 *ngFor="let suggestion of addressSuggestions; trackBy: trackByLatLon"
@@ -80,7 +78,7 @@
               </ion-item>
             </ion-list>
           </div>
-          <!-- indirizzo selezionato -->
+          <!-- Selected address -->
           <div *ngIf="selectedLat && selectedLon" class="search-result">
             <ion-item class="result-item">
               <ion-icon name="location" slot="start" color="success"></ion-icon>
@@ -94,7 +92,7 @@
               <ion-icon name="checkmark-circle" slot="end" color="success"></ion-icon>
             </ion-item>
           </div>
-          <!-- seleziona manager (solo admin) -->
+          <!-- Select Manager -->
           <ion-item class="form-item" *ngIf="user.role === 'admin'">
             <ion-label position="stacked">Seleziona Manager</ion-label>
             <ion-input 
@@ -109,14 +107,12 @@
               [disabled]="loadingManagers">
             </ion-input>
           </ion-item>
-          <!-- suggerimenti manager -->
+          <!-- Manager Suggestions -->
           <div class="manager-section" *ngIf="user.role === 'admin'">
-            <!-- No results found -->
             <div *ngIf="showManagerResults && managerSuggestions.length === 0 && managerSearchText.length >= 2" class="search-no-results">
               <ion-icon name="close" color="danger"></ion-icon>
               <ion-text>Nessun manager trovato</ion-text>
             </div>
-            <!-- Suggerimenti -->
             <ion-list class="search-results-list" *ngIf="managerSuggestions.length > 0 && showManagerSuggestions">
               <ion-item 
                 *ngFor="let manager of managerSuggestions; trackBy: trackById"
@@ -132,7 +128,7 @@
             </ion-list>
           </div>
 
-          <!-- manager selezionato -->
+          <!-- Selected Manager -->
           <div *ngIf="selectedManager && user.role === 'admin'" class="search-result">
             <ion-item class="result-item">
               <ion-icon name="person" slot="start" color="success"></ion-icon>
@@ -146,10 +142,10 @@
               <ion-icon name="checkmark-circle" slot="end" color="success"></ion-icon>
             </ion-item>
           </div>
-          <!-- bottoni -->
-          <div class="submit-section">            
-            <ion-button 
-              expand="block" 
+          <!-- Submit Section -->
+          <div class="submit-section">
+            <ion-button
+              expand="block"
               type="submit"
               color="primary"
               class="submit-button"
@@ -176,7 +172,7 @@
     </ion-card>
   </div>
 
-<!-- alert -->
+<!-- Alert Section -->
 <div class="custom-alert-backdrop" [class.show]="showCustomAlert" (click)="closeAlert()">
   <div class="custom-alert" [class.show]="showCustomAlert" [class.success]="alertType === 'success'" [class.error]="alertType === 'error'" (click)="$event.stopPropagation()">
     <div class="alert-header">
@@ -201,5 +197,4 @@
     </div>
   </div>
 </div>
-
 </ion-content>

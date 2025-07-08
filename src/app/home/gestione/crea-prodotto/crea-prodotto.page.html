@@ -20,7 +20,7 @@
       
       <ion-card-content>        
         <form #productForm="ngForm" (click)="onFormClick($event)">
-          <!-- Ricerca OpenFoodFacts -->
+          <!-- Search Section -->
           <div class="search-section">                       
             <div class="search-container">
               <div class="search-input-container" style="position: relative;">
@@ -41,12 +41,10 @@
                   style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); width: 24px; height: 24px; background: transparent; border: none; cursor: pointer; z-index: 10;">
                 </button>
               </div>
-              <!-- Loading search -->
               <div *ngIf="isSearching" class="search-loading">
                 <ion-spinner name="dots"></ion-spinner>
                 <ion-text>Ricerca in corso...</ion-text>
               </div>
-              <!-- No results found -->
               <div *ngIf="!isSearching && showSearchResults && searchResults.length === 0" class="search-no-results">
                 <ion-icon name="close" color="danger"></ion-icon>
                 <ion-text>Nessun prodotto trovato per "{{searchQuery}}"</ion-text>
@@ -78,7 +76,7 @@
               </ion-item>
             </ion-list>
           </div>
-          <!-- Selected product info -->
+          <!-- Selected product Section -->
           <div class="selected-product" *ngIf="selectedOpenFoodProduct">
             <ion-card class="product-preview">
               <ion-card-header>
@@ -112,7 +110,7 @@
             <div class="section-header">
               <h3>Informazioni Prodotto</h3>
             </div>
-            <!-- Nome -->
+            <!-- Name -->
              <ion-item class="form-item">
               <ion-label position="stacked">Nome Prodotto</ion-label>
               <ion-input 
@@ -145,7 +143,7 @@
                 {{product.barcode.length}}/13
               </ion-text>
             </ion-item>
-            <!-- Descrizione -->
+            <!-- Description -->
             <ion-item class="form-item">
               <ion-label position="stacked">Descrizione Breve</ion-label>
               <ion-input
@@ -163,6 +161,7 @@
               </ion-text>
             </ion-item>
           </div>
+
           <!-- Category selection -->
           <div class="category-section">
             <ion-text color="medium">
@@ -204,6 +203,7 @@
       </ion-card-content>
     </ion-card>
   </div>
+
   <!-- Rate Limit Alert -->
   <div class="rate-limit-alert" *ngIf="showRateLimitAlert">
     <ion-card class="rate-limit-card">
@@ -221,7 +221,8 @@
       </ion-card-content>
     </ion-card>
   </div>
-  <!-- Custom Alert -->
+
+  <!-- Alert Section -->
   <div class="custom-alert-backdrop" [class.show]="showCustomAlert" (click)="closeAlert()">
     <div class="custom-alert" [class.show]="showCustomAlert" [class.success]="alertType === 'success'" [class.error]="alertType === 'error'" (click)="$event.stopPropagation()">
       <div class="alert-header">

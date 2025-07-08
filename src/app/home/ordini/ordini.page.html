@@ -57,13 +57,11 @@
         </div>
       </div>
     </div>
-    <!-- Loading Spinner -->
     <div *ngIf="isLoading" class="loading-container">
       <ion-spinner name="circular"></ion-spinner>
       <p>Caricamento ordini...</p>
     </div>
 
-    <!-- Orders by Date and Supermarket -->
     <div class="orders-sections" *ngIf="!isLoading && groupedOrders.length > 0">
       <!-- Summary Header -->
       <div class="orders-summary">
@@ -90,6 +88,7 @@
         </div>
       </div>
 
+      <!-- Orders Section -->
       <div class="order-group" *ngFor="let group of groupedOrders; trackBy: trackByGroup">
         <div class="order-group-header">
           <div class="header-content">
@@ -134,7 +133,7 @@
       </div>
     </div>
 
-    <!-- Empty Orders Message -->
+    <!-- Empty Order -->
     <div *ngIf="!isLoading && groupedOrders.length === 0" class="empty-orders">
       <div class="empty-illustration">
         <ion-icon name="basket-outline" class="empty-icon"></ion-icon>

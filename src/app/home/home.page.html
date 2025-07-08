@@ -6,7 +6,9 @@
           <img src="assets/logo/logo.png" alt="Logo" class="menu-logo">
         </div>
       </ion-toolbar>
-    </ion-header>    
+    </ion-header>
+    
+    <!-- Menu' Selection -->
     <ion-content class="ion-padding menu-content">
       <div *ngIf="currentUser$ | async as user" class="menu-wrapper">
 
@@ -69,6 +71,7 @@
       </div>
     </ion-content>
   </ion-menu>  
+
   <div class="ion-page" id="main">    
     <ion-header>      
       <ion-toolbar>
@@ -76,11 +79,12 @@
           <ion-menu-button class="menu-button"></ion-menu-button>
         </ion-buttons>
         
-        <!-- Logo shown when search is not available -->
+        <!-- Logo Section -->
         <div class="toolbar-logo-container" *ngIf="!currentPlaceholder">
           <img src="assets/logo/logo.png" alt="Logo" class="toolbar-logo">
         </div>
-        
+
+        <!-- Search Section -->
         <div class="search-container" *ngIf="currentPlaceholder">
           <div class="search-wrapper">            
             <ion-searchbar
@@ -101,6 +105,7 @@
           </div>
         </div>
 
+        <!-- Cart Section -->
         <ion-buttons slot="end" *ngIf="shouldShowCartIcon$ | async">
           <ion-button (click)="goToCart()" class="cart-button">
             <ion-icon name="cart-outline"></ion-icon>
@@ -113,7 +118,12 @@
     <ion-content>
       <ion-text color="danger" *ngIf="errorMsg">{{ errorMsg }}</ion-text>
       <router-outlet></router-outlet>
-    </ion-content>    <div class="glass-overlay" [class.active]="showOverlay" *ngIf="showOverlay && currentPlaceholder"></div>    <div class="floating-search-results" [class.show]="showResults || isSearching" *ngIf="(showResults || isSearching) && currentPlaceholder">      <div class="search-loading" *ngIf="isSearching">
+    </ion-content>
+
+    <!-- Search Result Section -->
+    <div class="glass-overlay" [class.active]="showOverlay" *ngIf="showOverlay && currentPlaceholder"></div>
+    <div class="floating-search-results" [class.show]="showResults || isSearching" *ngIf="(showResults || isSearching) && currentPlaceholder">
+      <div class="search-loading" *ngIf="isSearching">
         <div class="loading-container">
           <div class="loading-spinner">
             <div class="spinner"></div>
