@@ -259,7 +259,7 @@ export class MapService {
   private createMarkerIcon(L: any): any {
     return L.icon({
       iconUrl: 'assets/markers/marker-icon.png',
-      iconSize: [32, 32],
+      iconSize: [22, 32],
       iconAnchor: [16, 32],
       popupAnchor: [0, -32]
     });
